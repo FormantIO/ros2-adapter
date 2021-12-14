@@ -3,23 +3,23 @@
 For a full list of Formant telemetry types, see: https://formant.readme.io/docs/how-telemetry-streams-work
 
 #### Basic datapoints
-- [x] Numeric (UInt, Int, and Float types)
-- [x] Text (String, Char)
-- [x] Bitset (Bool)
-- [x] Location (NavSatFix)
-- [x] Battery (Battery)
+- Numeric (UInt, Int, and Float types) :heavy_check_mark:
+- Text (String, Char) :heavy_check_mark:
+- Bitset (Bool) :heavy_check_mark:
+- Location (NavSatFix) :heavy_check_mark:
+- Battery (Battery) :heavy_check_mark:
 
 All other input types will be ingested as JSON.
 
 #### Input from multiple fields
-- [x] Bitset (multiple Bool inputs)
-- [x] Numericset (multiple UInt, Int, or Float inputs)
+- Bitset (multiple Bool inputs) :heavy_check_mark:
+- Numericset (multiple UInt, Int, or Float inputs) :heavy_check_mark:
 
 #### Rich datapoints
-- [x] Point Clouds (PointCloud2, LaserScan)
-- [x] Images and Video (CompressedImage)
-- [] Localization
-- [] Transform Tree
+- Point Clouds (PointCloud2, LaserScan) :heavy_check_mark:
+- Images and Video (CompressedImage) :heavy_check_mark:
+- Localization (Map, Odometry, Path, etc.) TODO 
+- Transform Tree (/tf, /tf_static) TODO
 
 ### Configuring the ROS2 Adapter
 
