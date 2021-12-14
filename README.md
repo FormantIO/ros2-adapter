@@ -2,6 +2,8 @@
 
 For a full list of Formant telemetry types, see: https://formant.readme.io/docs/how-telemetry-streams-work
 
+List of what is currently supported by the Formant ROS2 Adapter:
+
 #### Basic datapoints
 - Numeric (UInt, Int, and Float types) :heavy_check_mark:
 - Text (String, Char) :heavy_check_mark:
