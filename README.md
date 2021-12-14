@@ -45,3 +45,15 @@ Add a file `config.json` that contains each ROS topic name to ingest as telemetr
     ]
 }
 ```
+
+Topics will automatically be ingested as their corresponding Formant type:
+
+| ROS topic type                               | Formant datapoint type |
+|----------------------------------------------|------------------------|
+| Bool, message with bool-valued message paths | bitset                 |
+| Message with numeric-valued message paths    | numeric set            |
+| Char, String                                 | text                   |
+| Float, Int, Uint                             | numeric                |
+| NavSatFix                                    | location               |
+| LaserScan, PointCloud2                       | point cloud            |
+| CompressedImage                              | image, video           |
