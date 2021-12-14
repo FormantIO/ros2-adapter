@@ -3,23 +3,23 @@
 For a full list of Formant telemetry types, see: https://formant.readme.io/docs/how-telemetry-streams-work
 
 #### Basic datapoints
-[x] Numeric (UInt, Int, and Float types)
-[x] Text (String, Char)
-[x] Bitset (Bool)
-[x] Location (NavSatFix)
-[x] Battery (Battery)
+- [x] Numeric (UInt, Int, and Float types)
+- [x] Text (String, Char)
+- [x] Bitset (Bool)
+- [x] Location (NavSatFix)
+- [x] Battery (Battery)
 
 All other input types will be ingested as JSON.
 
 #### Input from multiple fields
-[x] Bitset (multiple Bool inputs)
-[x] Numericset (multiple UInt, Int, or Float inputs)
+- [x] Bitset (multiple Bool inputs)
+- [x] Numericset (multiple UInt, Int, or Float inputs)
 
 #### Rich datapoints
-[x] Point Clouds (PointCloud2, LaserScan)
-[x] Images and Video (CompressedImage)
-[] Localization
-[] Transform Tree
+- [x] Point Clouds (PointCloud2, LaserScan)
+- [x] Images and Video (CompressedImage)
+- [] Localization
+- [] Transform Tree
 
 ### Configuring the ROS2 Adapter
 
