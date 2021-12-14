@@ -27,7 +27,7 @@ All other input types will be ingested as JSON.
 
 ### Basic configuration
 
-Add a file `config.json` that contains each ROS topic name to ingest as telemetry under the "streams" key. e.g.
+Add a file `config.json` in the root directory that contains each ROS topic name to ingest as telemetry under the "streams" key. e.g.
 
 ```
 {
@@ -93,3 +93,6 @@ By default, stream name is automatically configured from the topic. (e.g. "/base
 
 Setting the `"formantType"` to `"numericset"` or `"bitset"` and specifying multiple values in `"messagePaths"` will ingest multiple fields from a given ROS topic into a single, multi-valued datapoint in Formant.
 
+## Running the adapter
+
+The repo can either be zipped and configured as an adapter in Formant with "Exec command" `./start.sh`, or can be run manually.
