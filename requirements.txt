@@ -1,2 +1,3 @@
 formant
 python-lzf
+numpy
