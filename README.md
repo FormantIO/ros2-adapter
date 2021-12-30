@@ -43,7 +43,7 @@ Add a file `config.json` in the root directory that contains each ROS topic name
         },
         {
             "topic": "/base_scan",
-            "stream": "Single-channel lidar scan"
+            "stream": "scan"
         }
     ]
 }
