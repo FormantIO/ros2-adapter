@@ -272,4 +272,7 @@ class Adapter:
 
 
 if __name__ == "__main__":
-    Adapter()
+    try:
+        Adapter()
+    except KeyboardInterrupt:
+        exit()
