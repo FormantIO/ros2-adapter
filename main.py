@@ -25,6 +25,7 @@ from sensor_msgs.msg import (
     BatteryState,
     LaserScan,
     PointCloud2,
+    Image,
     CompressedImage,
 )
 from formant.sdk.agent.v1 import Client as FormantAgentClient
@@ -178,6 +179,13 @@ class Adapter:
                         voltage=message.voltage,
                         current=message.current,
                         charge=message.charge,
+                    )
+                elif type(message) == Image:
+                    print(
+                        "Error ingesting "
+                        + stream
+                        + ": "
+                        + "Raw image streams are currently unsupported. Please use CompressedImage."
                     )
                 elif type(message) == CompressedImage:
                     if "jpg" in message.format or "jpeg" in message.format:
