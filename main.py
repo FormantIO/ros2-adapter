@@ -233,11 +233,11 @@ class Adapter:
         """
         new_topic_to_type = {}  # type: Dict[str, Any]
 
-        for node_name in self.node.get_node_names():
+        for node_name, node_namespace in self.node.get_node_names_and_namespaces():
             for (
                 topic_name,
                 topic_types,
-            ) in self.node.get_publisher_names_and_types_by_node(node_name, ""):
+            ) in self.node.get_publisher_names_and_types_by_node(node_name, node_namespace):
                 if topic_name not in self.get_configured_topics():
                     continue
                 if len(topic_types) == 0:
