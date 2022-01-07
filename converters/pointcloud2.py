@@ -36,7 +36,7 @@ def ros_pointcloud2_to_formant_pointcloud(message: PointCloud2) -> PointCloud:
         elif field.name == "z":
             z_offset = field.offset
             z_size = 8 if field.datatype == DOUBLE_DATA_TYPE else 4
-        elif field.name == "intensity":
+        elif field.name == "intensity" or "rgb":
             intensity_offset = field.offset
             intensity_size = 8 if field.datatype == DOUBLE_DATA_TYPE else 4
 
@@ -65,7 +65,11 @@ def ros_pointcloud2_to_formant_pointcloud(message: PointCloud2) -> PointCloud:
     if intensity_offset is not None:
         intensities = np.zeros((count, intensity_size), dtype="b")
 
-    size = 4 * x_size
+    if message.point_step:
+        size = message.point_step
+    else:
+        size = 4 * x_size
+
     data = np.reshape(np.array(message.data, dtype="b"), (count, size),)
 
     xs = data[:, x_offset : x_offset + x_size]

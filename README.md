@@ -96,3 +96,9 @@ Setting the `"formantType"` to `"numericset"` or `"bitset"` and specifying multi
 ## Running the adapter
 
 The repo can either be zipped and configured as an adapter in Formant with "Exec command" `./start.sh`, or can be run manually.
+
+Be sure to update this part of the `start.sh` script to source the proper ROS2 distribution:
+```
+source /opt/ros/eloquent/setup.bash  # this adapter is meant to work with any ROS2 distribution eloquent+
+# if you use custom messages, source your workspace here
+```

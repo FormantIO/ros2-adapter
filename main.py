@@ -5,6 +5,7 @@ import json
 import importlib
 
 import rclpy
+from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import (
     Bool,
     Char,
@@ -30,17 +31,15 @@ from sensor_msgs.msg import (
 )
 from formant.sdk.agent.v1 import Client as FormantAgentClient
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
+import grpc
 
 from converters.laserscan import ros_laserscan_to_formant_pointcloud
 from converters.pointcloud2 import ros_pointcloud2_to_formant_pointcloud
-
 from message_utils.utils import (
     get_message_type_from_string,
     message_to_json,
     get_message_path_value,
 )
-
-QOS_PROFILE = 10
 
 
 class Adapter:
@@ -209,7 +208,10 @@ class Adapter:
                                 timestamp=int(time.time() * 1000),
                             )
                         )
+                    except grpc.RpcError as e:
+                        return
                     except Exception as e:
+                        print("Error ingesting " + stream + ": " + str(e))
                         return
                 elif type(message) == PointCloud2:
                     try:
@@ -222,7 +224,10 @@ class Adapter:
                                 timestamp=int(time.time() * 1000),
                             )
                         )
+                    except grpc.RpcError as e:
+                        return
                     except Exception as e:
+                        print("Error ingesting " + stream + ": " + str(e))
                         return
                 else:  # Ingest any messages without a direct mapping to a Formant type as JSON
                     self.fclient.post_json(stream, message_to_json(message))
@@ -237,7 +242,9 @@ class Adapter:
             for (
                 topic_name,
                 topic_types,
-            ) in self.node.get_publisher_names_and_types_by_node(node_name, node_namespace):
+            ) in self.node.get_publisher_names_and_types_by_node(
+                node_name, node_namespace
+            ):
                 if topic_name not in self.get_configured_topics():
                     continue
                 if len(topic_types) == 0:
@@ -261,7 +268,7 @@ class Adapter:
                 message_type,
                 topic,
                 lambda m, t=topic: self.message_callback(t, m),
-                QOS_PROFILE,
+                qos_profile_sensor_data,
             )
 
         # Modify any existing subscriptions whose type has changed
@@ -275,7 +282,7 @@ class Adapter:
                     latest_message_type,
                     topic,
                     lambda m, t=topic: self.message_callback(t, m),
-                    QOS_PROFILE,
+                    qos_profile_sensor_data,
                 )
 
 
