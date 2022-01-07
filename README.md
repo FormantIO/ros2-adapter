@@ -74,6 +74,7 @@ By default, stream name is automatically configured from the topic. (e.g. "/base
             "topic": "/battery",
             "stream": "Battery Voltage"
             "messagePath": "voltage"
+            "rate": 1.0
         },
         {
             "formantType": "numericset",
@@ -81,6 +82,7 @@ By default, stream name is automatically configured from the topic. (e.g. "/base
             "stream": "Battery Set"
             "messagePaths": ["voltage", "current", "charge"],
             "units": ["volts", "A", "Ah"]
+            "rate": 0.5
         },
         {
             "formantType": "bitset",
@@ -92,6 +94,8 @@ By default, stream name is automatically configured from the topic. (e.g. "/base
 ```
 
 Setting the `"formantType"` to `"numericset"` or `"bitset"` and specifying multiple values in `"messagePaths"` will ingest multiple fields from a given ROS topic into a single, multi-valued datapoint in Formant.
+
+Setting the `"rate"` to a value in `Hz` will allow you to throttle a topic that may be publishing faster than you want it to be ingested on Formant.
 
 ## Running the adapter
 
