@@ -1,6 +1,6 @@
 #!/bin/bash
+# this adapter is meant to work with any ROS2 distribution eloquent+, soruce before use.
+# if you use custom messages, source your workspace before use.
 
-source /opt/ros/galactic/setup.bash  # this adapter is meant to work with any ROS2 distribution eloquent+
-# if you use custom messages, source your workspace here
 python3 -m pip install -r requirements.txt
 python3 main.py
