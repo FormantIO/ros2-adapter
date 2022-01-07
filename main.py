@@ -31,10 +31,10 @@ from sensor_msgs.msg import (
 )
 from formant.sdk.agent.v1 import Client as FormantAgentClient
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
+import grpc
 
 from converters.laserscan import ros_laserscan_to_formant_pointcloud
 from converters.pointcloud2 import ros_pointcloud2_to_formant_pointcloud
-
 from message_utils.utils import (
     get_message_type_from_string,
     message_to_json,
@@ -208,6 +208,8 @@ class Adapter:
                                 timestamp=int(time.time() * 1000),
                             )
                         )
+                    except grpc.RpcError as e:
+                        return
                     except Exception as e:
                         print("Error ingesting " + stream + ": " + str(e))
                         return
@@ -222,6 +224,8 @@ class Adapter:
                                 timestamp=int(time.time() * 1000),
                             )
                         )
+                    except grpc.RpcError as e:
+                        return
                     except Exception as e:
                         print("Error ingesting " + stream + ": " + str(e))
                         return
