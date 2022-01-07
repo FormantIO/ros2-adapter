@@ -1,3 +1,7 @@
+from formant.sdk.agent.v1 import Client as FormantAgentClient
+from formant.protos.model.v1.datapoint_pb2 import Datapoint
+import grpc
+
 from typing import List, Dict
 import time
 import array
@@ -29,9 +33,6 @@ from sensor_msgs.msg import (
     Image,
     CompressedImage,
 )
-from formant.sdk.agent.v1 import Client as FormantAgentClient
-from formant.protos.model.v1.datapoint_pb2 import Datapoint
-import grpc
 
 from converters.laserscan import ros_laserscan_to_formant_pointcloud
 from converters.pointcloud2 import ros_pointcloud2_to_formant_pointcloud
