@@ -98,15 +98,6 @@ class Adapter:
             numericset = None
             rate = None
 
-            if "stream" in config:
-                # If the stream is configured in config.json,
-                # use that name directly.
-                stream = config["stream"]
-            else:
-                # Otherwise, generate a name from the topic name.
-                # e.g. "/rover/cmd_vel" -> "rover.cmd_vel"
-                stream = topic[1:].replace("/", ".")
-
             if "rate" in config:
                 # Records time of last publish to Formant.
                 if not topic in self.rate_control_for_topics.keys():
@@ -121,6 +112,15 @@ class Adapter:
                         self.rate_control_for_topics[topic] = time.time()
                     else:
                         continue
+
+            if "stream" in config:
+                # If the stream is configured in config.json,
+                # use that name directly.
+                stream = config["stream"]
+            else:
+                # Otherwise, generate a name from the topic name.
+                # e.g. "/rover/cmd_vel" -> "rover.cmd_vel"
+                stream = topic[1:].replace("/", ".")
 
             # handle input types with multiple message paths
             if "formantType" in config and config["formantType"] == "bitset":
