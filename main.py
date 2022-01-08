@@ -63,6 +63,9 @@ class Adapter:
             {}
         )  # type: Dict[str, rclpy.subscription.Subscription]
 
+        # Keeps track of last time published to control publish rate to Formant.
+        self.rate_control_for_topics = {}  # type: Dict[str, float]
+
         with open("./config.json") as f:
             self.config = json.loads(f.read())
 
@@ -92,6 +95,7 @@ class Adapter:
             message_path_values = None
             bitset = None
             numericset = None
+            rate = None
 
             if "stream" in config:
                 # If the stream is configured in config.json,
@@ -101,6 +105,21 @@ class Adapter:
                 # Otherwise, generate a name from the topic name.
                 # e.g. "/rover/cmd_vel" -> "rover.cmd_vel"
                 stream = topic[1:].replace("/", ".")
+
+            if "rate" in config:
+                # Records time of last publish to Formant.
+                if not topic in self.rate_control_for_topics.keys():
+                    # Records time of first publish to Formant for this topic.
+                    self.rate_control_for_topics[topic] = time.time()
+                else:
+                    # Rate is in hz
+                    rate = config["rate"]
+                    time_to_wait = 1.0 / rate
+                    time_since_last_publish = time.time() - self.rate_control_for_topics[topic]
+                    if time_to_wait <= time_since_last_publish:
+                        self.rate_control_for_topics[topic] = time.time()
+                    else:
+                        continue
 
             # handle input types with multiple message paths
             if "formantType" in config and config["formantType"] == "bitset":
