@@ -8,6 +8,10 @@ import array
 import json
 import importlib
 
+
+from formant.sdk.agent.v1 import Client as FormantAgentClient
+from formant.protos.model.v1.datapoint_pb2 import Datapoint
+import grpc
 import rclpy
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import (
@@ -33,7 +37,6 @@ from sensor_msgs.msg import (
     Image,
     CompressedImage,
 )
-
 from converters.laserscan import ros_laserscan_to_formant_pointcloud
 from converters.pointcloud2 import ros_pointcloud2_to_formant_pointcloud
 from message_utils.utils import (
