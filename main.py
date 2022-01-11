@@ -1,7 +1,3 @@
-from formant.sdk.agent.v1 import Client as FormantAgentClient
-from formant.protos.model.v1.datapoint_pb2 import Datapoint
-import grpc
-
 from typing import List, Dict
 import time
 import array
