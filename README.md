@@ -123,6 +123,8 @@ Choose where you would like to have your workspace if you do not already have on
 
 `colcon build` OR `colcon build --packages-select formant_ros2_adapter` if you have other ROS2 packages in your workspace that you don't want to build concurrently.
 
+NOTE: If you have custom messages that are not a part of the same workspace as this ros2-adapter, then source them at this point.
+
 `source install/setup.bash`
 
 `ros2 run formant_ros2_adapter main.py`
