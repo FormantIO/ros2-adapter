@@ -3,4 +3,5 @@
 # if you use custom messages, source your workspace before use.
 
 python3 -m pip install -r requirements.txt
+cd formant_ros2_adapter/scripts/
 python3 main.py
