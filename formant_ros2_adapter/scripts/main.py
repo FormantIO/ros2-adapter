@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 from typing import List, Dict
 import time
 import array
@@ -68,8 +69,12 @@ class Adapter:
         # Keeps track of last time published to control publish rate to Formant.
         self.rate_control_for_topics = {}  # type: Dict[str, float]
 
-        with open("./config.json") as f:
+        with open(f"{self.get_current_directory()}/config.json") as f:
             self.config = json.loads(f.read())
+
+        # For console output acknowledgement that the script has started running even if it
+        # hasn't yet established communication with the Formant agent.
+        print("INFO: `main.py` script has started running.")
 
         while rclpy.ok():
             self.update_types()
@@ -78,6 +83,9 @@ class Adapter:
 
         self.node.destroy_node()
         rclpy.shutdown()
+
+    def get_current_directory(self):
+        return os.path.dirname(os.path.realpath(__file__))
 
     def get_configured_topics(self):
         return [stream["topic"] for stream in self.config["streams"]]

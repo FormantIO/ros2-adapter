@@ -27,7 +27,7 @@ All other input types will be ingested as JSON.
 
 ### Basic configuration
 
-Add a file `config.json` in the root directory that contains each ROS topic name to ingest as telemetry under the "streams" key. e.g.
+Add a file `config.json` in the `formant_ros2_adapter/scripts` directory that contains each ROS topic name to ingest as telemetry under the "streams" key. e.g.
 
 ```
 {

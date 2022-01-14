@@ -10,19 +10,25 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclpy REQUIRED)
 
-install(DIRECTORY src DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY scripts/converters DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY scripts/message_utils DESTINATION lib/${PROJECT_NAME})
+
+ament_python_install_package(scripts)
+
+execute_process (
+    COMMAND bash -c "python3 -m pip install -r ../../src/ros2-adapter/requirements.txt"
+)
 
 #Install scripts
 install(PROGRAMS
-  src/main.py
+  scripts/main.py
+  scripts/config.json
   DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # uncomment the line when a copyright and license is not present in all source files
-  #set(ament_cmake_copyright_FOUND TRUE)
+  set(ament_cmake_copyright_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
 
