@@ -3,6 +3,23 @@ import importlib
 import array
 import json
 
+import numpy as np
+
+
+NUMPY_DTYPE_TO_BUILTIN_MAPPING = {
+    np.uint8: int,
+    np.uint16: int,
+    np.uint32: int,
+    np.uint64: int,
+    np.int8: int,
+    np.int16: int,
+    np.int32: int,
+    np.int64: int,
+    np.float32: float,
+    np.float64: float,
+    np.bool: bool,
+}
+
 
 def get_message_type_from_string(message_type_string: str):
     """
@@ -19,9 +36,13 @@ def get_message_type_from_string(message_type_string: str):
 
 
 def parse(m):
-    if type(m) in [bool, str, int, float, bytes]:
+    if type(m) in [bool, str, int, float]:
         return m
-    elif type(m) in [list, array.array]:
+    elif type(m) == bytes:
+        return str(m)
+    elif type(m) in NUMPY_DTYPE_TO_BUILTIN_MAPPING.keys():
+        return NUMPY_DTYPE_TO_BUILTIN_MAPPING[type(m)](m)
+    elif type(m) in [list, array.array, np.ndarray]:
         return [parse(o) for o in m]
     else:
         return {k: parse(getattr(m, k)) for k in m._fields_and_field_types}
