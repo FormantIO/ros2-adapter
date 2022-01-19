@@ -267,21 +267,18 @@ class Adapter:
         """
         new_topic_to_type = {}  # type: Dict[str, Any]
 
-        for node_name, node_namespace in self.node.get_node_names_and_namespaces():
-            for (
-                topic_name,
-                topic_types,
-            ) in self.node.get_publisher_names_and_types_by_node(
-                node_name, node_namespace
-            ):
-                if topic_name not in self.get_configured_topics():
-                    continue
-                if len(topic_types) == 0:
-                    continue
-                # assumes each topic has only one type
-                message_type = get_message_type_from_string(topic_types[0])
-                if message_type is not None:
-                    new_topic_to_type[topic_name] = message_type
+        for (
+            topic_name,
+            topic_types,
+        ) in self.node.get_topic_names_and_types():
+            if topic_name not in self.get_configured_topics():
+                continue
+            if len(topic_types) == 0:
+                continue
+            # assumes each topic has only one type
+            message_type = get_message_type_from_string(topic_types[0])
+            if message_type is not None:
+                new_topic_to_type[topic_name] = message_type
 
         self.topic_to_type = new_topic_to_type
 
