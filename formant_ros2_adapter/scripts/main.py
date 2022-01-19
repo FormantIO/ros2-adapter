@@ -69,7 +69,8 @@ class Adapter:
         # Keeps track of last time published to control publish rate to Formant.
         self.rate_control_for_topics = {}  # type: Dict[str, float]
 
-        with open(f"{self.get_current_directory()}/config.json") as f:
+        current_directory = os.path.dirname(os.path.realpath(__file__))
+        with open(f"{current_directory}/config.json") as f:
             self.config = json.loads(f.read())
 
         # For console output acknowledgement that the script has started running even if it
@@ -83,9 +84,6 @@ class Adapter:
 
         self.node.destroy_node()
         rclpy.shutdown()
-
-    def get_current_directory(self):
-        return os.path.dirname(os.path.realpath(__file__))
 
     def get_configured_topics(self):
         return [stream["topic"] for stream in self.config["streams"]]
@@ -116,7 +114,9 @@ class Adapter:
                     # Rate is in hz
                     rate = config["rate"]
                     time_to_wait = 1.0 / rate
-                    time_since_last_publish = time.time() - self.rate_control_for_topics[topic]
+                    time_since_last_publish = (
+                        time.time() - self.rate_control_for_topics[topic]
+                    )
                     if time_to_wait <= time_since_last_publish:
                         self.rate_control_for_topics[topic] = time.time()
                     else:
@@ -267,10 +267,7 @@ class Adapter:
         """
         new_topic_to_type = {}  # type: Dict[str, Any]
 
-        for (
-            topic_name,
-            topic_types,
-        ) in self.node.get_topic_names_and_types():
+        for (topic_name, topic_types) in self.node.get_topic_names_and_types():
             if topic_name not in self.get_configured_topics():
                 continue
             if len(topic_types) == 0:
