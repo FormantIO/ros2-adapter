@@ -27,7 +27,7 @@ All other input types will be ingested as JSON.
 
 ### Basic configuration
 
-Add a file `config.json` in the root directory that contains each ROS topic name to ingest as telemetry under the "streams" key. e.g.
+Edit the file `config.json` in the `formant_ros2_adapter/scripts` directory so that it contains each ROS topic name to ingest as telemetry under the "streams" key. e.g.
 
 ```
 {
@@ -99,6 +99,7 @@ Setting the `"rate"` to a value in `Hz` will allow you to throttle a topic that 
 
 ## Running the adapter
 
+### As an Adapter or with the `start.sh` Script
 The repo can either be zipped and configured as an adapter in Formant with "Exec command" `./start.sh`, or can be run manually.
 
 Be sure to update this part of the `start.sh` script to source the proper ROS2 distribution:
@@ -106,3 +107,24 @@ Be sure to update this part of the `start.sh` script to source the proper ROS2 d
 source /opt/ros/eloquent/setup.bash  # this adapter is meant to work with any ROS2 distribution eloquent+
 # if you use custom messages, source your workspace here
 ```
+
+### As a ROS2 Package
+Choose where you would like to have your workspace if you do not already have one created. If one already exists, skip the first command.
+
+`mkdir -p colcon_ws/src`
+
+`cd colcon_ws/src`
+
+`git clone <URL for this Repo>`
+
+`cd ../..`
+
+`source /opt/ros/<Desired Distro>/setup.bash` (this adapter is meant to work with any ROS2 distribution eloquent+)
+
+`colcon build` OR `colcon build --packages-select formant_ros2_adapter` if you have other ROS2 packages in your workspace that you don't want to build concurrently.
+
+NOTE: If you have custom messages that are not a part of the same workspace as this ros2-adapter, then source them at this point.
+
+`source install/setup.bash`
+
+`ros2 run formant_ros2_adapter main.py`

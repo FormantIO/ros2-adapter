@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+import os
 from typing import List, Dict
 import time
 import array
@@ -66,8 +69,12 @@ class Adapter:
         # Keeps track of last time published to control publish rate to Formant.
         self.rate_control_for_topics = {}  # type: Dict[str, float]
 
-        with open("./config.json") as f:
+        with open(f"{self.get_current_directory()}/config.json") as f:
             self.config = json.loads(f.read())
+
+        # For console output acknowledgement that the script has started running even if it
+        # hasn't yet established communication with the Formant agent.
+        print("INFO: `main.py` script has started running.")
 
         while rclpy.ok():
             self.update_types()
@@ -76,6 +83,9 @@ class Adapter:
 
         self.node.destroy_node()
         rclpy.shutdown()
+
+    def get_current_directory(self):
+        return os.path.dirname(os.path.realpath(__file__))
 
     def get_configured_topics(self):
         return [stream["topic"] for stream in self.config["streams"]]
@@ -257,21 +267,18 @@ class Adapter:
         """
         new_topic_to_type = {}  # type: Dict[str, Any]
 
-        for node_name, node_namespace in self.node.get_node_names_and_namespaces():
-            for (
-                topic_name,
-                topic_types,
-            ) in self.node.get_publisher_names_and_types_by_node(
-                node_name, node_namespace
-            ):
-                if topic_name not in self.get_configured_topics():
-                    continue
-                if len(topic_types) == 0:
-                    continue
-                # assumes each topic has only one type
-                message_type = get_message_type_from_string(topic_types[0])
-                if message_type is not None:
-                    new_topic_to_type[topic_name] = message_type
+        for (
+            topic_name,
+            topic_types,
+        ) in self.node.get_topic_names_and_types():
+            if topic_name not in self.get_configured_topics():
+                continue
+            if len(topic_types) == 0:
+                continue
+            # assumes each topic has only one type
+            message_type = get_message_type_from_string(topic_types[0])
+            if message_type is not None:
+                new_topic_to_type[topic_name] = message_type
 
         self.topic_to_type = new_topic_to_type
 
