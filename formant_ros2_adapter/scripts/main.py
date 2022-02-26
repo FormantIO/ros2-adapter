@@ -59,7 +59,7 @@ class Adapter:
         )
 
         rclpy.init()
-        self.node = rclpy.create_node("formant_ros2_bridge")
+        self.node = rclpy.create_node("formant_ros2_adapter")
 
         # Mapping from configured ROS2 topic name to ROS2 message type
         self.topic_to_type = {}  # type: Dict[str, Any]
@@ -68,10 +68,6 @@ class Adapter:
         self.topic_to_subscription = (
             {}
         )  # type: Dict[str, rclpy.subscription.Subscription]
-
-        self.topic_to_publisher = (
-            {}
-        )
 
         # Keeps track of last time published to control publish rate to Formant.
         self.rate_control_for_topics = {}  # type: Dict[str, float]
@@ -85,7 +81,9 @@ class Adapter:
         print("INFO: `main.py` script has started running.")
 
         # Set up teleoperation
-        self.register_control_streams()
+        self.joystick_publisher = None
+        self.button_publishers = {}
+        self.fclient.register_teleop_callback(self.handle_teleop)
 
         while rclpy.ok():
             self.update_types()
@@ -318,43 +316,24 @@ class Adapter:
                     qos_profile_sensor_data,
                 )
 
-    def register_control_streams(self):
-        for control_stream in self.config["control-streams"]:
-            if control_stream["formantType"] == 'twist':
-                self.topic_to_publisher[control_stream["topic"]] = self.node.create_publisher(
-                    Twist, control_stream["topic"], 10
-                )
-            elif control_stream["formantType"] == "bool":
-                self.topic_to_publisher[control_stream["topic"]] = self.node.create_publisher(
-                    Bool, control_stream["topic"], 10
-                )
-
-        print(self.config["control-streams"])
-
-        self.fclient.register_teleop_callback(self.handle_teleop)
-
     def handle_teleop(self, msg):
-        # try:
-        if msg.stream.casefold() == "joystick".casefold():
-            pub = self.topic_to_publisher[
-                list(
-                    filter(
-                        lambda stream: stream['formantType'] == 'twist', self.config["control-streams"]
-                    )
-                )[0]["topic"]
-            ]
+        try:
+            if msg.stream.casefold() == "joystick".casefold():
+                if not self.joystick_publisher:
+                    self.joystick_publisher = self.node.create_publisher(Twist, "/formant/cmd_vel", 10)
+                else:
+                    self.publish_twist(msg.twist, self.joystick_publisher)
 
-            self.publish_twist(msg.twist, pub)
+            elif msg.stream.casefold() == "buttons".casefold():
+                button_topic = "/formant/" + str(msg.bitset.bits[0].key)
 
-        elif msg.stream.casefold() == "buttons".casefold():
-            print(self.topic_to_publisher["/" + str(msg.bitset.bits[0].key)])
-            # pub = self.topic_to_publisher[msg.bitset.bits.key]
+                if not button_topic in self.button_publishers:
+                    self.button_publishers[button_topic] = self.node.create_publisher(Bool, button_topic, 10)
+                else:
+                    self.publish_bool(msg.bitset.bits[0], self.button_publishers[button_topic])
 
-            # print(pub)
-            # self.publish_bool(msg)
-
-        # except Exception as e:
-        #     self.fclient.post_text("adapter.errors", "Error handling teleop: %s" %  str(e))
+        except Exception as e:
+            self.fclient.post_text("adapter.errors", "Error handling teleop: %s" %  str(e))
 
 
     def publish_twist(self, value, publisher):
@@ -368,8 +347,14 @@ class Adapter:
 
         publisher.publish(msg)
 
-    def publish_bool(self, msg):
-        print("publish bool", msg)
+    def publish_bool(self, value, publisher):
+        msg = Bool()
+
+        if value.value:
+            msg.data = True
+        
+        publisher.publish(msg)
+
 
 if __name__ == "__main__":
     try:
