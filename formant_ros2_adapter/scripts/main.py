@@ -36,6 +36,9 @@ from sensor_msgs.msg import (
     Image,
     CompressedImage,
 )
+from geometry_msgs.msg import (
+    Twist
+)
 from converters.laserscan import ros_laserscan_to_formant_pointcloud
 from converters.pointcloud2 import ros_pointcloud2_to_formant_pointcloud
 from message_utils.utils import (
@@ -56,7 +59,7 @@ class Adapter:
         )
 
         rclpy.init()
-        self.node = rclpy.create_node("formant_ros2_bridge")
+        self.node = rclpy.create_node("formant_ros2_adapter")
 
         # Mapping from configured ROS2 topic name to ROS2 message type
         self.topic_to_type = {}  # type: Dict[str, Any]
@@ -76,6 +79,11 @@ class Adapter:
         # For console output acknowledgement that the script has started running even if it
         # hasn't yet established communication with the Formant agent.
         print("INFO: `main.py` script has started running.")
+
+        # Set up teleoperation
+        self.joystick_publisher = None
+        self.button_publishers = {}
+        self.fclient.register_teleop_callback(self.handle_teleop)
 
         while rclpy.ok():
             self.update_types()
@@ -307,6 +315,45 @@ class Adapter:
                     lambda m, t=topic: self.message_callback(t, m),
                     qos_profile_sensor_data,
                 )
+
+    def handle_teleop(self, msg):
+        try:
+            if msg.stream.casefold() == "joystick".casefold():
+                if not self.joystick_publisher:
+                    self.joystick_publisher = self.node.create_publisher(Twist, "/formant/cmd_vel", 10)
+                else:
+                    self.publish_twist(msg.twist, self.joystick_publisher)
+
+            elif msg.stream.casefold() == "buttons".casefold():
+                button_topic = "/formant/" + str(msg.bitset.bits[0].key)
+
+                if not button_topic in self.button_publishers:
+                    self.button_publishers[button_topic] = self.node.create_publisher(Bool, button_topic, 10)
+                else:
+                    self.publish_bool(msg.bitset.bits[0], self.button_publishers[button_topic])
+
+        except Exception as e:
+            self.fclient.post_text("adapter.errors", "Error handling teleop: %s" %  str(e))
+
+
+    def publish_twist(self, value, publisher):
+        msg = Twist()
+        msg.linear.x = value.linear.x
+        msg.linear.y = value.linear.y
+        msg.linear.z = value.linear.z
+        msg.angular.x = value.angular.x
+        msg.angular.y = value.angular.y
+        msg.angular.z = value.angular.z
+
+        publisher.publish(msg)
+
+    def publish_bool(self, value, publisher):
+        msg = Bool()
+
+        if value.value:
+            msg.data = True
+        
+        publisher.publish(msg)
 
 
 if __name__ == "__main__":
