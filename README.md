@@ -128,3 +128,6 @@ NOTE: If you have custom messages that are not a part of the same workspace as t
 `source install/setup.bash`
 
 `ros2 run formant_ros2_adapter main.py`
+
+* NOTE: This is untested with ROS2 Humble
+* NOTE: This is untested with fastdds
