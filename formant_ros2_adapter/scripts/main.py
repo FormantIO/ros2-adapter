@@ -54,36 +54,24 @@ class Adapter:
     """
 
     def __init__(self):
-        self.fclient = FormantAgentClient(
-            ignore_throttled=True, ignore_unavailable=True,
-        )
-
-        rclpy.init()
-        self.node = rclpy.create_node("formant_ros2_adapter")
-
-        # Mapping from configured ROS2 topic name to ROS2 message type
-        self.topic_to_type = {}  # type: Dict[str, Any]
-
-        # Mapping from configured ROS2 topic name to this ROS2 node's subscriber
-        self.topic_to_subscription = (
-            {}
-        )  # type: Dict[str, rclpy.subscription.Subscription]
-
-        # Keeps track of last time published to control publish rate to Formant.
-        self.rate_control_for_topics = {}  # type: Dict[str, float]
-
-        current_directory = os.path.dirname(os.path.realpath(__file__))
-        with open(f"{current_directory}/config.json") as f:
-            self.config = json.loads(f.read())
-
         # For console output acknowledgement that the script has started running even if it
         # hasn't yet established communication with the Formant agent.
         print("INFO: `main.py` script has started running.")
 
-        # Set up teleoperation
-        self.joystick_publisher = None
-        self.button_publishers = {}
+        self.fclient = FormantAgentClient(ignore_throttled=True, ignore_unavailable=True)
+
+        # Pull in configuration from agent or file
+        self.fclient.register_config_update_callback(self.update_adapter_configuration)
+        self.update_adapter_configuration()
+
+        # Connect to ROS2
+        rclpy.init()
+        self.node = rclpy.create_node("formant_ros2_adapter")
+
+        # Set up teleop and command callbacks
         self.fclient.register_teleop_callback(self.handle_teleop)
+        self.fclient.register_command_request_callback(self.handle_command_request)
+        self.fclient.create_event("ROS2 Adapter online", notify=False, severity="info")
 
         while rclpy.ok():
             self.update_types()
@@ -92,6 +80,41 @@ class Adapter:
 
         self.node.destroy_node()
         rclpy.shutdown()
+
+    def update_adapter_configuration(self):
+        # Mapping from configured ROS2 topic name to ROS2 message type
+        # type: Dict[str, Any]
+        self.topic_to_type = {}
+
+        # Mapping from configured ROS2 topic name to this ROS2 node's subscriber
+        # type: Dict[str, rclpy.subscription.Subscription]
+        self.topic_to_subscription = {}
+
+        # Keeps track of last time published to control publish rate to Formant.
+        # type: Dict[str, float]
+        self.rate_control_for_topics = {}  
+
+        # Set up teleoperation
+        self.joystick_publisher = None
+        self.button_publishers = {}
+
+        # Load config from either the agent's json blob or the config.json file
+        try:
+            config_blob = json.loads(self.fclient.get_config_blob_data())
+        except:
+            config_blob = {}
+            
+        if "ros2_adapter_configuration" in config_blob:
+            # Check the json blob for a "ros2_adapter_configuration" section and use it first
+            self.config = config_blob["ros2_adapter_configuration"]
+        else:
+            # Otherwise, load from the config.json file shipped with the adapter
+            current_directory = os.path.dirname(os.path.realpath(__file__))
+            with open(f"{current_directory}/config.json") as f:
+                self.config = json.loads(f.read())
+
+        print("Config:")
+        print(str(self.config))
 
     def get_configured_topics(self):
         return [stream["topic"] for stream in self.config["streams"]]
@@ -335,6 +358,9 @@ class Adapter:
         except Exception as e:
             self.fclient.post_text("adapter.errors", "Error handling teleop: %s" %  str(e))
 
+    def handle_command_request(self, request):
+        print(msg)
+        self.fclient.send_command_response(request.id, success=True)
 
     def publish_twist(self, value, publisher):
         msg = Twist()
