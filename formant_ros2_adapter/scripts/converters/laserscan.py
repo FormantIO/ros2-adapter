@@ -30,7 +30,7 @@ def ros_laserscan_to_formant_pointcloud(message: LaserScan) -> PointCloud:
             yf = r * math.sin(a)
 
         xs[i] = xf
-        ys[i] = zf
+        ys[i] = yf
         zs[i] = zf
 
     points = np.concatenate((xs, ys, zs)).tobytes()

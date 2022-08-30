@@ -242,33 +242,10 @@ class Adapter:
                         charge=message.charge,
                     )
                 elif type(message) == Image:
-                    ## This works in "image" mode but not "video" mode
-                    # formatted_image = np.resize(
-                    #     np.frombuffer(message.data, dtype=np.uint8),
-                    #     (message.height, message.width, 3),
-                    # )[:, :, ::-1]
-                    # encoded_image = cv2.imencode(".jpg", formatted_image)[1].tobytes()
-                    # self.fclient.post_image(stream, encoded_image) # TODO: add timestamp from message
+                    cv_image = self.cv_bridge.imgmsg_to_cv2(message, "bgr8")
+                    encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
+                    self.fclient.post_image(stream, encoded_image)
 
-                    ## This works in "image" mode but not "video" mode
-                    # cv_image = self.cv_bridge.imgmsg_to_cv2(message, "bgr8")
-                    # encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
-                    # self.fclient.post_image(stream, encoded_image)
-                    # cv2.imshow("Front Camera", cv_image)
-
-                    ## This test image works in "image" mode, but not "video" mode
-                    # test_canvas = np.zeros((360, 480, 3), dtype="uint8")
-                    # green = (0, 255, 0)
-                    # cv2.line(test_canvas, (0, 0), (480, 360), green)
-                    # encoded_image = cv2.imencode(".jpg", test_canvas)[1].tobytes()
-                    # self.fclient.post_image(stream, encoded_image)
-
-                    print(
-                        "Error ingesting "
-                        + stream
-                        + ": "
-                        + "Raw image streams are currently unsupported. Please use CompressedImage."
-                    )
                 elif type(message) == CompressedImage:
                     if "jpg" in message.format or "jpeg" in message.format:
                         content_type = "image/jpg"
