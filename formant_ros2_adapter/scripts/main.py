@@ -47,7 +47,9 @@ from message_utils.utils import (
     get_message_path_value,
 )
 
-TELEOP_TOPIC = "/formant/cmd_vel"
+TELEOP_JOYSTICK_TOPIC = "/formant/cmd_vel"
+
+
 class Adapter:
     """
     Formant <-> ROS2 Adapter
@@ -343,7 +345,11 @@ class Adapter:
         try:
             if msg.stream.casefold() == "joystick".casefold():
                 if not self.joystick_publisher:
-                    self.joystick_publisher = self.node.create_publisher(Twist, TELEOP_TOPIC, 10)
+                    self.joystick_publisher = self.node.create_publisher(
+                        Twist, 
+                        TELEOP_JOYSTICK_TOPIC, 
+                        10
+                    )
                 else:
                     self.publish_twist(msg.twist, self.joystick_publisher)
 
