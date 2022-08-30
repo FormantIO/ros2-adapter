@@ -7,6 +7,7 @@ import array
 import json
 import grpc
 import importlib
+import jsonschema
 import numpy as np
 from typing import List, Dict
 
@@ -62,6 +63,7 @@ class Adapter:
         # For console output acknowledgement that the script has started running even if it
         # hasn't yet established communication with the Formant agent.
         print("INFO: `main.py` script has started running.")
+        print("")
 
         # Connect to ROS2
         rclpy.init()
@@ -115,8 +117,27 @@ class Adapter:
             with open(f"{current_directory}/config.json") as f:
                 self.config = json.loads(f.read())
 
+        # Validate configuration based on schema
+        with open("schema.json") as f:
+            self.config_schema = json.load(f)
+        
+        print("")
+        print("Config Schema:")
+        print(self.config_schema)
+        print("")
+
+        try:
+            jsonschema.validate(self.config, self.config_schema)
+            print("Validation succeeded.")
+            print("")
+        except Exception as e:
+            print("Validation failed:")
+            print(e)
+            print("")
+
         print("Config:")
         print(str(self.config))
+        print("")
 
     def get_configured_topics(self):
         return [stream["topic"] for stream in self.config["streams"]]
@@ -242,6 +263,7 @@ class Adapter:
                         charge=message.charge,
                     )
                 elif type(message) == Image:
+                    # Had to install gir1.2-gtk-3.0 package for this to work
                     cv_image = self.cv_bridge.imgmsg_to_cv2(message, "bgr8")
                     encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
                     self.fclient.post_image(stream, encoded_image)
