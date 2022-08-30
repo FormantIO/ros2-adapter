@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 
 import os
-from typing import List, Dict
+import cv2
 import time
 import array
 import json
+import grpc
 import importlib
-
+import numpy as np
+from typing import List, Dict
 
 from formant.sdk.agent.v1 import Client as FormantAgentClient
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
-import grpc
+
 import rclpy
+from cv_bridge import CvBridge
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import (
     Bool,
@@ -60,17 +63,14 @@ class Adapter:
         # hasn't yet established communication with the Formant agent.
         print("INFO: `main.py` script has started running.")
 
-        self.fclient = FormantAgentClient(ignore_throttled=True, ignore_unavailable=True)
-
-        # Pull in configuration from agent or file
-        self.fclient.register_config_update_callback(self.update_adapter_configuration)
-        self.update_adapter_configuration()
-
         # Connect to ROS2
         rclpy.init()
+        self.cv_bridge = CvBridge()
         self.node = rclpy.create_node("formant_ros2_adapter")
 
-        # Set up teleop and command callbacks
+        # Set up the adapter
+        self.fclient = FormantAgentClient(ignore_throttled=True, ignore_unavailable=True)
+        self.fclient.register_config_update_callback(self.update_adapter_configuration)
         self.fclient.register_teleop_callback(self.handle_teleop)
         self.fclient.register_command_request_callback(self.handle_command_request)
         self.fclient.create_event("ROS2 Adapter online", notify=False, severity="info")
@@ -242,6 +242,27 @@ class Adapter:
                         charge=message.charge,
                     )
                 elif type(message) == Image:
+                    ## This works in "image" mode but not "video" mode
+                    # formatted_image = np.resize(
+                    #     np.frombuffer(message.data, dtype=np.uint8),
+                    #     (message.height, message.width, 3),
+                    # )[:, :, ::-1]
+                    # encoded_image = cv2.imencode(".jpg", formatted_image)[1].tobytes()
+                    # self.fclient.post_image(stream, encoded_image) # TODO: add timestamp from message
+
+                    ## This works in "image" mode but not "video" mode
+                    # cv_image = self.cv_bridge.imgmsg_to_cv2(message, "bgr8")
+                    # encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
+                    # self.fclient.post_image(stream, encoded_image)
+                    # cv2.imshow("Front Camera", cv_image)
+
+                    ## This test image works in "image" mode, but not "video" mode
+                    # test_canvas = np.zeros((360, 480, 3), dtype="uint8")
+                    # green = (0, 255, 0)
+                    # cv2.line(test_canvas, (0, 0), (480, 360), green)
+                    # encoded_image = cv2.imencode(".jpg", test_canvas)[1].tobytes()
+                    # self.fclient.post_image(stream, encoded_image)
+
                     print(
                         "Error ingesting "
                         + stream
