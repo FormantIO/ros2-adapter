@@ -15,13 +15,15 @@ All other input types will be ingested as JSON.
 
 ### Input from multiple fields
 - Bitset (multiple Bool inputs) :heavy_check_mark:
-- Numericset (multiple UInt, Int, or Float inputs) :heavy_check_mark:
+- Numeric Set (multiple UInt, Int, or Float inputs) :heavy_check_mark:
 
 ### Rich datapoints
 - Point Clouds (PointCloud2, LaserScan) :heavy_check_mark:
-- Images and Video (CompressedImage) :heavy_check_mark:
-- Localization (Map, Odometry, Path, etc.) TODO 
-- Transform Tree (/tf, /tf_static) TODO
+- Compressed Images :heavy_check_mark:
+- Raw Images (into video) :heavy_check_mark:
+- Video clips :x:
+- Localization (Map, Odometry, Path, etc.) :x:
+- Transform Tree (/tf, /tf_static) :x:
 
 ## Configuring the ROS2 Adapter
 
@@ -48,6 +50,8 @@ Edit the file `config.json` in the `formant_ros2_adapter/scripts` directory so t
     ]
 }
 ```
+
+The full configuration schema is available [here](scripts/schema.json).
 
 Topics will automatically be ingested as their corresponding Formant type:
 
