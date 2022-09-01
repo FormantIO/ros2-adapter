@@ -51,9 +51,6 @@ from message_utils.utils import (
     get_message_path_value,
 )
 
-TELEOP_JOYSTICK_TOPIC = "/formant/cmd_vel"
-
-
 class Adapter:
     """
     Formant <-> ROS2 Adapter

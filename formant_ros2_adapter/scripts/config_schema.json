@@ -1,0 +1,124 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://formant.io/formant_ros2_adapter_configuration.schema.json",
+    "title": "Formant ROS2 Adapter Configuration",
+    "description": "Configuration for all capabilities of the Formant ROS2 Adapter.",
+    "type": "object",
+    "properties": {
+        "ros2_adapter_configuration": {
+            "description": "The top level wrapper for ROS2 adapter configuration.",
+            "type": "object",
+            "items": {
+                "subscribers": {
+                    "description": "A list of the subscribers to configure.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "ros2_topic": {
+                                "description": "The ROS2 topic to collect data from.",
+                                "type": "string"
+                            },
+                            "ros2_message_paths": {
+                                "description": "The paths within the ROS2 message to select.",
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "path": {
+                                            "description": "A path within the message to select data from.",
+                                            "type": "string"
+                                        },
+                                        "tag_key": {
+                                            "description": "The key of the tag to use for this path.",
+                                            "type": "string"
+                                        },
+                                        "tag_value": {
+                                            "description": "The value of the tag to use for this path.",
+                                            "type": "string"
+                                        },
+                                        "required": ["path"]
+                                    }
+                                }
+                            },
+                            "ros2_topic_type": {
+                                "description": "The ROS2 type to allow.",
+                                "type": "string"
+                            },
+                            "formant_stream": {
+                                "description": "The Formant stream name to ingest data using.",
+                                "type": "string"
+                            },
+                            "formant_datapoint_type": {
+                                "description": "The Formant datapoint type to convert the message to.",
+                                "type": "string"
+                            },
+                            "units": {
+                                "description": "The units to ingest data using.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "rate": {
+                                "description": "The throttle rate to use for this topic.",
+                                "type": "number",
+                                "minimum": 0
+                            }
+                        },
+                        "required": ["ros2_topic", "formant_stream"]
+                    }
+                },
+                "publishers": {
+                    "description": "A list of the publishers to configure.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "formant_stream": {
+                                "description": "The Formant stream name to accept data from.",
+                                "type": "string"
+                            },
+                            "formant_datapoint_type": {
+                                "description": "The type of Formant datapoint messages to accept.",
+                                "type": "string"
+                            },
+                            "ros2_topic": {
+                                "description": "The ROS2 topic to publish to.",
+                                "type": "string"
+                            },
+                            "ros2_topic_type": {
+                                "description": "The ROS2 type to publish.",
+                                "type": "string"
+                            }
+                        },
+                        "required": ["ros2_topic", "formant_stream"]
+                    }
+                },
+                "service_calls" {
+                    "description": "A list of service calls to configure.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "formant_stream": {
+                                "description": "The Formant stream name to accept calls from.",
+                                "type": "string"
+                            },
+                            "ros2_service": {
+                                "description": "The ROS2 service to call.",
+                                "type": "string"
+                            },
+                            "ros2_service_type": {
+                                "description": "The ROS2 service type to .",
+                                "type": "string"
+                            }
+                        },
+                        "required": ["formant_stream", "ros2_service"]
+                    }
+                }
+            }
+        }
+    },
+    "required": ["ros2_adapter_configuration"]
+  }

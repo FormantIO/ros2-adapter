@@ -1,3 +1,34 @@
 {
-    "streams": []
+    "ros2_adapter_configuration": {
+        "subscribers": [
+            {
+                "ros2_topic": "/ip",
+                "ros2_message_paths": [
+                    {
+                        "path": "data",
+                        "tag_key": "test",
+                        "tag_value": "123"
+                    }
+                ],
+                "ros2_topic_type": "std_msgs/msg/String",
+                "formant_stream": "ip",
+                "formant_datapoint_type": "text"
+            }
+        ],
+        "publishers": [
+            {
+                "formant_stream": "joystick",
+                "formant_datapoint_type": "twist",
+                "ros2_topic": "/cmd_vel",
+                "ros2_topic_type": "geometry_msgs/msg/Twist"
+            }
+        ],
+        "service_calls": [
+            {
+                "formant_stream": "reboot",
+                "ros2_service": "/robot_power",
+                "ros2_service_type": "irobot_create_msgs/srv/RobotPower"
+            }
+        ]
+    }
 }
