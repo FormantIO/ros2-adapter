@@ -7,7 +7,7 @@ from formant.protos.model.v1.media_pb2 import PointCloud
 import numpy as np
 
 
-def ros_laserscan_to_formant_pointcloud(message: LaserScan) -> PointCloud:
+def ros2_laserscan_to_formant_pointcloud(message: LaserScan) -> PointCloud:
     height = 1
     width = len(message.ranges)
     count = height * width

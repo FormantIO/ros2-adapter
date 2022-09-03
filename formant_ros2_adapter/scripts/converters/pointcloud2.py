@@ -12,7 +12,7 @@ FLOAT_DATA_TYPE = 7
 DOUBLE_DATA_TYPE = 8
 
 
-def ros_pointcloud2_to_formant_pointcloud(message: PointCloud2) -> PointCloud:
+def ros2_pointcloud2_to_formant_pointcloud(message: PointCloud2) -> PointCloud:
     if message.is_bigendian:
         print("unsupported point cloud endianness")
 

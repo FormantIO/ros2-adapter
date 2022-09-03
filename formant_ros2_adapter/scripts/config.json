@@ -3,16 +3,21 @@
         "subscribers": [
             {
                 "ros2_topic": "/ip",
-                "ros2_message_paths": [
-                    {
-                        "path": "data",
-                        "tag_key": "test",
-                        "tag_value": "123"
-                    }
-                ],
-                "ros2_topic_type": "std_msgs/msg/String",
+                "ros2_message_type": "std_msgs/msg/String",
                 "formant_stream": "ip",
-                "formant_datapoint_type": "text"
+                "throttle_rate_hz": 1.0
+            },
+            {
+                "ros2_topic": "/color/preview/image",
+                "formant_stream": "camera.color"
+            },
+            {
+                "ros2_topic": "/battery_state",
+                "formant_stream": "battery.state"
+            },
+            {
+                "ros2_topic": "/scan",
+                "formant_stream": "scan"
             }
         ],
         "publishers": [
@@ -20,7 +25,7 @@
                 "formant_stream": "joystick",
                 "formant_datapoint_type": "twist",
                 "ros2_topic": "/cmd_vel",
-                "ros2_topic_type": "geometry_msgs/msg/Twist"
+                "ros2_message_type": "geometry_msgs/msg/Twist"
             }
         ],
         "service_calls": [
