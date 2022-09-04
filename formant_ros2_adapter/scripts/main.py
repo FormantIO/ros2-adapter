@@ -122,14 +122,21 @@ class ROS2Adapter:
         self.update_ros2_information()
 
         # Fill out the config with default values
-        for subscriber in self.config["subscribers"]:
-            if "formant_stream" not in subscriber:
-                subscriber["formant_stream"] = subscriber["ros2_topic"][1:].replace("/", ".")
+        for subscriber_config in self.config["subscribers"]:
+            if "formant_stream" not in subscriber_config:
+                formant_stream = subscriber_config["ros2_topic"][1:].replace("/", ".")
+                subscriber_config["formant_stream"] = formant_stream
 
-            if "ros2_message_type" not in subscriber:
+            if "ros2_message_type" not in subscriber_config:
                 # Get the message type from the topic
-                subscriber["ros2_message_type"] = self.ros2_topic_names_and_types[subscriber["ros2_topic"]]
-
+                try:
+                    subscriber_config["ros2_message_type"] = self.ros2_topic_names_and_types[
+                        subscriber_config["ros2_topic"]
+                    ]
+                except:
+                    print("WARNING: setting type bool for unknown topic", subscriber_config["ros2_topic"])
+                    subscriber_config["ros2_message_type"] = "std_msgs/msg/Bool"
+                    
         self.setup_subscribers()
         self.setup_publishers()
 
@@ -161,21 +168,21 @@ class ROS2Adapter:
         self.ros2_subscribers = {}
 
         # Create new subscribers based on the config
-        for subscriber in self.config["subscribers"]:
+        for subscriber_config in self.config["subscribers"]:
             new_sub = self.ros2_node.create_subscription(
-                get_message_type_from_string(subscriber["ros2_message_type"]),
-                subscriber["ros2_topic"],
-                lambda msg, subscriber=subscriber: self.handle_ros2_message(
+                get_message_type_from_string(subscriber_config["ros2_message_type"]),
+                subscriber_config["ros2_topic"],
+                lambda msg, subscriber_config=subscriber_config: self.handle_ros2_message(
                     msg, 
-                    subscriber
+                    subscriber_config
                 ),
                 qos_profile_sensor_data,
             )
 
-            if subscriber["ros2_topic"] not in self.ros2_subscribers:
-                self.ros2_subscribers[subscriber["ros2_topic"]] = []
+            if subscriber_config["ros2_topic"] not in self.ros2_subscribers:
+                self.ros2_subscribers[subscriber_config["ros2_topic"]] = []
 
-            self.ros2_subscribers[subscriber["ros2_topic"]].append(new_sub)
+            self.ros2_subscribers[subscriber_config["ros2_topic"]].append(new_sub)
 
     def setup_publishers(self):
         # Remove any existing publishers
@@ -206,19 +213,18 @@ class ROS2Adapter:
 
             self.ros2_publishers[publisher["formant_stream"]].append(new_pub)
 
-        print(self.ros2_publishers)
-
-    def handle_ros2_message(self, msg, subscriber):
+    def handle_ros2_message(self, msg, subscriber_config):
         # Get the message type
         msg_type = type(msg)
-        formant_stream = subscriber["formant_stream"]
-        ros2_topic = subscriber["ros2_topic"]
+        formant_stream = subscriber_config["formant_stream"]
+        ros2_topic = subscriber_config["ros2_topic"]
 
         # Select the part of the message based on the path
-        if "ros2_message_paths" in subscriber:
-            for path in subscriber["ros2_message_paths"]:
+        if "ros2_message_paths" in subscriber_config:
+            print("WARNING: message paths are not yet implemented")
+            for path in subscriber_config["ros2_message_paths"]:
                 try:
-                    msg = get_message_path_value(msg, path["path"])
+                    path_msg = get_message_path_value(msg, path["path"])
                 except:
                     # If this path does not match, ignore it and log the error
                     print(f"ERROR: Could not find path '{path['path']}' in message {msg_type}")
@@ -232,8 +238,10 @@ class ROS2Adapter:
         msg_timestamp = int(time.time() * 1000)
 
         # TODO: collect all the data for localization and send it in one message when it changes
+        # OR send every item on its own stream, and then use the new aggregate localization module
 
         # Handle the message based on its type
+
         try:
             if msg_type == String:
                 if hasattr(msg, "data"):
@@ -292,7 +300,7 @@ class ROS2Adapter:
             
             elif msg_type == Image:
                 # Convert Image to a Formant image
-                cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "bgr8")
+                cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "passthrough")
                 encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
 
                 self.fclient.post_image(
@@ -363,7 +371,6 @@ class ROS2Adapter:
         except AttributeError as e:
             print("ERROR ingesting " + formant_stream + ": " + str(e))
             
-
     def handle_formant_teleop_msg(self, msg):
         # Buttons always publish to the "Buttons" stream, so get actual name to use instead
         if msg.stream == "Buttons":

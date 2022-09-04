@@ -1,0 +1,92 @@
+{
+    "ros2_adapter_configuration": {
+        "subscribers": [
+            {
+                "ros2_topic": "/ip",
+                "ros2_message_type": "std_msgs/msg/String",
+                "formant_stream": "ip"
+            },
+            {
+                "ros2_topic": "/color/preview/image",
+                "formant_stream": "camera.color"
+            },
+            {
+                "ros2_topic": "/battery_state",
+                "formant_stream": "battery.state"
+            },
+            {
+                "ros2_topic": "/scan",
+                "formant_stream": "scan"
+            }
+        ],
+        "publishers": [
+            {
+                "formant_stream": "joystick",
+                "ros2_topic": "/cmd_vel",
+                "ros2_message_type": "geometry_msgs/msg/Twist"
+            },
+            {
+                "formant_stream": "test_bool1",
+                "ros2_topic": "/test_bool",
+                "ros2_message_type": "std_msgs/msg/Bool"
+            },
+            {
+                "formant_stream": "test_bool2",
+                "ros2_topic": "/test_bool",
+                "ros2_message_type": "std_msgs/msg/Bool"
+            },
+            {
+                "formant_stream": "test_bool2",
+                "ros2_topic": "/test_string",
+                "ros2_message_type": "std_msgs/msg/String"
+            },
+            {
+                "formant_stream": "test_string",
+                "ros2_topic": "/test_string",
+                "ros2_message_type": "std_msgs/msg/String"
+            },
+            {
+                "formant_stream": "test_int1",
+                "ros2_topic": "/test_int1",
+                "ros2_message_type": "std_msgs/msg/Int32"
+            },
+            {
+                "formant_stream": "test_int2",
+                "ros2_topic": "/test_int2",
+                "ros2_message_type": "std_msgs/msg/Int64"
+            },
+            {
+                "formant_stream": "test_float32",
+                "ros2_topic": "/test_float32",
+                "ros2_message_type": "std_msgs/msg/Float32"
+            },
+            {
+                "formant_stream": "test_twist",
+                "ros2_topic": "/test_twist",
+                "ros2_message_type": "geometry_msgs/msg/Twist"
+            },
+            {
+                "formant_stream": "test_joy",
+                "ros2_topic": "/test_joy",
+                "ros2_message_type": "sensor_msgs/msg/Joy"
+            },
+            {
+                "formant_stream": "test_point",
+                "ros2_topic": "/test_point",
+                "ros2_message_type": "geometry_msgs/msg/Point"
+            },
+            {
+                "formant_stream": "test_pose",
+                "ros2_topic": "/test_pose",
+                "ros2_message_type": "geometry_msgs/msg/Pose"
+            }  
+        ],
+        "service_calls": [
+            {
+                "formant_stream": "reboot",
+                "ros2_service": "/robot_power",
+                "ros2_service_type": "irobot_create_msgs/srv/RobotPower"
+            }
+        ]
+    }
+}
