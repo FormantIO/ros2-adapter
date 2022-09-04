@@ -231,6 +231,8 @@ class ROS2Adapter:
 
         msg_timestamp = int(time.time() * 1000)
 
+        # TODO: collect all the data for localization and send it in one message when it changes
+
         # Handle the message based on its type
         try:
             if msg_type == String:
@@ -363,10 +365,6 @@ class ROS2Adapter:
             
 
     def handle_formant_teleop_msg(self, msg):
-        # Print the message
-        print(msg)
-
-        
         # Buttons always publish to the "Buttons" stream, so get actual name to use instead
         if msg.stream == "Buttons":
             # Get the key, which is actually the "stream name" equivalent here
@@ -375,20 +373,117 @@ class ROS2Adapter:
             stream_name = msg.stream
 
         # There can be more than one publisher for a single stream, so loop over them
-        for publisher in self.ros2_publishers[stream_name]:
-            print(publisher)
+        if stream_name in self.ros2_publishers:
+            for publisher in self.ros2_publishers[stream_name]:
+                # Get the ROS2 message type as a string
+                ros2_msg_type = publisher.msg_type.__name__
 
-        
+                # Switch on the Formant message type
+                if msg.HasField("bitset"):
+                    # In a bitset, the value either exists (true) or doesn't (false)
+                    if msg.bitset.bits[0].value:
+                        msg_value = True
+                    else:
+                        msg_value = False
 
-        #     # Get the value, either exists (true) or doesn't (false)
-        #     if msg.bitset.bits.value:
-        #         value = True
-        #     else:
-        #         value = False
+                    # Select the configured message type
+                    if ros2_msg_type == "Bool":
+                        ros2_msg = Bool()
+                        ros2_msg.data = msg_value
+                    elif ros2_msg_type == "String":
+                        ros2_msg = String()
+                        ros2_msg.data = str(msg_value)
+                    else:
+                        print("WARNING: Unsupported ROS2 message type for bitset: " + ros2_msg_type)
+                        continue
 
-        #     print(value)
-        #     # Publish the value to the ROS2 topic
+                    publisher.publish(ros2_msg)
 
+                elif msg.HasField("numeric"):
+                    msg_value = msg.numeric.value
+
+                    # TODO: this may not be correctly converting all numeric types
+                    # Select the configured output type
+                    if ros2_msg_type == "Float32":
+                        ros2_msg = Float32()
+                        ros2_msg.data = float(msg_value)
+                    elif ros2_msg_type == "Float64":
+                        ros2_msg = Float64()
+                        ros2_msg.data = float(msg_value)
+                    elif ros2_msg_type == "Int8":
+                        ros2_msg = Int8()
+                        ros2_msg.data = int(msg_value)
+                    elif ros2_msg_type == "Int16":
+                        ros2_msg = Int16()
+                        ros2_msg.data = int(msg_value)
+                    elif ros2_msg_type == "Int32":
+                        ros2_msg = Int32()
+                        ros2_msg.data = int(msg_value)
+                    elif ros2_msg_type == "Int64":
+                        ros2_msg = Int64()
+                        ros2_msg.data = int(msg_value)
+                    elif ros2_msg_type == "UInt8":
+                        ros2_msg = UInt8()
+                        ros2_msg.data = int(msg_value)
+                    elif ros2_msg_type == "UInt16":
+                        ros2_msg = UInt16()
+                        ros2_msg.data = int(msg_value)
+                    elif ros2_msg_type == "UInt32":
+                        ros2_msg = UInt32()
+                        ros2_msg.data = int(msg_value)
+                    elif ros2_msg_type == "UInt64":
+                        ros2_msg = UInt64()
+                        ros2_msg.data = int(msg_value)
+                    elif ros2_msg_type == "String":
+                        ros2_msg = String()
+                        ros2_msg.data = str(msg_value)
+                    else:
+                        print("WARNING: Unsupported ROS2 message type for numeric: " + ros2_msg_type)
+                        continue
+                    
+                    publisher.publish(ros2_msg)
+
+                elif msg.HasField("point"):
+                    print("WARNING: point is not yet supported")
+                elif msg.HasField("pose"):
+                    print("WARNING: pose is not yet supported")
+                elif msg.HasField("pose_with_covariance"):
+                    print("WARNING: pose_with_covariance is not yet supported")
+                elif msg.HasField("twist"):
+                    if ros2_msg_type == "Twist":
+                        ros2_msg = Twist()
+                        ros2_msg.linear.x = msg.twist.linear.x
+                        ros2_msg.linear.y = msg.twist.linear.y
+                        ros2_msg.linear.z = msg.twist.linear.z
+                        ros2_msg.angular.x = msg.twist.angular.x
+                        ros2_msg.angular.y = msg.twist.angular.y
+                        ros2_msg.angular.z = msg.twist.angular.z
+                    elif ros2_msg_type == "TwistStamped":
+                        ros2_msg = TwistStamped()
+                        ros2_msg.twist.linear.x = msg.twist.linear.x
+                        ros2_msg.twist.linear.y = msg.twist.linear.y
+                        ros2_msg.twist.linear.z = msg.twist.linear.z
+                        ros2_msg.twist.angular.x = msg.twist.angular.x
+                        ros2_msg.twist.angular.y = msg.twist.angular.y
+                        ros2_msg.twist.angular.z = msg.twist.angular.z
+                    elif ros2_msg_type == "Joy":
+                        ros2_msg = Joy()
+                        ros2_msg.axes = [
+                            msg.twist.linear.x, 
+                            msg.twist.linear.y, 
+                            msg.twist.linear.z, 
+                            msg.twist.angular.x, 
+                            msg.twist.angular.y, 
+                            msg.twist.angular.z
+                        ]
+                    else:
+                        print("WARNING: Unsupported ROS2 message type for twist: " + ros2_msg_type)
+                        continue
+
+                    publisher.publish(ros2_msg)
+
+        else:
+            print("WARNING: No ROS2 publisher found for stream " + stream_name)
 
     def handle_formant_command_request_msg(self, msg):
         # Print the message
