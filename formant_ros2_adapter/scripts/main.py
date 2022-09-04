@@ -19,30 +19,25 @@ import rclpy
 from cv_bridge import CvBridge
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import (
-    Bool,
-    Char,
-    String,
-    Float32,
-    Float64,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
+    Bool, Char, String, 
+    Float32, Float64,
+    Int8, Int16, Int32, Int64,
+    UInt8, UInt16, UInt32, UInt64
 )
 from sensor_msgs.msg import (
-    NavSatFix,
     BatteryState,
-    LaserScan,
-    PointCloud2,
-    Image,
     CompressedImage,
+    Image,
+    Joy,
+    LaserScan,
+    NavSatFix,
+    PointCloud2,
 )
 from geometry_msgs.msg import (
-    Twist
+    Point, Point32, Polygon,
+    Pose, PoseStamped, PoseArray,
+    PoseWithCovariance, PoseWithCovarianceStamped,
+    Twist, TwistStamped, Vector3, Vector3Stamped
 )
 from converters.laserscan import ros2_laserscan_to_formant_pointcloud
 from converters.pointcloud2 import ros2_pointcloud2_to_formant_pointcloud
@@ -81,14 +76,13 @@ class ROS2Adapter:
         self.fclient.register_config_update_callback(self.update_adapter_configuration)
         self.fclient.register_teleop_callback(self.handle_formant_teleop_msg)
         self.fclient.register_command_request_callback(self.handle_formant_command_request_msg)
-        self.fclient.create_event("ROS2 Adapter online", notify=False, severity="info")
 
         # Start spinning
         while rclpy.ok():
             rclpy.spin_once(self.ros2_node, timeout_sec=1.0)
 
         # Clean up before shutting down
-        # self.ros2_node.destroy_node()
+        self.ros2_node.destroy_node()
         rclpy.shutdown()
 
     def update_adapter_configuration(self):
@@ -141,7 +135,7 @@ class ROS2Adapter:
 
         self.fclient.post_json("adapter.configuration", json.dumps(self.config))
         self.fclient.create_event(
-            "ROS2 Adapter configuration loaded",
+            "ROS2 Adapter started",
             notify=False,
             severity="info", 
         )
@@ -207,10 +201,12 @@ class ROS2Adapter:
                 qos_profile_sensor_data,
             )
 
-            if publisher["ros2_topic"] not in self.ros2_publishers:
-                self.ros2_publishers[publisher["ros2_topic"]] = []
+            if publisher["formant_stream"] not in self.ros2_publishers:
+                self.ros2_publishers[publisher["formant_stream"]] = []
 
-            self.ros2_publishers[publisher["ros2_topic"]].append(new_pub)
+            self.ros2_publishers[publisher["formant_stream"]].append(new_pub)
+
+        print(self.ros2_publishers)
 
     def handle_ros2_message(self, msg, subscriber):
         # Get the message type
@@ -369,6 +365,30 @@ class ROS2Adapter:
     def handle_formant_teleop_msg(self, msg):
         # Print the message
         print(msg)
+
+        
+        # Buttons always publish to the "Buttons" stream, so get actual name to use instead
+        if msg.stream == "Buttons":
+            # Get the key, which is actually the "stream name" equivalent here
+            stream_name = msg.bitset.bits[0].key
+        else:
+            stream_name = msg.stream
+
+        # There can be more than one publisher for a single stream, so loop over them
+        for publisher in self.ros2_publishers[stream_name]:
+            print(publisher)
+
+        
+
+        #     # Get the value, either exists (true) or doesn't (false)
+        #     if msg.bitset.bits.value:
+        #         value = True
+        #     else:
+        #         value = False
+
+        #     print(value)
+        #     # Publish the value to the ROS2 topic
+
 
     def handle_formant_command_request_msg(self, msg):
         # Print the message
