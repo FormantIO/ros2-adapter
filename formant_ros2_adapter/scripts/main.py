@@ -111,12 +111,12 @@ class Adapter:
         except Exception as e:
             print("Error setting up tf2_ros transform listener: %s" % str(e))
 
-    def _lookup_transform(self, msg):
+    def _lookup_transform(self, msg, base_reference_frame):
         if self._tf_buffer is None or self._tf_listener is None:
             return FTransform()
         try:
             transform = self._tf_buffer.lookup_transform(
-                BASE_REFERENCE_FRAME,
+                base_reference_frame,
                 msg.header.frame_id,
                 rclpy.time.Time()
             )
@@ -124,7 +124,7 @@ class Adapter:
         except Exception as e:
             print(
                 "Error looking up transform between %s and %s: %s, using identity"
-                % (BASE_REFERENCE_FRAME, msg.header.frame_id, str(e))
+                % (base_reference_frame, msg.header.frame_id, str(e))
             )
         return FTransform()
 
@@ -204,6 +204,7 @@ class Adapter:
             rate = None
             localization_stream_name = None
             localization_manager = None
+            base_reference_frame = None
 
             if "rate" in config:
                 # Records time of last publish to Formant.
@@ -230,6 +231,8 @@ class Adapter:
                     if config["localization"]:
                         localization_stream_name = stream
                         localization_manager = self.fclient.get_localization_manager(localization_stream_name)
+                        base_reference_frame = config.get("base_reference_frame", BASE_REFERENCE_FRAME)
+
 
             else:
                 # Otherwise, generate a name from the topic name.
@@ -336,7 +339,7 @@ class Adapter:
                                     message
                                 )
                         if localization_manager is not None:
-                            point_cloud.transform_to_world = self._lookup_transform(message)
+                            point_cloud.transform_to_world = self._lookup_transform(message. base_reference_frame)
                             localization_manager.update_point_cloud(point_cloud, cloud_name=topic)
                         else:
                             self.fclient.agent_stub.PostData(
@@ -357,7 +360,7 @@ class Adapter:
                                     message
                                 )
                         if localization_manager is not None:
-                            point_cloud.transform_to_world = self._lookup_transform(message)
+                            point_cloud.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_point_cloud(point_cloud, cloud_name=topic)
                         else:
                             self.fclient.agent_stub.PostData(
@@ -376,7 +379,7 @@ class Adapter:
                     try:
                         if localization_manager is not None:
                             odometry = FOdometry.from_ros(message)
-                            odometry.transform_to_world = self._lookup_transform(message)
+                            odometry.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_odometry(odometry)
                     except grpc.RpcError as e:
                         return
@@ -387,7 +390,7 @@ class Adapter:
                     try:
                         if localization_manager is not None:
                             path = FPath.from_ros(message)
-                            path.transform_to_world = self._lookup_transform(message)
+                            path.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_path(path)
                     except grpc.RpcError as e:
                         return
@@ -398,7 +401,7 @@ class Adapter:
                     try:
                         if localization_manager is not None:
                             map = FMap.from_ros(message)
-                            map.transform_to_world = self._lookup_transform(message)
+                            map.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_map(map)
                     except grpc.RpcError as e:
                         return
@@ -410,7 +413,7 @@ class Adapter:
                     try:
                         if localization_manager is not None:
                             goal = FGoal.from_ros(message)
-                            goal.transform_to_world = self._lookup_transform(message)
+                            goal.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_goal(goal)
                     except grpc.RpcError as e:
                         return

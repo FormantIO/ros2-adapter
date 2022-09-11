@@ -43,8 +43,12 @@
                         "minimum": 0
                     },
                     "localization": {
-                        "description": "Is this message part of a localization stream",
+                        "description": "Is this message part of a localization stream.",
                         "type": "boolean"
+                    },
+                    "base_reference_frame":{
+                        "description":"Base frame for localization transform lookups, Defaults to 'map'.",
+                        "type": "string"
                     }
                 },
                 "required": ["topic"]
