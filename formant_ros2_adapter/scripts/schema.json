@@ -41,6 +41,10 @@
                         "description": "The throttle rate to use for this topic.",
                         "type": "number",
                         "minimum": 0
+                    },
+                    "localization": {
+                        "description": "Is this message part of a localization stream",
+                        "type": "boolean"
                     }
                 },
                 "required": ["topic"]

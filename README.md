@@ -5,6 +5,7 @@ For a full list of Formant telemetry types, see: https://formant.readme.io/docs/
 For a list of what is currently supported by the Formant ROS2 Adapter:
 
 ### Basic datapoints
+
 - Numeric (UInt, Int, and Float types) :heavy_check_mark:
 - Text (String, Char) :heavy_check_mark:
 - Bitset (Bool) :heavy_check_mark:
@@ -14,10 +15,12 @@ For a list of what is currently supported by the Formant ROS2 Adapter:
 All other input types will be ingested as JSON.
 
 ### Input from multiple fields
+
 - Bitset (multiple Bool inputs) :heavy_check_mark:
 - Numeric Set (multiple UInt, Int, or Float inputs) :heavy_check_mark:
 
 ### Rich datapoints
+
 - Point Clouds (PointCloud2, LaserScan) :heavy_check_mark:
 - Compressed Images :heavy_check_mark:
 - Raw Images (into video) :heavy_check_mark:
@@ -56,7 +59,7 @@ The full configuration schema is available [here](scripts/schema.json).
 Topics will automatically be ingested as their corresponding Formant type:
 
 | ROS topic type                               | Formant datapoint type |
-|----------------------------------------------|------------------------|
+| -------------------------------------------- | ---------------------- |
 | Bool, message with bool-valued message paths | bitset                 |
 | Message with numeric-valued message paths    | numeric set            |
 | Char, String                                 | text                   |
@@ -104,15 +107,18 @@ Setting the `"rate"` to a value in `Hz` will allow you to throttle a topic that 
 ## Running the adapter
 
 ### As an Adapter or with the `start.sh` Script
+
 The repo can either be zipped and configured as an adapter in Formant with "Exec command" `./start.sh`, or can be run manually.
 
 Be sure to update this part of the `start.sh` script to source the proper ROS2 distribution:
+
 ```
 source /opt/ros/eloquent/setup.bash  # this adapter is meant to work with any ROS2 distribution eloquent+
 # if you use custom messages, source your workspace here
 ```
 
 ### As a ROS2 Package
+
 Choose where you would like to have your workspace if you do not already have one created. If one already exists, skip the first command.
 
 `mkdir -p colcon_ws/src`
@@ -133,5 +139,7 @@ NOTE: If you have custom messages that are not a part of the same workspace as t
 
 `ros2 run formant_ros2_adapter main.py`
 
-* NOTE: This is untested with ROS2 Humble
-* NOTE: This is untested with fastdds
+- NOTE: This is untested with ROS2 Humble
+- NOTE: This is untested with fastdds
+- Note this branch uses an experimental version of the formant pip package.
+  `python3 -m pip install --force-reinstall --upgrade formant-1.93.20_add_localizaiton_python_3814ae97-py2.py3-none-any.whl`

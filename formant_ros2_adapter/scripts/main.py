@@ -13,7 +13,15 @@ from typing import List, Dict
 
 from formant.sdk.agent.v1 import Client as FormantAgentClient
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
+from formant.sdk.agent.v1.localization.types import (
+    PointCloud as FPointCloud,
+    Map as FMap,
+    Path as FPath,
+    Transform as FTransform,
+    Goal as FGoal,
+    Odometry as FOdometry,
 
+)
 import rclpy
 from cv_bridge import CvBridge
 from rclpy.qos import qos_profile_sensor_data
@@ -40,11 +48,16 @@ from sensor_msgs.msg import (
     Image,
     CompressedImage,
 )
-from geometry_msgs.msg import (
-    Twist
+from nav_msgs.msg import (
+    Odometry,
+    OccupancyGrid,
+    Path
 )
-from converters.laserscan import ros_laserscan_to_formant_pointcloud
-from converters.pointcloud2 import ros_pointcloud2_to_formant_pointcloud
+from geometry_msgs.msg import (
+    Twist,
+    PoseStamped
+)
+
 from message_utils.utils import (
     get_message_type_from_string,
     message_to_json,
@@ -52,8 +65,7 @@ from message_utils.utils import (
 )
 
 TELEOP_JOYSTICK_TOPIC = "/formant/cmd_vel"
-
-
+BASE_REFERENCE_FRAME = "map"
 class Adapter:
     """
     Formant <-> ROS2 Adapter
@@ -75,6 +87,10 @@ class Adapter:
         self.fclient.register_config_update_callback(self.update_adapter_configuration)
         self.fclient.register_teleop_callback(self.handle_teleop)
         self.fclient.register_command_request_callback(self.handle_command_request)
+        self._tf_buffer = None
+        self._tf_listener = None
+        self._setup_trasform_listener()
+
         self.fclient.create_event("ROS2 Adapter online", notify=False, severity="info")
 
         while rclpy.ok():
@@ -84,6 +100,34 @@ class Adapter:
 
         self.node.destroy_node()
         rclpy.shutdown()
+
+    def _setup_trasform_listener(self):
+        try:
+            from tf2_ros.buffer import Buffer
+            from tf2_ros.transform_listener import TransformListener
+
+            self._tf_buffer = Buffer()
+            self._tf_listener = TransformListener(self._tf_buffer)
+        except Exception as e:
+            print("Error setting up tf2_ros transform listener: %s" % str(e))
+
+    def _lookup_transform(self, msg):
+        if self._tf_buffer is None or self._tf_listener is None:
+            return FTransform()
+        try:
+            transform = self._tf_buffer.lookup_transform(
+                BASE_REFERENCE_FRAME,
+                msg.header.frame_id,
+                rclpy.time.Time()
+            )
+            return FTransform.from_ros_transform_stamped(transform)
+        except Exception as e:
+            print(
+                "Error looking up transform between %s and %s: %s, using identity"
+                % (BASE_REFERENCE_FRAME, msg.header.frame_id, str(e))
+            )
+        return FTransform()
+
 
     def update_adapter_configuration(self):
         # Mapping from configured ROS2 topic name to ROS2 message type
@@ -158,6 +202,8 @@ class Adapter:
             bitset = None
             numericset = None
             rate = None
+            localization_stream_name = None
+            localization_manager = None
 
             if "rate" in config:
                 # Records time of last publish to Formant.
@@ -175,11 +221,16 @@ class Adapter:
                         self.rate_control_for_topics[topic] = time.time()
                     else:
                         continue
-
             if "stream" in config:
                 # If the stream is configured in config.json,
                 # use that name directly.
                 stream = config["stream"]
+
+                if "localization" in config:
+                    if config["localization"]:
+                        localization_stream_name = stream
+                        localization_manager = self.fclient.get_localization_manager(localization_stream_name)
+
             else:
                 # Otherwise, generate a name from the topic name.
                 # e.g. "/rover/cmd_vel" -> "rover.cmd_vel"
@@ -281,15 +332,20 @@ class Adapter:
                     )
                 elif type(message) == LaserScan:
                     try:
-                        self.fclient.agent_stub.PostData(
-                            Datapoint(
-                                stream=stream,
-                                point_cloud=ros_laserscan_to_formant_pointcloud(
+                        point_cloud = FPointCloud.from_ros_laserscan(
                                     message
-                                ),
-                                timestamp=int(time.time() * 1000),
+                                )
+                        if localization_manager is not None:
+                            point_cloud.transform_to_world = self._lookup_transform(message)
+                            localization_manager.update_point_cloud(point_cloud, cloud_name=topic)
+                        else:
+                            self.fclient.agent_stub.PostData(
+                                Datapoint(
+                                    stream=stream,
+                                    point_cloud=point_cloud.to_proto(),
+                                    timestamp=int(time.time() * 1000),
+                                )
                             )
-                        )
                     except grpc.RpcError as e:
                         return
                     except Exception as e:
@@ -297,15 +353,65 @@ class Adapter:
                         return
                 elif type(message) == PointCloud2:
                     try:
-                        self.fclient.agent_stub.PostData(
-                            Datapoint(
-                                stream=stream,
-                                point_cloud=ros_pointcloud2_to_formant_pointcloud(
+                        point_cloud = FPointCloud.from_ros(
                                     message
-                                ),
-                                timestamp=int(time.time() * 1000),
+                                )
+                        if localization_manager is not None:
+                            point_cloud.transform_to_world = self._lookup_transform(message)
+                            localization_manager.update_point_cloud(point_cloud, cloud_name=topic)
+                        else:
+                            self.fclient.agent_stub.PostData(
+                                Datapoint(
+                                    stream=stream,
+                                    point_cloud=point_cloud.to_proto(),
+                                    timestamp=int(time.time() * 1000),
+                                )
                             )
-                        )
+                    except grpc.RpcError as e:
+                        return
+                    except Exception as e:
+                        print("Error ingesting " + stream + ": " + str(e))
+                        return
+                elif type(message) == Odometry:
+                    try:
+                        if localization_manager is not None:
+                            odometry = FOdometry.from_ros(message)
+                            odometry.transform_to_world = self._lookup_transform(message)
+                            localization_manager.update_odometry(odometry)
+                    except grpc.RpcError as e:
+                        return
+                    except Exception as e:
+                        print("Error ingesting " + stream + ": " + str(e))
+                        return
+                elif type(message) == Path:
+                    try:
+                        if localization_manager is not None:
+                            path = FPath.from_ros(message)
+                            path.transform_to_world = self._lookup_transform(message)
+                            localization_manager.update_path(path)
+                    except grpc.RpcError as e:
+                        return
+                    except Exception as e:
+                        print("Error ingesting " + stream + ": " + str(e))
+                        return
+                elif type(message) == OccupancyGrid:
+                    try:
+                        if localization_manager is not None:
+                            map = FMap.from_ros(message)
+                            map.transform_to_world = self._lookup_transform(message)
+                            localization_manager.update_map(map)
+                    except grpc.RpcError as e:
+                        return
+                    except Exception as e:
+                        print("Error ingesting " + stream + ": " + str(e))
+                        return
+
+                elif type(message) == PoseStamped:
+                    try:
+                        if localization_manager is not None:
+                            goal = FGoal.from_ros(message)
+                            goal.transform_to_world = self._lookup_transform(message)
+                            localization_manager.update_goal(goal)
                     except grpc.RpcError as e:
                         return
                     except Exception as e:
