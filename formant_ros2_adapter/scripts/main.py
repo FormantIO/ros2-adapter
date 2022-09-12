@@ -92,11 +92,17 @@ class Adapter:
         self._setup_trasform_listener()
 
         self.fclient.create_event("ROS2 Adapter online", notify=False, severity="info")
-
+        print_error = True
         while rclpy.ok():
             self.update_types()
             self.update_subscriptions()
-            rclpy.spin_once(self.node, timeout_sec=1.0)
+            try:
+                rclpy.spin_once(self.node, timeout_sec=1.0)
+            except Exception as e:
+                if print_error:
+                    print(e)
+                print_error=False
+                pass
 
         self.node.destroy_node()
         rclpy.shutdown()
