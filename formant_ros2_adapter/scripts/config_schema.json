@@ -100,6 +100,64 @@
                         },
                         "required": ["formant_stream", "ros2_service", "ros2_service_type"]
                     }
+                },
+                "localization": {
+                    "description": "The full subscription and publisher configuration for the robot's localization",
+                    "type": "object",
+                    "properties": {
+                        "formant_stream": {
+                            "description": "The Formant stream name to ingest data using.",
+                            "type": "string"
+                        },
+                        "base_reference_frame": {
+                            "description": "The base reference frame used for the robot's localization.",
+                            "type": "string"
+                        },
+                        "odometry_subscriber_ros2_topic": {
+                            "description": "The ROS2 topic to collect odometry data from.",
+                            "type": "string"
+                        },
+                        "map_subscriber_ros2_topic": {
+                            "description": "The ROS2 topic to collect map data from.",
+                            "type": "string"
+                        },
+                        "point_cloud_subscriber_ros2_topics": {
+                            "description": "A list of ROS2 topics to collect point clouds from.",
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "ros2_topic": {
+                                        "description": "The ROS2 topic to collect a point cloud from.",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": ["ros2_topic"]
+                            }
+                        },
+                        "path_subscriber_ros2_topic": {
+                            "description": "The ROS2 topic to collect the current path from.",
+                            "type": "string"
+                        },
+                        "goal_subscriber_ros2_topic": {
+                            "description": "The ROS2 topic to collect the current goal from.",
+                            "type": "string"
+                        },
+                        "goal_publisher_ros2_topic": {
+                            "description": "The ROS2 topic to publish goals to while teleoperating.",
+                            "type": "string"
+                        },
+                        "cancel_goal_publisher_ros2_topic" {
+                            "description": "The ROS2 topic to publish goal cancellations to while teleoperating.",
+                            "type": "string"
+                        },
+                        "required": [
+                            "formant_stream", 
+                            "base_reference_frame", 
+                            "odometry_subscriber_ros2_topic", 
+                            "map_subscriber_ros2_topic"
+                        ]
+                    }
                 }
             }
         }
