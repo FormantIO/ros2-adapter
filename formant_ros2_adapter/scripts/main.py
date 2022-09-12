@@ -107,7 +107,7 @@ class Adapter:
             from tf2_ros.transform_listener import TransformListener
 
             self._tf_buffer = Buffer()
-            self._tf_listener = TransformListener(self._tf_buffer)
+            self._tf_listener = TransformListener(self._tf_buffer, self.node)
         except Exception as e:
             print("Error setting up tf2_ros transform listener: %s" % str(e))
 
@@ -118,7 +118,8 @@ class Adapter:
             transform = self._tf_buffer.lookup_transform(
                 base_reference_frame,
                 msg.header.frame_id,
-                rclpy.time.Time()
+                rclpy.time.Time(),
+                rclpy.duration.Duration(seconds=0.5)
             )
             return FTransform.from_ros_transform_stamped(transform)
         except Exception as e:
@@ -339,7 +340,7 @@ class Adapter:
                                     message
                                 )
                         if localization_manager is not None:
-                            point_cloud.transform_to_world = self._lookup_transform(message. base_reference_frame)
+                            point_cloud.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_point_cloud(point_cloud, cloud_name=topic)
                         else:
                             self.fclient.agent_stub.PostData(
