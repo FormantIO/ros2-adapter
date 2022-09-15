@@ -92,17 +92,10 @@ class Adapter:
         self._setup_trasform_listener()
 
         self.fclient.create_event("ROS2 Adapter online", notify=False, severity="info")
-        print_error = True
         while rclpy.ok():
             self.update_types()
             self.update_subscriptions()
-            try:
-                rclpy.spin_once(self.node, timeout_sec=1.0)
-            except Exception as e:
-                if print_error:
-                    print(e)
-                print_error=False
-                pass
+            rclpy.spin_once(self.node, timeout_sec=1.0)
 
         self.node.destroy_node()
         rclpy.shutdown()
@@ -240,7 +233,6 @@ class Adapter:
                         localization_manager = self.fclient.get_localization_manager(localization_stream_name)
                         base_reference_frame = config.get("base_reference_frame", BASE_REFERENCE_FRAME)
 
-
             else:
                 # Otherwise, generate a name from the topic name.
                 # e.g. "/rover/cmd_vel" -> "rover.cmd_vel"
@@ -349,6 +341,8 @@ class Adapter:
                             point_cloud.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_point_cloud(point_cloud, cloud_name=topic)
                         else:
+                            if "base_reference_frame" in config :
+                                point_cloud.transform_to_world = self._lookup_transform(message, config["base_reference_frame"])
                             self.fclient.agent_stub.PostData(
                                 Datapoint(
                                     stream=stream,
@@ -370,6 +364,8 @@ class Adapter:
                             point_cloud.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_point_cloud(point_cloud, cloud_name=topic)
                         else:
+                            if "base_reference_frame" in config :
+                                point_cloud.transform_to_world = self._lookup_transform(message, config["base_reference_frame"])
                             self.fclient.agent_stub.PostData(
                                 Datapoint(
                                     stream=stream,
@@ -388,6 +384,8 @@ class Adapter:
                             odometry = FOdometry.from_ros(message)
                             odometry.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_odometry(odometry)
+                        else:
+                            self.fclient.post_json(stream, message_to_json(message))
                     except grpc.RpcError as e:
                         return
                     except Exception as e:
@@ -399,6 +397,8 @@ class Adapter:
                             path = FPath.from_ros(message)
                             path.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_path(path)
+                        else:
+                            self.fclient.post_json(stream, message_to_json(message))
                     except grpc.RpcError as e:
                         return
                     except Exception as e:
@@ -410,6 +410,8 @@ class Adapter:
                             map = FMap.from_ros(message)
                             map.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_map(map)
+                        else:
+                            self.fclient.post_json(stream, message_to_json(message))
                     except grpc.RpcError as e:
                         return
                     except Exception as e:
@@ -422,6 +424,8 @@ class Adapter:
                             goal = FGoal.from_ros(message)
                             goal.transform_to_world = self._lookup_transform(message, base_reference_frame)
                             localization_manager.update_goal(goal)
+                        else:
+                            self.fclient.post_json(stream, message_to_json(message))
                     except grpc.RpcError as e:
                         return
                     except Exception as e:
