@@ -147,7 +147,7 @@
                             "description": "The ROS2 topic to publish goals to while teleoperating.",
                             "type": "string"
                         },
-                        "cancel_goal_publisher_ros2_topic" {
+                        "cancel_goal_publisher_ros2_topic": {
                             "description": "The ROS2 topic to publish goal cancellations to while teleoperating.",
                             "type": "string"
                         },
