@@ -141,5 +141,3 @@ NOTE: If you have custom messages that are not a part of the same workspace as t
 
 - NOTE: This is untested with ROS2 Humble
 - NOTE: This is untested with fastdds
-- Note this branch uses an experimental version of the formant pip package.
-  `python3 -m pip install --force-reinstall --upgrade formant-1.93.20_add_localizaiton_python_3814ae97-py2.py3-none-any.whl`
