@@ -440,8 +440,6 @@ class ROS2Adapter:
             print("WARNING: Unknown map type", msg_type)
 
     def localization_point_cloud_callback(self, msg):
-        # TODO: test multiple point clouds
-
         # Check to see if the point cloud is in laser scan or pointcloud2 format
         msg_type = type(msg)
         if msg_type == LaserScan:
@@ -449,6 +447,7 @@ class ROS2Adapter:
 
         elif msg_type == PointCloud2:
             point_cloud = FPointCloud.from_ros(msg)
+
         else:
             print("ERROR: Unknown point cloud type", msg_type)
             return
@@ -655,6 +654,8 @@ class ROS2Adapter:
             stream_name = msg.bitset.bits[0].key
         else:
             stream_name = msg.stream
+
+        print(msg)
 
         # There can be more than one publisher for a single stream, so loop over them
         if stream_name in self.ros2_publishers:
