@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
-from errno import EILSEQ
+
 import os
-from unittest import case
 import cv2
 import time
-import array
+import copy
 import json
 import grpc
-import importlib
 import jsonschema
 import numpy as np
+from errno import EILSEQ
 from typing import List, Dict
 
 from formant.sdk.agent.v1 import Client as FormantAgentClient
@@ -468,7 +467,6 @@ class ROS2Adapter:
         )
 
     def localization_path_callback(self, msg):
-        print(" - path")
         msg_type = type(msg)
         if msg_type == Path:
             path = FPath.from_ros(msg)
@@ -481,7 +479,6 @@ class ROS2Adapter:
             print("WARNING: Unknown path type", msg_type)
 
     def localization_goal_callback(self, msg):
-        print(" - goal")
         msg_type = type(msg)
         if msg_type == PoseStamped:
             goal = FGoal.from_ros(msg)
@@ -500,15 +497,24 @@ class ROS2Adapter:
         ros2_topic = subscriber_config["ros2_topic"]
 
         # Select the part of the message based on the path
-        # TODO: implement message paths
         if "ros2_message_paths" in subscriber_config:
-            print("WARNING: Message paths are not yet implemented")
-            for path in subscriber_config["ros2_message_paths"]:
+            for path_config in subscriber_config["ros2_message_paths"]:
                 try:
-                    path_msg = get_message_path_value(msg, path["path"])
+                    path_msg = get_message_path_value(msg, path_config["path"])
+
+                    # Write subscriber_config for this message
+                    path_subscriber_config = copy.deepcopy(subscriber_config)
+                    del path_subscriber_config["ros2_message_paths"]
+                    path_subscriber_config["is_path"] = True
+
+                    # TODO: Implement tags being passed
+
+                    # Recursively call this function with the message in the path
+                    self.handle_ros2_message(path_msg, path_subscriber_config)
+
                 except:
                     # If this path does not match, ignore it and log the error
-                    print(f"ERROR: Could not find path '{path['path']}' in message {msg_type}")
+                    print(f"ERROR: Could not find path '{path_config['path']}' in message {msg_type}")
                     pass
 
         # TODO: make sure there is a good message timestamp
@@ -519,17 +525,7 @@ class ROS2Adapter:
         
         # Handle the message based on its type
         try:
-            if msg_type == String:
-                if hasattr(msg, "data"):
-                    msg = msg.data
-
-                self.fclient.post_text(
-                    formant_stream, 
-                    msg, 
-                    timestamp=msg_timestamp
-                )
-
-            elif msg_type == Char:
+            if msg_type in [str, String, Char]:
                 if hasattr(msg, "data"):
                     msg = msg.data
 
@@ -539,7 +535,7 @@ class ROS2Adapter:
                     timestamp=msg_timestamp
                 )
 
-            elif msg_type == Bool:
+            elif msg_type in [Bool, bool]:
                 if hasattr(msg, "data"):
                     msg = msg.data
 
@@ -551,7 +547,7 @@ class ROS2Adapter:
                 )
 
             elif msg_type in [
-                Float32, Float64,
+                int, float, Float32, Float64,
                 Int8, Int16, Int32, Int64,
                 UInt8, UInt16, UInt32, UInt64
             ]:
