@@ -14,6 +14,14 @@ from typing import List, Dict
 
 from formant.sdk.agent.v1 import Client as FormantAgentClient
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
+from formant.sdk.agent.v1.localization.types import (
+    PointCloud as FPointCloud,
+    Map as FMap,
+    Path as FPath,
+    Transform as FTransform,
+    Goal as FGoal,
+    Odometry as FOdometry,
+)
 
 import rclpy
 from cv_bridge import CvBridge
@@ -25,19 +33,17 @@ from std_msgs.msg import (
     UInt8, UInt16, UInt32, UInt64
 )
 from sensor_msgs.msg import (
-    BatteryState,
-    CompressedImage,
-    Image,
-    Joy,
-    LaserScan,
-    NavSatFix,
-    PointCloud2,
+    BatteryState, CompressedImage, Image,
+    Joy, LaserScan, NavSatFix, PointCloud2
 )
 from geometry_msgs.msg import (
     Point, Point32, Polygon,
     Pose, PoseStamped, PoseArray,
     PoseWithCovariance, PoseWithCovarianceStamped,
     Twist, TwistStamped, Vector3, Vector3Stamped
+)
+from nav_msgs.msg import (
+    Odometry, OccupancyGrid, Path
 )
 from converters.laserscan import ros2_laserscan_to_formant_pointcloud
 from converters.pointcloud2 import ros2_pointcloud2_to_formant_pointcloud
@@ -56,7 +62,7 @@ class ROS2Adapter:
     def __init__(self):
         # For console output acknowledgement that the script has started running even if it
         # hasn't yet established communication with the Formant agent.
-        print("INFO: ROS2 Adapter has started running.")
+        print("INFO: ROS2 Adapter has started.")
 
         # Connect to ROS2
         rclpy.init()
@@ -71,6 +77,25 @@ class ROS2Adapter:
         self.ros2_publishers = {}
         self.ros2_service_calls = {}
 
+        # Set up the localization objects
+        ###########################################################################################
+        # Currently, localization is implemented completely separately from normal streams        #
+        # In the future, it will be removed as individual streams will be assembled in the client #
+        ###########################################################################################
+        self.tf_buffer = None
+        self.tf_listener = None
+        self.localization_manager = None
+        self.localization_odom_sub = None
+
+        self.current_localization = {
+            "odometry": None,
+            "map": None,
+            "point_clouds": [],
+            "path": None,
+            "goal": None,
+        }
+        self.setup_transform_listener()
+
         # Set up the adapter
         self.fclient = FormantAgentClient(ignore_throttled=True, ignore_unavailable=True)
         self.fclient.register_config_update_callback(self.update_adapter_configuration)
@@ -78,6 +103,7 @@ class ROS2Adapter:
         self.fclient.register_command_request_callback(self.handle_formant_command_request_msg)
 
         # Start spinning
+        print("INFO: ROS2 Adapter is ready.")
         while rclpy.ok():
             rclpy.spin_once(self.ros2_node, timeout_sec=1.0)
 
@@ -89,15 +115,25 @@ class ROS2Adapter:
         # Load config from either the agent's json blob or the config.json file
         try:
             config_blob = json.loads(self.fclient.get_config_blob_data())
+            print("INFO: Loaded config from agent.")
         except:
             # Otherwise, load from the config.json file shipped with the adapter
             current_directory = os.path.dirname(os.path.realpath(__file__))
             with open(f"{current_directory}/config.json") as f:
                 config_blob = json.loads(f.read())
+
+            print("INFO: Loaded config from config.json file.")
             
         # Validate configuration based on schema
         with open("config_schema.json") as f:
-            self.config_schema = json.load(f)
+            try:
+                self.config_schema = json.load(f)
+                print("INFO: Loaded config schema from config_schema.json file.")
+            except:
+                print("ERROR: Could not load config schema. Is the file valid json?")
+                return
+
+        print("INFO: Validating config...")
 
         # Runt the validation check    
         try:
@@ -120,7 +156,7 @@ class ROS2Adapter:
             self.config = {}
 
         self.update_ros2_information()
-
+        
         # Fill out the config with default values
         for subscriber_config in self.config["subscribers"]:
             if "formant_stream" not in subscriber_config:
@@ -139,6 +175,8 @@ class ROS2Adapter:
                     
         self.setup_subscribers()
         self.setup_publishers()
+        self.setup_localization()
+        print("INFO: ROS2 adapter configuration updated.")
 
         self.fclient.post_json("adapter.configuration", json.dumps(self.config))
         self.fclient.create_event(
@@ -213,6 +251,190 @@ class ROS2Adapter:
 
             self.ros2_publishers[publisher["formant_stream"]].append(new_pub)
 
+    def setup_localization(self):
+        print("INFO: Setting up localization")
+        # Remove any existing localization subscribers and publishers
+        if self.localization_odom_sub is not None:
+            self.ros2_node.destroy_subscription(self.localization_odom_sub)
+            self.localization_odom_sub = None
+        
+        if self.localization_map_sub is not None:
+            self.ros2_node.destroy_subscription(self.localization_map_sub)
+            self.localization_map_sub = None
+
+        for point_cloud_sub in self.localization_point_cloud_subs:
+            self.ros2_node.destroy_subscription(point_cloud_sub)
+        
+        self.localization_point_cloud_subs = []    
+        
+        if self.localization_path_sub is not None:
+            self.ros2_node.destroy_subscription(self.localization_path_sub)
+            self.localization_path_sub = None
+
+        # TODO: destroy publishers
+
+        # Localization configuration looks like this
+        # "localization": {
+        #     "formant_stream": "localization",
+        #     "base_reference_frame": "base_link",
+        #     "odometry_subscriber_ros2_topic": "/odom",
+        #     "map_subscriber_ros2_topic": "/map",
+        #     "point_cloud_subscriber_ros2_topics": ["/scan", "/stereo/depth/points"],
+        #     "path_subscriber_ros2_topic": "/plan",
+        #     "goal_publisher_ros2_topic": "/goal_pose",
+        #     "cancel_goal_publisher_ros2_topic": "/move_base/cancel"
+        # }
+
+        # Skip this if there is no localization config
+        if "localization" not in self.config:
+            print("INFO: No localization configuration")
+            return
+        
+        localization_config = self.config["localization"]
+
+        # Make sure the config has all required fields
+        if (
+            "formant_stream" not in localization_config or
+            "base_reference_frame" not in localization_config or
+            "odometry_subscriber_ros2_topic" not in localization_config or
+            "map_subscriber_ros2_topic" not in localization_config
+        ):
+            print("ERROR: localization config is missing required fields")
+            return
+
+        # Set up the localization manager
+        self.localization_manager = self.fclient.get_localization_manager(
+            localization_config["formant_stream"]
+        )
+        self.localization_manager.set_base_reference_frame(
+            localization_config["base_reference_frame"]
+        )
+
+        # Set up subscribers
+        self.localization_odom_sub = self.ros2_node.create_subscription(
+            Odometry,
+            localization_config["odometry_subscriber_ros2_topic"],
+            self.localization_odom_callback,
+            qos_profile_sensor_data,
+        )
+
+        self.localization_map_sub = self.ros2_node.create_subscription(
+            OccupancyGrid,
+            localization_config["map_subscriber_ros2_topic"],
+            self.localization_map_callback,
+            qos_profile_sensor_data,
+        )
+
+        self.localization_point_cloud_subs = []
+        if "point_cloud_subscriber_ros2_topics" in localization_config:
+            for point_cloud_subscriber_ros2_topic in localization_config["point_cloud_subscriber_ros2_topics"]:
+                new_sub = self.ros2_node.create_subscription(
+                    PointCloud2,
+                    point_cloud_subscriber_ros2_topic,
+                    self.localization_point_cloud_callback,
+                    qos_profile_sensor_data,
+                )
+                self.localization_point_cloud_subs.append(new_sub)
+
+        self.localization_path_sub = self.ros2_node.create_subscription(
+            Path,
+            localization_config["path_subscriber_ros2_topic"],
+            self.localization_path_callback,
+            qos_profile_sensor_data,
+        )
+
+        self.localization_goal_sub = self.ros2_node.create_subscription(
+            PoseStamped,
+            localization_config["goal_subscriber_ros2_topic"],
+            self.localization_goal_callback,
+            qos_profile_sensor_data,
+        )
+
+        # TODO: add publishers
+        
+    def localization_odom_callback(self, msg):
+        msg_type = type(msg)
+        if msg_type == Odometry:
+            odometry = FOdometry.from_ros(msg)
+            odometry.transform_to_world = self.lookup_transform(
+                msg,
+                self.config["localization"]["base_reference_frame"]
+            )
+            self.localization_manager.update_odometry(odometry)
+            
+            print("odom callback")
+        else:
+            print("WARNING: unknown odom type", msg_type)
+
+    def localization_map_callback(self, msg):
+        msg_type = type(msg)
+        if msg_type is OccupancyGrid:
+            map = FMap.from_ros(msg)
+            map.transform_to_world = self.lookup_transform(
+                msg, 
+                self.config["localization"]["base_reference_frame"]
+            )
+            self.localization_manager.update_map(map)
+            print("map callback")
+        else:
+            print("WARNING: unknown map type", msg_type)
+
+    def localization_point_cloud_callback(self, msg):
+        # Check to see if the point cloud is in laser scan or pointcloud2 format
+        msg_type = type(msg)
+        if msg_type == LaserScan:
+            print("laser scan callback")
+            point_cloud = FPointCloud.from_ros_laserscan(msg)
+
+        elif msg_type == PointCloud2:
+            print("point cloud callback")
+            point_cloud = FPointCloud.from_ros(msg)
+
+        else:
+            print("ERROR: Unknown point cloud type", msg_type)
+            return
+
+        point_cloud.transform_to_world = self.lookup_transform(
+            msg,
+            self.config["localization"]["base_reference_frame"]
+        )
+
+        if msg.header.frame_id != None:
+            point_cloud_name = msg.header.frame_id
+        else:
+            point_cloud_name = "point_cloud" # TODO: should get something unique here, like the topic name
+
+        self.localization_manager.update_point_cloud(
+            point_cloud,
+            point_cloud_name
+        )
+
+    def localization_path_callback(self, msg):
+        msg_type = type(msg)
+        if msg_type == Path:
+            path = FPath.from_ros(msg)
+            path.transform_to_world = self.lookup_transform(
+                msg,
+                self.config["localization"]["base_reference_frame"]
+            )
+            self.localization_manager.update_path(path)
+            print("path callback")
+        else:
+            print("WARNING: unknown path type", msg_type)
+
+    def localization_goal_callback(self, msg):
+        msg_type = type(msg)
+        if msg_type == PoseStamped:
+            goal = FGoal.from_ros(msg)
+            goal.transform_to_world = self.lookup_transform(
+                msg,
+                self.config["localization"]["base_reference_frame"]
+            )
+            self.localization_manager.update_goal(goal)
+            print("goal callback")
+        else:
+            print("WARNING: unknown goal type", msg_type)
+
     def handle_ros2_message(self, msg, subscriber_config):
         # Get the message type
         msg_type = type(msg)
@@ -220,6 +442,7 @@ class ROS2Adapter:
         ros2_topic = subscriber_config["ros2_topic"]
 
         # Select the part of the message based on the path
+        # TODO: implement message paths
         if "ros2_message_paths" in subscriber_config:
             print("WARNING: message paths are not yet implemented")
             for path in subscriber_config["ros2_message_paths"]:
@@ -230,18 +453,13 @@ class ROS2Adapter:
                     print(f"ERROR: Could not find path '{path['path']}' in message {msg_type}")
                     pass
 
-        # TODO: Get the timestamp from the message, or make a new one
+        # TODO: make sure there is a good message timestamp
         # try:
         #     msg_timestamp = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
         # except:
-
         msg_timestamp = int(time.time() * 1000)
-
-        # TODO: collect all the data for localization and send it in one message when it changes
-        # OR send every item on its own stream, and then use the new aggregate localization module
-
+        
         # Handle the message based on its type
-
         try:
             if msg_type == String:
                 if hasattr(msg, "data"):
@@ -316,7 +534,7 @@ class ROS2Adapter:
                 elif "png" in msg.format:
                     content_type = "image/png"
                 else:
-                    print("ERROR unsupported image format:", msg.format)
+                    print("WARNING: image format", msg.format, "not supported")
                     return
                 self.fclient.post_image(
                     formant_stream, 
@@ -347,7 +565,7 @@ class ROS2Adapter:
                 except grpc.RpcError as e:
                     return
                 except Exception as e:
-                    print("ERROR ingesting " + formant_stream + ": " + str(e))
+                    print("ERROR: could not ingest " + formant_stream + ": " + str(e))
                     return
 
             elif msg_type == PointCloud2:
@@ -362,14 +580,14 @@ class ROS2Adapter:
                 except grpc.RpcError as e:
                     return
                 except Exception as e:
-                    print("ERROR ingesting " + formant_stream + ": " + str(e))
+                    print("ERROR: could not ingest " + formant_stream + ": " + str(e))
                     return
 
                 else:  
                     # Ingest any messages without a direct mapping to a Formant type as JSON
                     self.fclient.post_json(formant_stream, message_to_json(msg))
         except AttributeError as e:
-            print("ERROR ingesting " + formant_stream + ": " + str(e))
+            print("ERROR: could not ingest " + formant_stream + ": " + str(e))
             
     def handle_formant_teleop_msg(self, msg):
         # Buttons always publish to the "Buttons" stream, so get actual name to use instead
@@ -495,52 +713,43 @@ class ROS2Adapter:
     def handle_formant_command_request_msg(self, msg):
         # Print the message
         print(msg)
+        
+        # TODO: implement commands
+        print("WARNING: Command requests are not yet supported.")
 
         # Post a response
         self.fclient.send_command_response(msg.id, success=True)
 
-    # def handle_teleop(self, msg):
-    #     try:
-    #         if msg.stream.casefold() == "joystick".casefold():
-    #             if not self.joystick_publisher:
-    #                 self.joystick_publisher = self.ros2_node.create_publisher(
-    #                     Twist, 
-    #                     TELEOP_JOYSTICK_TOPIC, 
-    #                     10
-    #                 )
-    #             else:
-    #                 self.publish_twist(msg.twist, self.joystick_publisher)
+    def setup_transform_listener(self):
+        try:
+            from tf2_ros.buffer import Buffer
+            from tf2_ros.transform_listener import TransformListener
 
-    #         elif msg.stream.casefold() == "buttons".casefold():
-    #             button_topic = "/formant/" + str(msg.bitset.bits[0].key)
+            self.tf_buffer = Buffer()
+            self.tf_listener = TransformListener(self.tf_buffer, self.ros2_node)
 
-    #             if not button_topic in self.button_publishers:
-    #                 self.button_publishers[button_topic] = self.ros2_node.create_publisher(Bool, button_topic, 10)
-    #             else:
-    #                 self.publish_bool(msg.bitset.bits[0], self.button_publishers[button_topic])
+        except Exception as e:
+            print("ERROR: could not set up tf2_ros transform listener: %s" % str(e))
 
-    #     except Exception as e:
-    #         self.fclient.post_text("adapter.errors", "Error handling teleop: %s" %  str(e))
+    def lookup_transform(self, msg):
+        base_reference_frame = "map"
 
-    
-    # def publish_twist(self, value, publisher):
-    #     msg = Twist()
-    #     msg.linear.x = value.linear.x
-    #     msg.linear.y = value.linear.y
-    #     msg.linear.z = value.linear.z
-    #     msg.angular.x = value.angular.x
-    #     msg.angular.y = value.angular.y
-    #     msg.angular.z = value.angular.z
+        if self.tf_buffer is None or self.tf_listener is None:
+            return FTransform()
+        try:
+            transform = self.tf_buffer.lookup_transform(
+                base_reference_frame,
+                msg.header.frame_id,
+                rclpy.time.Time()
+            )
+            return FTransform.from_ros_transform_stamped(transform)
+        except Exception as e:
+            print(
+                "ERROR: could not look up transform between %s and %s: %s, using identity"
+                % (base_reference_frame, msg.header.frame_id, str(e))
+            )
+        return FTransform()
 
-    #     publisher.publish(msg)
-
-    # def publish_bool(self, value, publisher):
-    #     msg = Bool()
-
-    #     if value.value:
-    #         msg.data = True
-        
-    #     publisher.publish(msg)
 
 if __name__ == "__main__":
     try:
