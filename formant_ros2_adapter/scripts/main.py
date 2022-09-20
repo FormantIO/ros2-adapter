@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from errno import EILSEQ
 import os
 from unittest import case
 import cv2
@@ -85,7 +86,12 @@ class ROS2Adapter:
         self.tf_buffer = None
         self.tf_listener = None
         self.localization_manager = None
+
         self.localization_odom_sub = None
+        self.localization_map_sub = None
+        self.localization_path_sub = None
+        self.localization_goal_sub = None
+        self.localization_point_cloud_subs = []
 
         self.current_localization = {
             "odometry": None,
@@ -170,7 +176,7 @@ class ROS2Adapter:
                         subscriber_config["ros2_topic"]
                     ]
                 except:
-                    print("WARNING: setting type bool for unknown topic", subscriber_config["ros2_topic"])
+                    print("WARNING: Setting type bool for unknown topic", subscriber_config["ros2_topic"])
                     subscriber_config["ros2_message_type"] = "std_msgs/msg/Bool"
                     
         self.setup_subscribers()
@@ -257,19 +263,25 @@ class ROS2Adapter:
         if self.localization_odom_sub is not None:
             self.ros2_node.destroy_subscription(self.localization_odom_sub)
             self.localization_odom_sub = None
+            print(" - destroyed odom sub")
         
         if self.localization_map_sub is not None:
             self.ros2_node.destroy_subscription(self.localization_map_sub)
             self.localization_map_sub = None
+            print(" - destroyed map sub")
 
         for point_cloud_sub in self.localization_point_cloud_subs:
             self.ros2_node.destroy_subscription(point_cloud_sub)
+            print(" - destroyed point cloud sub")
         
-        self.localization_point_cloud_subs = []    
+        self.localization_point_cloud_subs = []
         
         if self.localization_path_sub is not None:
             self.ros2_node.destroy_subscription(self.localization_path_sub)
             self.localization_path_sub = None
+            print(" - destroyed path sub")
+        
+        print("INFO: Destroyed existing localization subscribers")
 
         # TODO: destroy publishers
 
@@ -291,6 +303,7 @@ class ROS2Adapter:
             return
         
         localization_config = self.config["localization"]
+        print("INFO: Set localization config")
 
         # Make sure the config has all required fields
         if (
@@ -299,16 +312,20 @@ class ROS2Adapter:
             "odometry_subscriber_ros2_topic" not in localization_config or
             "map_subscriber_ros2_topic" not in localization_config
         ):
-            print("ERROR: localization config is missing required fields")
+            print("ERROR: Localization config is missing required fields")
             return
+        print("INFO: Checked for required fields")
 
         # Set up the localization manager
         self.localization_manager = self.fclient.get_localization_manager(
             localization_config["formant_stream"]
         )
-        self.localization_manager.set_base_reference_frame(
-            localization_config["base_reference_frame"]
-        )
+        print("INFO: Set up localization manager")
+
+        # self.localization_manager.set_base_reference_frame(
+        #     localization_config["base_reference_frame"]
+        # )
+        # print("INFO: Set base reference frame")
 
         # Set up subscribers
         self.localization_odom_sub = self.ros2_node.create_subscription(
@@ -349,10 +366,12 @@ class ROS2Adapter:
             self.localization_goal_callback,
             qos_profile_sensor_data,
         )
+        print("INFO: Set up localization subscribers")
 
         # TODO: add publishers
         
     def localization_odom_callback(self, msg):
+        #print(" - odom")
         msg_type = type(msg)
         if msg_type == Odometry:
             odometry = FOdometry.from_ros(msg)
@@ -361,12 +380,11 @@ class ROS2Adapter:
                 self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_odometry(odometry)
-            
-            print("odom callback")
         else:
-            print("WARNING: unknown odom type", msg_type)
+            print("WARNING: Unknown odom type", msg_type)
 
     def localization_map_callback(self, msg):
+        print(" - map")
         msg_type = type(msg)
         if msg_type is OccupancyGrid:
             map = FMap.from_ros(msg)
@@ -375,21 +393,18 @@ class ROS2Adapter:
                 self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_map(map)
-            print("map callback")
         else:
-            print("WARNING: unknown map type", msg_type)
+            print("WARNING: Unknown map type", msg_type)
 
     def localization_point_cloud_callback(self, msg):
+        print(" - point cloud")
         # Check to see if the point cloud is in laser scan or pointcloud2 format
         msg_type = type(msg)
         if msg_type == LaserScan:
-            print("laser scan callback")
             point_cloud = FPointCloud.from_ros_laserscan(msg)
 
         elif msg_type == PointCloud2:
-            print("point cloud callback")
             point_cloud = FPointCloud.from_ros(msg)
-
         else:
             print("ERROR: Unknown point cloud type", msg_type)
             return
@@ -410,6 +425,7 @@ class ROS2Adapter:
         )
 
     def localization_path_callback(self, msg):
+        print(" - path")
         msg_type = type(msg)
         if msg_type == Path:
             path = FPath.from_ros(msg)
@@ -418,11 +434,11 @@ class ROS2Adapter:
                 self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_path(path)
-            print("path callback")
         else:
-            print("WARNING: unknown path type", msg_type)
+            print("WARNING: Unknown path type", msg_type)
 
     def localization_goal_callback(self, msg):
+        print(" - goal")
         msg_type = type(msg)
         if msg_type == PoseStamped:
             goal = FGoal.from_ros(msg)
@@ -431,9 +447,8 @@ class ROS2Adapter:
                 self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_goal(goal)
-            print("goal callback")
         else:
-            print("WARNING: unknown goal type", msg_type)
+            print("WARNING: Unknown goal type", msg_type)
 
     def handle_ros2_message(self, msg, subscriber_config):
         # Get the message type
@@ -444,7 +459,7 @@ class ROS2Adapter:
         # Select the part of the message based on the path
         # TODO: implement message paths
         if "ros2_message_paths" in subscriber_config:
-            print("WARNING: message paths are not yet implemented")
+            print("WARNING: Message paths are not yet implemented")
             for path in subscriber_config["ros2_message_paths"]:
                 try:
                     path_msg = get_message_path_value(msg, path["path"])
@@ -534,7 +549,7 @@ class ROS2Adapter:
                 elif "png" in msg.format:
                     content_type = "image/png"
                 else:
-                    print("WARNING: image format", msg.format, "not supported")
+                    print("WARNING: Image format", msg.format, "not supported")
                     return
                 self.fclient.post_image(
                     formant_stream, 
@@ -565,7 +580,7 @@ class ROS2Adapter:
                 except grpc.RpcError as e:
                     return
                 except Exception as e:
-                    print("ERROR: could not ingest " + formant_stream + ": " + str(e))
+                    print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
                     return
 
             elif msg_type == PointCloud2:
@@ -580,14 +595,14 @@ class ROS2Adapter:
                 except grpc.RpcError as e:
                     return
                 except Exception as e:
-                    print("ERROR: could not ingest " + formant_stream + ": " + str(e))
+                    print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
                     return
 
                 else:  
                     # Ingest any messages without a direct mapping to a Formant type as JSON
                     self.fclient.post_json(formant_stream, message_to_json(msg))
         except AttributeError as e:
-            print("ERROR: could not ingest " + formant_stream + ": " + str(e))
+            print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
             
     def handle_formant_teleop_msg(self, msg):
         # Buttons always publish to the "Buttons" stream, so get actual name to use instead
@@ -626,54 +641,14 @@ class ROS2Adapter:
 
                 elif msg.HasField("numeric"):
                     msg_value = msg.numeric.value
-
-                    # TODO: this may not be correctly converting all numeric types
-                    # Select the configured output type
-                    if ros2_msg_type == "Float32":
-                        ros2_msg = Float32()
-                        ros2_msg.data = float(msg_value)
-                    elif ros2_msg_type == "Float64":
-                        ros2_msg = Float64()
-                        ros2_msg.data = float(msg_value)
-                    elif ros2_msg_type == "Int8":
-                        ros2_msg = Int8()
-                        ros2_msg.data = int(msg_value)
-                    elif ros2_msg_type == "Int16":
-                        ros2_msg = Int16()
-                        ros2_msg.data = int(msg_value)
-                    elif ros2_msg_type == "Int32":
-                        ros2_msg = Int32()
-                        ros2_msg.data = int(msg_value)
-                    elif ros2_msg_type == "Int64":
-                        ros2_msg = Int64()
-                        ros2_msg.data = int(msg_value)
-                    elif ros2_msg_type == "UInt8":
-                        ros2_msg = UInt8()
-                        ros2_msg.data = int(msg_value)
-                    elif ros2_msg_type == "UInt16":
-                        ros2_msg = UInt16()
-                        ros2_msg.data = int(msg_value)
-                    elif ros2_msg_type == "UInt32":
-                        ros2_msg = UInt32()
-                        ros2_msg.data = int(msg_value)
-                    elif ros2_msg_type == "UInt64":
-                        ros2_msg = UInt64()
-                        ros2_msg.data = int(msg_value)
-                    elif ros2_msg_type == "String":
-                        ros2_msg = String()
-                        ros2_msg.data = str(msg_value)
-                    else:
-                        print("WARNING: Unsupported ROS2 message type for numeric: " + ros2_msg_type)
-                        continue
-                    
-                    publisher.publish(ros2_msg)
+                    self.publish_ros2_numeric(publisher, ros2_msg_type, msg_value)
 
                 elif msg.HasField("point"):
-                    print("WARNING: point is not yet supported")
+                    print("WARNING: Point is not yet supported")
                 elif msg.HasField("pose"):
-                    print("WARNING: pose is not yet supported")
+                    print("WARNING: Pose is not yet supported")
                 elif msg.HasField("pose_with_covariance"):
-                    print("WARNING: pose_with_covariance is not yet supported")
+                    print("WARNING: Pose_with_covariance is not yet supported")
                 elif msg.HasField("twist"):
                     if ros2_msg_type == "Twist":
                         ros2_msg = Twist()
@@ -713,12 +688,65 @@ class ROS2Adapter:
     def handle_formant_command_request_msg(self, msg):
         # Print the message
         print(msg)
-        
-        # TODO: implement commands
-        print("WARNING: Command requests are not yet supported.")
 
-        # Post a response
-        self.fclient.send_command_response(msg.id, success=True)
+        if msg.command in self.ros2_publishers:
+            for publisher in self.ros2_publishers[msg.command]:
+                # Get the ROS2 message type as a string
+                ros2_msg_type = publisher.msg_type.__name__
+
+                if ros2_msg_type == "String":
+                    ros2_msg = String()
+                    ros2_msg.data = msg.text
+                    publisher.publish(ros2_msg)
+                    self.fclient.send_command_response(msg.id, success=True)
+                else:
+                    print("WARNING: Unsupported ROS2 message type for command: " + ros2_msg_type)
+                    self.fclient.send_command_response(msg.id, success=False)
+                    continue
+                
+        print("WARNING: Command issued without a ROS2 publisher: " + msg.command)
+        self.fclient.send_command_response(msg.id, success=False)        
+
+    def publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
+        # TODO: this may not be correctly converting all numeric types
+        if ros2_msg_type == "Float32":
+            ros2_msg = Float32()
+            ros2_msg.data = float(msg_value)
+        elif ros2_msg_type == "Float64":
+            ros2_msg = Float64()
+            ros2_msg.data = float(msg_value)
+        elif ros2_msg_type == "Int8":
+            ros2_msg = Int8()
+            ros2_msg.data = int(msg_value)
+        elif ros2_msg_type == "Int16":
+            ros2_msg = Int16()
+            ros2_msg.data = int(msg_value)
+        elif ros2_msg_type == "Int32":
+            ros2_msg = Int32()
+            ros2_msg.data = int(msg_value)
+        elif ros2_msg_type == "Int64":
+            ros2_msg = Int64()
+            ros2_msg.data = int(msg_value)
+        elif ros2_msg_type == "UInt8":
+            ros2_msg = UInt8()
+            ros2_msg.data = int(msg_value)
+        elif ros2_msg_type == "UInt16":
+            ros2_msg = UInt16()
+            ros2_msg.data = int(msg_value)
+        elif ros2_msg_type == "UInt32":
+            ros2_msg = UInt32()
+            ros2_msg.data = int(msg_value)
+        elif ros2_msg_type == "UInt64":
+            ros2_msg = UInt64()
+            ros2_msg.data = int(msg_value)
+        elif ros2_msg_type == "String":
+            ros2_msg = String()
+            ros2_msg.data = str(msg_value)
+        else:
+            print("WARNING: Unsupported ROS2 message type for numeric: " + ros2_msg_type)
+            return
+        
+        publisher.publish(ros2_msg)
 
     def setup_transform_listener(self):
         try:
@@ -729,11 +757,9 @@ class ROS2Adapter:
             self.tf_listener = TransformListener(self.tf_buffer, self.ros2_node)
 
         except Exception as e:
-            print("ERROR: could not set up tf2_ros transform listener: %s" % str(e))
+            print("ERROR: Could not set up tf2_ros transform listener: %s" % str(e))
 
-    def lookup_transform(self, msg):
-        base_reference_frame = "map"
-
+    def lookup_transform(self, msg, base_reference_frame):
         if self.tf_buffer is None or self.tf_listener is None:
             return FTransform()
         try:
@@ -745,7 +771,7 @@ class ROS2Adapter:
             return FTransform.from_ros_transform_stamped(transform)
         except Exception as e:
             print(
-                "ERROR: could not look up transform between %s and %s: %s, using identity"
+                "ERROR: Could not look up transform between %s and %s: %s, using identity"
                 % (base_reference_frame, msg.header.frame_id, str(e))
             )
         return FTransform()
