@@ -162,6 +162,7 @@ class ROS2Adapter:
             self.config = {}
 
         self.update_ros2_information()
+        print("INFO: Updated ROS2 information")
         
         # Fill out the config with default values
         for subscriber_config in self.config["subscribers"]:
@@ -178,11 +179,17 @@ class ROS2Adapter:
                 except:
                     print("WARNING: Setting type bool for unknown topic", subscriber_config["ros2_topic"])
                     subscriber_config["ros2_message_type"] = "std_msgs/msg/Bool"
-                    
+        
+        print("INFO: Updated config with default values")
+
         self.setup_subscribers()
+        print("INFO: Set up subscribers")
+
         self.setup_publishers()
+        print("INFO: Set up publishers")
+
         self.setup_localization()
-        print("INFO: ROS2 adapter configuration updated.")
+        print("INFO: Set up localization")
 
         self.fclient.post_json("adapter.configuration", json.dumps(self.config))
         self.fclient.create_event(
@@ -190,6 +197,7 @@ class ROS2Adapter:
             notify=False,
             severity="info", 
         )
+        print("INFO: Posted update event and config")
 
     def update_ros2_information(self):
         # Update knowledge about topics and services
@@ -327,51 +335,74 @@ class ROS2Adapter:
         # )
         # print("INFO: Set base reference frame")
 
+        print(self.ros2_topic_names_and_types)
         # Set up subscribers
+        odom_type = get_message_type_from_string(
+            self.ros2_topic_names_and_types[localization_config["odometry_subscriber_ros2_topic"]]
+        )
         self.localization_odom_sub = self.ros2_node.create_subscription(
-            Odometry,
+            odom_type,
             localization_config["odometry_subscriber_ros2_topic"],
             self.localization_odom_callback,
             qos_profile_sensor_data,
         )
+        print("INFO: Set up localization odom subscriber")
 
+        map_type = get_message_type_from_string(
+            self.ros2_topic_names_and_types[localization_config["map_subscriber_ros2_topic"]]
+        )
         self.localization_map_sub = self.ros2_node.create_subscription(
-            OccupancyGrid,
+            map_type,
             localization_config["map_subscriber_ros2_topic"],
             self.localization_map_callback,
             qos_profile_sensor_data,
         )
+        print("INFO: Set up localization map subscriber")
 
+        
         self.localization_point_cloud_subs = []
         if "point_cloud_subscriber_ros2_topics" in localization_config:
             for point_cloud_subscriber_ros2_topic in localization_config["point_cloud_subscriber_ros2_topics"]:
+                point_cloud_type = get_message_type_from_string(
+                    self.ros2_topic_names_and_types[point_cloud_subscriber_ros2_topic]
+                )
                 new_sub = self.ros2_node.create_subscription(
-                    PointCloud2,
+                    point_cloud_type,
                     point_cloud_subscriber_ros2_topic,
                     self.localization_point_cloud_callback,
                     qos_profile_sensor_data,
                 )
                 self.localization_point_cloud_subs.append(new_sub)
+        
+        print("INFO: Set up localization point cloud subscribers")
 
+        path_type = get_message_type_from_string(
+            self.ros2_topic_names_and_types[localization_config["path_subscriber_ros2_topic"]]
+        )
         self.localization_path_sub = self.ros2_node.create_subscription(
-            Path,
+            path_type,
             localization_config["path_subscriber_ros2_topic"],
             self.localization_path_callback,
             qos_profile_sensor_data,
         )
+        print("INFO: Set up localization path subscriber")
 
+        goal_type = get_message_type_from_string(
+            self.ros2_topic_names_and_types[localization_config["goal_publisher_ros2_topic"]]
+        )
         self.localization_goal_sub = self.ros2_node.create_subscription(
-            PoseStamped,
+            goal_type,
             localization_config["goal_subscriber_ros2_topic"],
             self.localization_goal_callback,
             qos_profile_sensor_data,
         )
-        print("INFO: Set up localization subscribers")
+        print("INFO: Set up localization goal subscriber")
+
+        print("INFO: Set up all localization subscribers")
 
         # TODO: add publishers
         
     def localization_odom_callback(self, msg):
-        #print(" - odom")
         msg_type = type(msg)
         if msg_type == Odometry:
             odometry = FOdometry.from_ros(msg)
@@ -384,7 +415,6 @@ class ROS2Adapter:
             print("WARNING: Unknown odom type", msg_type)
 
     def localization_map_callback(self, msg):
-        print(" - map")
         msg_type = type(msg)
         if msg_type is OccupancyGrid:
             map = FMap.from_ros(msg)
@@ -397,7 +427,6 @@ class ROS2Adapter:
             print("WARNING: Unknown map type", msg_type)
 
     def localization_point_cloud_callback(self, msg):
-        print(" - point cloud")
         # Check to see if the point cloud is in laser scan or pointcloud2 format
         msg_type = type(msg)
         if msg_type == LaserScan:
