@@ -91,7 +91,7 @@ def get_message_path_value(message, messagePath: str):
             if step[0] == "attribute":
                 message = getattr(message, step[1])
             elif step[0] == "indexing":
-                indices = [int(s[1:]) for s in step[1].split("]")]
+                indices = [int(s[1:]) for s in step[1].split("]")[:-1]]
                 for index in indices:
                     message = message[index]
     except (AttributeError, KeyError):
