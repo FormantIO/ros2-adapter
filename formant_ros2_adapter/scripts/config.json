@@ -2,6 +2,7 @@
     "ros2_adapter_configuration": {
         "subscribers": [],
         "publishers": [],
-        "service_calls": []
+        "service_calls": [],
+        "localization": {}
     }
 }

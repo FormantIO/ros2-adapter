@@ -93,13 +93,9 @@ class ROS2Adapter:
         self.localization_goal_sub = None
         self.localization_point_cloud_subs = []
 
-        self.current_localization = {
-            "odometry": None,
-            "map": None,
-            "point_clouds": [],
-            "path": None,
-            "goal": None,
-        }
+        self.localization_goal_pub = None
+        self.localization_goal_cancel_pub = None
+
         self.setup_transform_listener()
 
         # Set up the adapter
@@ -291,7 +287,17 @@ class ROS2Adapter:
         
         print("INFO: Destroyed existing localization subscribers")
 
-        # TODO: destroy publishers
+        if self.localization_goal_pub is not None:
+            self.ros2_node.destroy_publisher(self.localization_goal_pub)
+            self.localization_goal_pub = None
+            print(" - destroyed goal pub")
+
+        if self.localization_goal_cancel_pub is not None:
+            self.ros2_node.destroy_publisher(self.localization_goal_cancel_pub)
+            self.localization_goal_cancel_pub = None
+            print(" - destroyed cancel pub")
+        
+        print("INFO: Destroyed existing localization publishers")
 
         # Localization configuration looks like this
         # "localization": {
@@ -330,12 +336,6 @@ class ROS2Adapter:
         )
         print("INFO: Set up localization manager")
 
-        # self.localization_manager.set_base_reference_frame(
-        #     localization_config["base_reference_frame"]
-        # )
-        # print("INFO: Set base reference frame")
-
-        print(self.ros2_topic_names_and_types)
         # Set up subscribers
         odom_type = get_message_type_from_string(
             self.ros2_topic_names_and_types[localization_config["odometry_subscriber_ros2_topic"]]
@@ -358,7 +358,6 @@ class ROS2Adapter:
             qos_profile_sensor_data,
         )
         print("INFO: Set up localization map subscriber")
-
         
         self.localization_point_cloud_subs = []
         if "point_cloud_subscriber_ros2_topics" in localization_config:
@@ -387,20 +386,34 @@ class ROS2Adapter:
         )
         print("INFO: Set up localization path subscriber")
 
-        goal_type = get_message_type_from_string(
+        goal_sub_type = get_message_type_from_string(
             self.ros2_topic_names_and_types[localization_config["goal_publisher_ros2_topic"]]
         )
         self.localization_goal_sub = self.ros2_node.create_subscription(
-            goal_type,
+            goal_sub_type,
             localization_config["goal_subscriber_ros2_topic"],
             self.localization_goal_callback,
             qos_profile_sensor_data,
         )
         print("INFO: Set up localization goal subscriber")
 
-        print("INFO: Set up all localization subscribers")
+        goal_pub_type = get_message_type_from_string(
+            self.ros2_topic_names_and_types[localization_config["goal_publisher_ros2_topic"]]
+        )
+        self.localization_goal_pub = self.ros2_node.create_publisher(
+            goal_pub_type,
+            localization_config["goal_publisher_ros2_topic"],
+            qos_profile_sensor_data,
+        )
 
-        # TODO: add publishers
+        cancel_goal_pub_type = get_message_type_from_string(
+            self.ros2_topic_names_and_types[localization_config["cancel_goal_publisher_ros2_topic"]]
+        )
+        self.localization_goal_cancel_pub = self.ros2_node.create_publisher(
+            cancel_goal_pub_type,
+            localization_config["cancel_goal_publisher_ros2_topic"],
+            qos_profile_sensor_data,
+        )
         
     def localization_odom_callback(self, msg):
         msg_type = type(msg)
@@ -427,6 +440,8 @@ class ROS2Adapter:
             print("WARNING: Unknown map type", msg_type)
 
     def localization_point_cloud_callback(self, msg):
+        # TODO: test multiple point clouds
+
         # Check to see if the point cloud is in laser scan or pointcloud2 format
         msg_type = type(msg)
         if msg_type == LaserScan:
