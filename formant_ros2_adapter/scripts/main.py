@@ -24,12 +24,14 @@ from formant.sdk.agent.v1.localization.types import (
 )
 
 import rclpy
-from cv_bridge import CvBridge
+from rclpy.parameter import Parameter
 from rclpy.qos import (
     qos_profile_sensor_data, 
     qos_profile_system_default,
     qos_profile_unknown
 )
+
+from cv_bridge import CvBridge
 
 from std_msgs.msg import (
     Bool, Char, String, 
@@ -37,19 +39,25 @@ from std_msgs.msg import (
     Int8, Int16, Int32, Int64,
     UInt8, UInt16, UInt32, UInt64
 )
+
 from sensor_msgs.msg import (
     BatteryState, CompressedImage, Image,
     Joy, LaserScan, NavSatFix, PointCloud2
 )
+
 from geometry_msgs.msg import (
     Point, Point32, Polygon,
     Pose, PoseStamped, PoseArray,
     PoseWithCovariance, PoseWithCovarianceStamped,
     Twist, TwistStamped, Vector3, Vector3Stamped
 )
+
 from nav_msgs.msg import (
     Odometry, OccupancyGrid, Path
 )
+
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 
 from message_utils.utils import (
     get_message_type_from_string,
@@ -71,12 +79,16 @@ class ROS2Adapter:
     def __init__(self):
         # For console output acknowledgement that the script has started running even if it
         # hasn't yet established communication with the Formant agent.
-        print("INFO: ROS2 Adapter has started.")
+        print("INFO: ROS2 Adapter has started")
 
-        # Connect to ROS2
+        # Set up ROS2
         rclpy.init()
         self.cv_bridge = CvBridge()
-        self.ros2_node = rclpy.create_node("formant_ros2_adapter")
+        self.ros2_node = rclpy.create_node(
+            "formant_ros2_adapter", 
+            allow_undeclared_parameters=True,
+            automatically_declare_parameters_from_overrides=True
+        )
 
         # Set up the config object
         self.config = {}
@@ -85,7 +97,6 @@ class ROS2Adapter:
         self.ros2_subscribers = {}
         self.ros2_publishers = {}
         self.ros2_service_calls = {}
-        self.ros2_params = {}
 
         # Set up the localization objects
         ###########################################################################################
@@ -111,32 +122,34 @@ class ROS2Adapter:
         self.fclient.register_command_request_callback(self.handle_formant_command_request_msg)
 
         # Start spinning
-        print("INFO: ROS2 Adapter is ready.")
+        print("INFO: Starting to spin ROS2 node")
         while rclpy.ok():
             rclpy.spin_once(self.ros2_node, timeout_sec=1.0)
 
         # Clean up before shutting down
-        self.ros2_node.destroy_node()
+        if self.ros2_node:
+            self.ros2_node.destroy_node()
+
         rclpy.shutdown()
 
     def update_adapter_configuration(self):
         # Load config from either the agent's json blob or the config.json file
         try:
             config_blob = json.loads(self.fclient.get_config_blob_data())
-            print("INFO: Loaded config from agent.")
+            print("INFO: Loaded config from agent")
         except:
             # Otherwise, load from the config.json file shipped with the adapter
             current_directory = os.path.dirname(os.path.realpath(__file__))
             with open(f"{current_directory}/config.json") as f:
                 config_blob = json.loads(f.read())
 
-            print("INFO: Loaded config from config.json file.")
+            print("INFO: Loaded config from config.json file")
             
         # Validate configuration based on schema
         with open("config_schema.json") as f:
             try:
                 self.config_schema = json.load(f)
-                print("INFO: Loaded config schema from config_schema.json file.")
+                print("INFO: Loaded config schema from config_schema.json file")
             except:
                 print("ERROR: Could not load config schema. Is the file valid json?")
                 return
@@ -146,7 +159,7 @@ class ROS2Adapter:
         # Runt the validation check    
         try:
             jsonschema.validate(config_blob, self.config_schema)
-            print("INFO: Validation succeeded.")
+            print("INFO: Validation succeeded")
         except Exception as e:
             print("WARNING: Validation failed:", e)
             self.fclient.create_event(
@@ -162,7 +175,8 @@ class ROS2Adapter:
             self.config = config_blob["ros2_adapter_configuration"]
         else:
             self.config = {}
-
+        
+        # Get information about the existing ROS2 system
         self.update_ros2_information()
         print("INFO: Updated ROS2 information")
         
@@ -198,7 +212,7 @@ class ROS2Adapter:
         print("INFO: Set up publishers")
 
         self.setup_localization()
-        print("INFO: Set up localization")
+        print("INFO: Finished setting up localization")
 
         self.fclient.post_json("adapter.configuration", json.dumps(self.config))
         self.fclient.create_event(
@@ -221,12 +235,23 @@ class ROS2Adapter:
             self.ros2_service_names_and_types[service[0]] = service[1][0] # Just use the first one
 
     def setup_ros2_params(self):
-        # Set each of the app config parameters as a ros2 parameter
-        for param in self.fclient._app_config.keys():
-            self.ros2_node.declare_parameter(
-                param, 
-                self.fclient._app_config[param]
-            )
+        # TODO: these remain in the ROS2 node after being removed from agent config
+        
+        # Loop through all app config params and set them as ros2 parameters
+        new_params = []
+        for param_key in self.fclient._app_config.keys():
+            param_value = self.fclient._app_config[param_key]
+            # self.ros2_node.declare_parameter(f"formant.{param_key}", param_value)
+            new_params.append(
+                    Parameter(
+                        param_key,
+                        Parameter.Type.STRING,
+                        self.fclient._app_config[param_key]
+                    )
+                )
+
+        print("INFO: Setting new ROS2 parameters")
+        self.ros2_node.set_parameters(new_params)
             
     def setup_subscribers(self):
         # Remove any existing subscribers
@@ -331,7 +356,7 @@ class ROS2Adapter:
         ):
             print("WARNING: Localization config is missing required fields")
             return
-        print("INFO: Checked for required fields")
+        print("INFO: Checked localization config for required fields")
 
         # Set up the localization manager
         self.localization_manager = self.fclient.get_localization_manager(
@@ -860,9 +885,6 @@ class ROS2Adapter:
 
     def setup_transform_listener(self):
         try:
-            from tf2_ros.buffer import Buffer
-            from tf2_ros.transform_listener import TransformListener
-
             self.tf_buffer = Buffer()
             self.tf_listener = TransformListener(self.tf_buffer, self.ros2_node)
 
