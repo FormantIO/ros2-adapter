@@ -1,8 +1,1 @@
-{
-    "ros2_adapter_configuration": {
-        "subscribers": [],
-        "publishers": [],
-        "service_calls": [],
-        "localization": {}
-    }
-}
+{}

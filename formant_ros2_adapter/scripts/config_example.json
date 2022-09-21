@@ -6,7 +6,7 @@
                 "ros2_message_type": "std_msgs/msg/String",
                 "formant_stream": "ip",
                 "tags": {
-                    "test": "test"
+                    "network": "local"
                 }
             },
             {

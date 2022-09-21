@@ -278,35 +278,29 @@ class ROS2Adapter:
         if self.localization_odom_sub is not None:
             self.ros2_node.destroy_subscription(self.localization_odom_sub)
             self.localization_odom_sub = None
-            print(" - destroyed odom sub")
         
         if self.localization_map_sub is not None:
             self.ros2_node.destroy_subscription(self.localization_map_sub)
             self.localization_map_sub = None
-            print(" - destroyed map sub")
 
         for point_cloud_sub in self.localization_point_cloud_subs:
             self.ros2_node.destroy_subscription(point_cloud_sub)
-            print(" - destroyed point cloud sub")
         
         self.localization_point_cloud_subs = []
         
         if self.localization_path_sub is not None:
             self.ros2_node.destroy_subscription(self.localization_path_sub)
             self.localization_path_sub = None
-            print(" - destroyed path sub")
         
         print("INFO: Destroyed existing localization subscribers")
 
         if self.localization_goal_pub is not None:
             self.ros2_node.destroy_publisher(self.localization_goal_pub)
             self.localization_goal_pub = None
-            print(" - destroyed goal pub")
 
         if self.localization_goal_cancel_pub is not None:
             self.ros2_node.destroy_publisher(self.localization_goal_cancel_pub)
             self.localization_goal_cancel_pub = None
-            print(" - destroyed cancel pub")
         
         print("INFO: Destroyed existing localization publishers")
 
@@ -740,6 +734,7 @@ class ROS2Adapter:
                 # Switch on the Formant message type
                 if msg.HasField("bitset"):
                     # In a bitset, the value either exists (true) or doesn't (false)
+                    # A button press can only send one bit, so we can just use the first one
                     if msg.bitset.bits[0].value:
                         msg_value = True
                     else:
