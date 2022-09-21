@@ -50,8 +50,6 @@ from geometry_msgs.msg import (
 from nav_msgs.msg import (
     Odometry, OccupancyGrid, Path
 )
-from converters.laserscan import ros2_laserscan_to_formant_pointcloud
-from converters.pointcloud2 import ros2_pointcloud2_to_formant_pointcloud
 
 from message_utils.utils import (
     get_message_type_from_string,
@@ -702,7 +700,7 @@ class ROS2Adapter:
                     self.fclient.agent_stub.PostData(
                         Datapoint(
                             stream=formant_stream,
-                            point_cloud=ros2_pointcloud2_to_formant_pointcloud(msg),
+                            point_cloud=FPointCloud.from_ros(msg).to_proto(),
                             tags=subscriber_config["tags"],
                             timestamp=msg_timestamp,
                         )
