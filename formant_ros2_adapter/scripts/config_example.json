@@ -4,7 +4,10 @@
             {
                 "ros2_topic": "/ip",
                 "ros2_message_type": "std_msgs/msg/String",
-                "formant_stream": "ip"
+                "formant_stream": "ip",
+                "tags": {
+                    "test": "test"
+                }
             },
             {
                 "ros2_topic": "/color/image",
@@ -15,8 +18,28 @@
                 "formant_stream": "battery.state"
             },
             {
-                "ros2_topic": "/scan",
-                "formant_stream": "scan"
+                "ros2_topic": "/wheel_vels",
+                "formant_stream": "wheel.velocity",
+                "ros2_message_paths": [
+                    {
+                        "path": "velocity_left",
+                        "tags": {
+                            "side": "left"
+                        }
+                    }
+                ]
+            },
+            {
+                "ros2_topic": "/wheel_vels",
+                "formant_stream": "wheel.velocity",
+                "ros2_message_paths": [
+                    {
+                        "path": "velocity_right",
+                        "tags": {
+                            "side": "right"
+                        }
+                    }
+                ]
             }
         ],
         "publishers": [

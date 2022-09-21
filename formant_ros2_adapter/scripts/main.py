@@ -54,6 +54,12 @@ from message_utils.utils import (
     get_message_path_value,
 )
 
+ROS2_NUMERIC_TYPES = [
+    "Float32", "Float64", "Int8", 
+    "Int16", "Int32", "Int64", "UInt8", 
+    "UInt16", "UInt32", "UInt64"
+]
+
 class ROS2Adapter:
     """
     Formant <-> ROS2 Adapter
@@ -174,6 +180,9 @@ class ROS2Adapter:
                 except:
                     print("WARNING: Setting type bool for unknown topic", subscriber_config["ros2_topic"])
                     subscriber_config["ros2_message_type"] = "std_msgs/msg/Bool"
+            
+            if "tags" not in subscriber_config:
+                subscriber_config["tags"] = []
         
         print("INFO: Updated config with default values")
 
@@ -325,7 +334,7 @@ class ROS2Adapter:
             "odometry_subscriber_ros2_topic" not in localization_config or
             "map_subscriber_ros2_topic" not in localization_config
         ):
-            print("ERROR: Localization config is missing required fields")
+            print("WARNING: Localization config is missing required fields")
             return
         print("INFO: Checked for required fields")
 
@@ -507,8 +516,10 @@ class ROS2Adapter:
                     del path_subscriber_config["ros2_message_paths"]
                     path_subscriber_config["is_path"] = True
 
-                    # TODO: Implement tags being passed
-
+                    # Pass tags to the path subscriber config
+                    if "tags" in path_config:
+                        path_subscriber_config["tags"] = path_config["tags"]
+                        
                     # Recursively call this function with the message in the path
                     self.handle_ros2_message(path_msg, path_subscriber_config)
 
@@ -531,7 +542,8 @@ class ROS2Adapter:
 
                 self.fclient.post_text(
                     formant_stream, 
-                    str(msg), 
+                    str(msg),
+                    tags=subscriber_config["tags"],
                     timestamp=msg_timestamp
                 )
 
@@ -542,7 +554,8 @@ class ROS2Adapter:
                 self.fclient.post_bitset(
                     formant_stream, {
                         ros2_topic: msg
-                    }, 
+                    },
+                    tags=subscriber_config["tags"],
                     timestamp=msg_timestamp
                 )
 
@@ -557,6 +570,7 @@ class ROS2Adapter:
                 self.fclient.post_numeric(
                     formant_stream, 
                     msg,
+                    tags=subscriber_config["tags"],
                     timestamp=msg_timestamp
                 )
 
@@ -567,6 +581,7 @@ class ROS2Adapter:
                     latitude=msg.latitude,
                     longitude=msg.longitude,
                     altitude=msg.altitude,
+                    tags=subscriber_config["tags"],
                     timestamp=msg_timestamp,
                 )
             
@@ -578,6 +593,7 @@ class ROS2Adapter:
                 self.fclient.post_image(
                     stream=formant_stream,
                     value=encoded_image,
+                    tags=subscriber_config["tags"],
                     timestamp=msg_timestamp,
                 )
 
@@ -594,6 +610,7 @@ class ROS2Adapter:
                     formant_stream, 
                     value=bytes(msg.data), 
                     content_type=content_type,
+                    tags=subscriber_config["tags"],
                     timestamp=msg_timestamp,
                 )
 
@@ -604,6 +621,8 @@ class ROS2Adapter:
                     voltage=msg.voltage,
                     current=msg.current,
                     charge=msg.charge,
+                    tags=subscriber_config["tags"],
+                    timestamp=msg_timestamp,
                 )
 
             elif msg_type == LaserScan:
@@ -613,6 +632,7 @@ class ROS2Adapter:
                         Datapoint(
                             stream=formant_stream,
                             point_cloud=ros2_laserscan_to_formant_pointcloud(msg),
+                            tags=subscriber_config["tags"],
                             timestamp=msg_timestamp,
                         )
                     )
@@ -628,6 +648,7 @@ class ROS2Adapter:
                         Datapoint(
                             stream=formant_stream,
                             point_cloud=ros2_pointcloud2_to_formant_pointcloud(msg),
+                            tags=subscriber_config["tags"],
                             timestamp=msg_timestamp,
                         )
                     )
@@ -639,7 +660,13 @@ class ROS2Adapter:
 
                 else:  
                     # Ingest any messages without a direct mapping to a Formant type as JSON
-                    self.fclient.post_json(formant_stream, message_to_json(msg))
+                    self.fclient.post_json(
+                        formant_stream, 
+                        message_to_json(msg),
+                        tags=subscriber_config["tags"],
+                        timestamp=msg_timestamp
+                    )
+
         except AttributeError as e:
             print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
             
@@ -650,8 +677,6 @@ class ROS2Adapter:
             stream_name = msg.bitset.bits[0].key
         else:
             stream_name = msg.stream
-
-        print(msg)
 
         # There can be more than one publisher for a single stream, so loop over them
         if stream_name in self.ros2_publishers:
@@ -727,9 +752,6 @@ class ROS2Adapter:
             print("WARNING: No ROS2 publisher found for stream " + stream_name)
 
     def handle_formant_command_request_msg(self, msg):
-        # Print the message
-        print(msg)
-
         if msg.command in self.ros2_publishers:
             for publisher in self.ros2_publishers[msg.command]:
                 # Get the ROS2 message type as a string
@@ -740,46 +762,47 @@ class ROS2Adapter:
                     ros2_msg.data = msg.text
                     publisher.publish(ros2_msg)
                     self.fclient.send_command_response(msg.id, success=True)
+
+                elif (ros2_msg_type in ROS2_NUMERIC_TYPES) and msg.text.isnumeric():
+                    self.publish_ros2_numeric(publisher, ros2_msg_type, msg.text)
+                    self.fclient.send_command_response(msg.id, success=True)
+
                 else:
                     print("WARNING: Unsupported ROS2 message type for command: " + ros2_msg_type)
                     self.fclient.send_command_response(msg.id, success=False)
-                    continue
-                
-        print("WARNING: Command issued without a ROS2 publisher: " + msg.command)
-        self.fclient.send_command_response(msg.id, success=False)        
+                    continue       
 
     def publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
-        # TODO: this may not be correctly converting all numeric types
         if ros2_msg_type == "Float32":
             ros2_msg = Float32()
-            ros2_msg.data = float(msg_value)
+            ros2_msg.data = np.float32(msg_value)
         elif ros2_msg_type == "Float64":
             ros2_msg = Float64()
-            ros2_msg.data = float(msg_value)
+            ros2_msg.data = np.float64(msg_value)
         elif ros2_msg_type == "Int8":
             ros2_msg = Int8()
-            ros2_msg.data = int(msg_value)
+            ros2_msg.data = np.int8(msg_value)
         elif ros2_msg_type == "Int16":
             ros2_msg = Int16()
-            ros2_msg.data = int(msg_value)
+            ros2_msg.data = np.int16(msg_value)
         elif ros2_msg_type == "Int32":
             ros2_msg = Int32()
-            ros2_msg.data = int(msg_value)
+            ros2_msg.data = np.int32(msg_value)
         elif ros2_msg_type == "Int64":
             ros2_msg = Int64()
-            ros2_msg.data = int(msg_value)
+            ros2_msg.data = np.int64(msg_value)
         elif ros2_msg_type == "UInt8":
             ros2_msg = UInt8()
-            ros2_msg.data = int(msg_value)
+            ros2_msg.data = np.uint8(msg_value) 
         elif ros2_msg_type == "UInt16":
             ros2_msg = UInt16()
-            ros2_msg.data = int(msg_value)
+            ros2_msg.data = np.uint16(msg_value)
         elif ros2_msg_type == "UInt32":
             ros2_msg = UInt32()
-            ros2_msg.data = int(msg_value)
+            ros2_msg.data = np.uint32(msg_value)
         elif ros2_msg_type == "UInt64":
             ros2_msg = UInt64()
-            ros2_msg.data = int(msg_value)
+            ros2_msg.data = np.uint64(msg_value)
         elif ros2_msg_type == "String":
             ros2_msg = String()
             ros2_msg.data = str(msg_value)
