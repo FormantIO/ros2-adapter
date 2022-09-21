@@ -25,7 +25,12 @@ from formant.sdk.agent.v1.localization.types import (
 
 import rclpy
 from cv_bridge import CvBridge
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import (
+    qos_profile_sensor_data, 
+    qos_profile_system_default,
+    qos_profile_unknown
+)
+
 from std_msgs.msg import (
     Bool, Char, String, 
     Float32, Float64,
@@ -345,83 +350,133 @@ class ROS2Adapter:
         print("INFO: Set up localization manager")
 
         # Set up subscribers
-        odom_type = get_message_type_from_string(
-            self.ros2_topic_names_and_types[localization_config["odometry_subscriber_ros2_topic"]]
-        )
-        self.localization_odom_sub = self.ros2_node.create_subscription(
-            odom_type,
-            localization_config["odometry_subscriber_ros2_topic"],
-            self.localization_odom_callback,
-            qos_profile_sensor_data,
-        )
-        print("INFO: Set up localization odom subscriber")
+        try:
+            odom_type = get_message_type_from_string(
+                self.ros2_topic_names_and_types[localization_config["odometry_subscriber_ros2_topic"]]
+            )
+            self.localization_odom_sub = self.ros2_node.create_subscription(
+                odom_type,
+                localization_config["odometry_subscriber_ros2_topic"],
+                self.localization_odom_callback,
+                qos_profile_sensor_data,
+            )
+            print("INFO: Set up localization odom subscriber")
+        except Exception as e:
+            print("WARNING: Failed to set up localization odom subscriber")
+            print(e)
 
-        map_type = get_message_type_from_string(
-            self.ros2_topic_names_and_types[localization_config["map_subscriber_ros2_topic"]]
-        )
-        self.localization_map_sub = self.ros2_node.create_subscription(
-            map_type,
-            localization_config["map_subscriber_ros2_topic"],
-            self.localization_map_callback,
-            qos_profile_sensor_data,
-        )
-        print("INFO: Set up localization map subscriber")
-        
-        self.localization_point_cloud_subs = []
+        try:
+            map_type = get_message_type_from_string(
+                self.ros2_topic_names_and_types[localization_config["map_subscriber_ros2_topic"]]
+            )
+            self.localization_map_sub = self.ros2_node.create_subscription(
+                map_type,
+                localization_config["map_subscriber_ros2_topic"],
+                self.localization_map_callback,
+                qos_profile_sensor_data,
+            )
+            print("INFO: Set up localization map subscriber")
+        except Exception as e:
+            print("WARNING: Failed to set up localization map subscriber")
+            print(e)
+            
         if "point_cloud_subscriber_ros2_topics" in localization_config:
-            for point_cloud_subscriber_ros2_topic in localization_config["point_cloud_subscriber_ros2_topics"]:
-                point_cloud_type = get_message_type_from_string(
-                    self.ros2_topic_names_and_types[point_cloud_subscriber_ros2_topic]
+            self.localization_point_cloud_subs = []
+            if "point_cloud_subscriber_ros2_topics" in localization_config:
+                for point_cloud_subscriber_ros2_topic in localization_config["point_cloud_subscriber_ros2_topics"]:
+                    try:
+                        point_cloud_type = get_message_type_from_string(
+                            self.ros2_topic_names_and_types[point_cloud_subscriber_ros2_topic]
+                        )
+                        new_sub = self.ros2_node.create_subscription(
+                            point_cloud_type,
+                            point_cloud_subscriber_ros2_topic,
+                            self.localization_point_cloud_callback,
+                            qos_profile_sensor_data,
+                        )
+                        self.localization_point_cloud_subs.append(new_sub)
+                    except Exception as e:
+                        print("WARNING: Failed to create point cloud subscriber for topic " + point_cloud_subscriber_ros2_topic)
+                        print(e)
+            
+            print("INFO: Set up localization point cloud subscribers")
+
+        if "path_subscriber_ros2_topic" in localization_config:
+            try:
+                path_type = get_message_type_from_string(
+                    self.ros2_topic_names_and_types[localization_config["path_subscriber_ros2_topic"]]
                 )
-                new_sub = self.ros2_node.create_subscription(
-                    point_cloud_type,
-                    point_cloud_subscriber_ros2_topic,
-                    self.localization_point_cloud_callback,
-                    qos_profile_sensor_data,
+            
+                self.localization_path_sub = self.ros2_node.create_subscription(
+                    path_type,
+                    localization_config["path_subscriber_ros2_topic"],
+                    self.localization_path_callback,
+                    qos_profile_sensor_data
                 )
-                self.localization_point_cloud_subs.append(new_sub)
-        
-        print("INFO: Set up localization point cloud subscribers")
+                print("INFO: Set up localization path subscriber")
+            except Exception as e:
+                print("WARNING: Failed to set up localization path subscriber")
+                print(e)
 
-        path_type = get_message_type_from_string(
-            self.ros2_topic_names_and_types[localization_config["path_subscriber_ros2_topic"]]
-        )
-        self.localization_path_sub = self.ros2_node.create_subscription(
-            path_type,
-            localization_config["path_subscriber_ros2_topic"],
-            self.localization_path_callback,
-            qos_profile_sensor_data,
-        )
-        print("INFO: Set up localization path subscriber")
+        if "goal_subscriber_ros2_topic" in localization_config:
+            try:
+                goal_sub_type = get_message_type_from_string(
+                    self.ros2_topic_names_and_types[localization_config["goal_subscriber_ros2_topic"]]
+                )
 
-        goal_sub_type = get_message_type_from_string(
-            self.ros2_topic_names_and_types[localization_config["goal_publisher_ros2_topic"]]
-        )
-        self.localization_goal_sub = self.ros2_node.create_subscription(
-            goal_sub_type,
-            localization_config["goal_subscriber_ros2_topic"],
-            self.localization_goal_callback,
-            qos_profile_sensor_data,
-        )
-        print("INFO: Set up localization goal subscriber")
+                self.localization_goal_sub = self.ros2_node.create_subscription(
+                    goal_sub_type,
+                    localization_config["goal_subscriber_ros2_topic"],
+                    self.localization_goal_callback,
+                    qos_profile_sensor_data
+                )
+                print("INFO: Set up localization goal subscriber")
+            except Exception as e:
+                print("WARNING: Failed to set up localization goal subscriber")
+                print(e)
 
-        goal_pub_type = get_message_type_from_string(
-            self.ros2_topic_names_and_types[localization_config["goal_publisher_ros2_topic"]]
-        )
-        self.localization_goal_pub = self.ros2_node.create_publisher(
-            goal_pub_type,
-            localization_config["goal_publisher_ros2_topic"],
-            qos_profile_sensor_data,
-        )
+        if "goal_publisher_ros2_topic" in localization_config:
+            try:
+                # If the topic exists, use its type
+                if localization_config["goal_publisher_ros2_topic"] in self.ros2_topic_names_and_types:
+                    goal_pub_type = get_message_type_from_string(
+                        self.ros2_topic_names_and_types[localization_config["goal_publisher_ros2_topic"]]
+                    )
+                else:
+                    # Otherwise, use the default type
+                    goal_pub_type = PoseStamped
 
-        cancel_goal_pub_type = get_message_type_from_string(
-            self.ros2_topic_names_and_types[localization_config["cancel_goal_publisher_ros2_topic"]]
-        )
-        self.localization_goal_cancel_pub = self.ros2_node.create_publisher(
-            cancel_goal_pub_type,
-            localization_config["cancel_goal_publisher_ros2_topic"],
-            qos_profile_sensor_data,
-        )
+                self.localization_goal_pub = self.ros2_node.create_publisher(
+                    goal_pub_type,
+                    localization_config["goal_publisher_ros2_topic"],
+                    qos_profile_system_default
+                )
+                print("INFO: Set up localization goal publisher")
+            except Exception as e:
+                print("WARNING: Failed to set up localization goal publisher")
+                print(e)
+
+        if "cancel_goal_publisher_ros2_topic" in localization_config:
+            try:
+                # If the topic exists, use its type
+                if localization_config["cancel_goal_publisher_ros2_topic"] in self.ros2_topic_names_and_types:
+                    cancel_goal_pub_type = get_message_type_from_string(
+                        self.ros2_topic_names_and_types[localization_config["cancel_goal_publisher_ros2_topic"]]
+                    )
+                else:
+                    # Otherwise, use the default type
+                    cancel_goal_pub_type = Bool
+            
+                self.localization_goal_cancel_pub = self.ros2_node.create_publisher(
+                    cancel_goal_pub_type,
+                    localization_config["cancel_goal_publisher_ros2_topic"],
+                    qos_profile_system_default
+                )
+                print("INFO: Set up localization cancel goal publisher")
+            except Exception as e:
+                print("WARNING: Failed to set up localization cancel goal publisher")
+                print(e)
+
         
     def localization_odom_callback(self, msg):
         msg_type = type(msg)
