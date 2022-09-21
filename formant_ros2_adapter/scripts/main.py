@@ -85,6 +85,7 @@ class ROS2Adapter:
         self.ros2_subscribers = {}
         self.ros2_publishers = {}
         self.ros2_service_calls = {}
+        self.ros2_params = {}
 
         # Set up the localization objects
         ###########################################################################################
@@ -94,16 +95,13 @@ class ROS2Adapter:
         self.tf_buffer = None
         self.tf_listener = None
         self.localization_manager = None
-
         self.localization_odom_sub = None
         self.localization_map_sub = None
         self.localization_path_sub = None
         self.localization_goal_sub = None
         self.localization_point_cloud_subs = []
-
         self.localization_goal_pub = None
         self.localization_goal_cancel_pub = None
-
         self.setup_transform_listener()
 
         # Set up the adapter
@@ -189,6 +187,10 @@ class ROS2Adapter:
         
         print("INFO: Updated config with default values")
 
+        # Set each of the app config parameters as a ros2 parameter with a "formant" prefix
+        self.setup_ros2_params()
+        print("INFO: Set up ROS2 parameters")
+
         self.setup_subscribers()
         print("INFO: Set up subscribers")
 
@@ -218,6 +220,14 @@ class ROS2Adapter:
         for service in ros2_service_names_and_types:
             self.ros2_service_names_and_types[service[0]] = service[1][0] # Just use the first one
 
+    def setup_ros2_params(self):
+        # Set each of the app config parameters as a ros2 parameter
+        for param in self.fclient._app_config.keys():
+            self.ros2_node.declare_parameter(
+                param, 
+                self.fclient._app_config[param]
+            )
+            
     def setup_subscribers(self):
         # Remove any existing subscribers
         for subscriber_list in self.ros2_subscribers.values():
@@ -303,18 +313,6 @@ class ROS2Adapter:
             self.localization_goal_cancel_pub = None
         
         print("INFO: Destroyed existing localization publishers")
-
-        # Localization configuration looks like this
-        # "localization": {
-        #     "formant_stream": "localization",
-        #     "base_reference_frame": "base_link",
-        #     "odometry_subscriber_ros2_topic": "/odom",
-        #     "map_subscriber_ros2_topic": "/map",
-        #     "point_cloud_subscriber_ros2_topics": ["/scan", "/stereo/depth/points"],
-        #     "path_subscriber_ros2_topic": "/plan",
-        #     "goal_publisher_ros2_topic": "/goal_pose",
-        #     "cancel_goal_publisher_ros2_topic": "/move_base/cancel"
-        # }
 
         # Skip this if there is no localization config
         if "localization" not in self.config:
