@@ -146,6 +146,37 @@
             "goal_subscriber_ros2_topic": "/goal_pose",
             "goal_publisher_ros2_topic": "/goal_pose",
             "cancel_goal_publisher_ros2_topic": "/move_base/cancel"
-        }
+        },
+        "numeric_sets": [
+            {
+                "formant_stream": "velocities",
+                "ros2_subscribers": [
+                    {
+                        "ros2_topic": "/wheel_vels",
+                        "ros2_message_path": "velocity_left",
+                        "label": "left wheel velocity",
+                        "unit": "rad/sec"
+                    },
+                    {
+                        "ros2_topic": "/wheel_vels",
+                        "ros2_message_path": "velocity_right",
+                        "label": "right wheel velocity",
+                        "unit": "rad/sec"
+                    },
+                    {
+                        "ros2_topic": "/wheel_ticks",
+                        "ros2_message_path": "ticks_left",
+                        "label": "ticks left",
+                        "unit": "ticks"
+                    },
+                    {
+                        "ros2_topic": "/wheel_ticks",
+                        "ros2_message_path": "ticks_right",
+                        "label": "ticks right",
+                        "unit": "ticks"
+                    }
+                ]
+            }
+        ]
     }
 }

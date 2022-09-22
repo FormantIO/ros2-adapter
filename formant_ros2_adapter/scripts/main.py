@@ -905,8 +905,6 @@ class ROS2Adapter:
                 service_request = service_client.srv_type.Request()
                 service_request_slots = list(service_request.get_fields_and_field_types().values())
 
-                print(service_request, service_request_slots)
-
                 # We only handle single-param requests for now
                 if len(service_request_slots) > 1:
                     print("WARNING: Unsupported service request type for command: " + msg.command)
@@ -921,20 +919,16 @@ class ROS2Adapter:
 
                 # If the service has a single boolean parameter, call it with "true"
                 elif service_request_slots == ["boolean"]:
-                    print("got boolean command")
                     # Get the name of the attribute to set from the service request
                     service_request_attribute = list(service_request.get_fields_and_field_types().keys())[0]
 
                     # Check to see if a parameter was passed in the command text
                     if msg.text == "":
                         service_request_value = True
-                        print("param is blank")
                     elif msg.text in ["true", "True", "TRUE", "t", "T", "1"]:
                         service_request_value = True
-                        print("param is true")
                     elif msg.text in ["false", "False", "FALSE", "f", "F", "0"]:
                         service_request_value = False
-                        print("param is false")
                     else:
                         print("WARNING: Invalid parameter for service " + msg.command + ": " + msg.text)
                         self.fclient.send_command_response(msg.id, success=False)
