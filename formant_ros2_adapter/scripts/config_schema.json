@@ -158,6 +158,50 @@
                             "map_subscriber_ros2_topic"
                         ]
                     }
+                },
+                "numeric_sets": {
+                    "description": "The full subscriber configuration for numeric sets.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "formant_stream": {
+                                "description": "The Formant stream to post this numeric set to.",
+                                "type": "string"
+                            },
+                            "ros2_subscribers": {
+                                "description": "The set of ROS2 subscribers to collect data using.",
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ros2_topic": {
+                                            "description": "The ROS2 topic to collect data from.",
+                                            "type": "string"
+                                        },
+                                        "ros2_message_path": {
+                                            "description": "The paths within the ROS2 message to select.",
+                                            "type": "string"
+                                        },
+                                        "ros2_message_type": {
+                                            "description": "The ROS2 type to allow messages of.",
+                                            "type": "string"
+                                        },
+                                        "label": {
+                                            "description": "The label to use for this data point.",
+                                            "type": "string"
+                                        },
+                                        "unit": {
+                                            "description": "The unit to use for this data point.",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": ["ros2_topic", "label"]
+                                }
+                            },
+                            "required": ["formant_stream", "ros2_subscribers"]
+                        }
+                    }   
                 }
             }
         }
