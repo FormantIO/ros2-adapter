@@ -113,6 +113,27 @@
             {
                 "formant_stream": "estop",
                 "ros2_service": "/e_stop"
+            },
+            {
+                "formant_stream": "test_trigger_with_type",
+                "ros2_service": "/test_trigger",
+                "ros2_service_type": "example_interfaces/srv/Trigger"
+            },
+            {
+                "formant_stream": "test_trigger_without_type",
+                "ros2_service": "/test_trigger"
+            },
+            {
+                "formant_stream": "test_set_bool_without_param",
+                "ros2_service": "/test_set_bool"
+            },
+            {
+                "formant_stream": "test_set_bool_with_param",
+                "ros2_service": "/test_set_bool"
+            },
+            {
+                "formant_stream": "test_add_two_ints",
+                "ros2_service": "/test_add_two_ints"
             }
         ],
         "localization": {
