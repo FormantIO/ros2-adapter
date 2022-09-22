@@ -79,8 +79,8 @@
                         "required": ["formant_stream", "ros2_topic", "ros2_message_type"]
                     }
                 },
-                "service_calls": {
-                    "description": "A list of service calls to configure.",
+                "service_clients": {
+                    "description": "A list of service clients to configure.",
                     "type": "array",
                     "items": {
                         "type": "object",

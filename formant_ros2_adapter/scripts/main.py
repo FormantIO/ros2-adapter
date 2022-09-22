@@ -60,7 +60,7 @@ from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
 from message_utils.utils import (
-    get_message_type_from_string,
+    get_ros2_type_from_string,
     message_to_json,
     get_message_path_value
 )
@@ -96,7 +96,7 @@ class ROS2Adapter:
         # Subscribers and publishers are stored as a dictionary of topics containing a list of objects
         self.ros2_subscribers = {}
         self.ros2_publishers = {}
-        self.ros2_service_calls = {}
+        self.ros2_service_clients = {}
 
         # Set up the localization objects
         ###########################################################################################
@@ -214,7 +214,7 @@ class ROS2Adapter:
         self.setup_localization()
         print("INFO: Finished setting up localization")
 
-        self.setup_service_calls()
+        self.setup_service_clients()
         print("INFO: Finished setting up service calls")
 
         self.fclient.post_json("adapter.configuration", json.dumps(self.config))
@@ -267,7 +267,7 @@ class ROS2Adapter:
         # Create new subscribers based on the config
         for subscriber_config in self.config["subscribers"]:
             new_sub = self.ros2_node.create_subscription(
-                get_message_type_from_string(subscriber_config["ros2_message_type"]),
+                get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
                 subscriber_config["ros2_topic"],
                 lambda msg, subscriber_config=subscriber_config: self.handle_ros2_message(
                     msg, 
@@ -300,7 +300,7 @@ class ROS2Adapter:
                     continue
 
             new_pub = self.ros2_node.create_publisher(
-                get_message_type_from_string(publisher["ros2_message_type"]),
+                get_ros2_type_from_string(publisher["ros2_message_type"]),
                 publisher["ros2_topic"],
                 qos_profile_sensor_data,
             )
@@ -369,7 +369,7 @@ class ROS2Adapter:
 
         # Set up subscribers
         try:
-            odom_type = get_message_type_from_string(
+            odom_type = get_ros2_type_from_string(
                 self.ros2_topic_names_and_types[localization_config["odometry_subscriber_ros2_topic"]]
             )
             self.localization_odom_sub = self.ros2_node.create_subscription(
@@ -384,7 +384,7 @@ class ROS2Adapter:
             print(e)
 
         try:
-            map_type = get_message_type_from_string(
+            map_type = get_ros2_type_from_string(
                 self.ros2_topic_names_and_types[localization_config["map_subscriber_ros2_topic"]]
             )
             self.localization_map_sub = self.ros2_node.create_subscription(
@@ -403,7 +403,7 @@ class ROS2Adapter:
             if "point_cloud_subscriber_ros2_topics" in localization_config:
                 for point_cloud_subscriber_ros2_topic in localization_config["point_cloud_subscriber_ros2_topics"]:
                     try:
-                        point_cloud_type = get_message_type_from_string(
+                        point_cloud_type = get_ros2_type_from_string(
                             self.ros2_topic_names_and_types[point_cloud_subscriber_ros2_topic]
                         )
                         new_sub = self.ros2_node.create_subscription(
@@ -414,14 +414,14 @@ class ROS2Adapter:
                         )
                         self.localization_point_cloud_subs.append(new_sub)
                     except Exception as e:
-                        print("WARNING: Failed to create point cloud subscriber for topic " + point_cloud_subscriber_ros2_topic)
+                        print("WARNING: Failed to create localization point cloud subscriber")
                         print(e)
             
             print("INFO: Set up localization point cloud subscribers")
 
         if "path_subscriber_ros2_topic" in localization_config:
             try:
-                path_type = get_message_type_from_string(
+                path_type = get_ros2_type_from_string(
                     self.ros2_topic_names_and_types[localization_config["path_subscriber_ros2_topic"]]
                 )
             
@@ -438,7 +438,7 @@ class ROS2Adapter:
 
         if "goal_subscriber_ros2_topic" in localization_config:
             try:
-                goal_sub_type = get_message_type_from_string(
+                goal_sub_type = get_ros2_type_from_string(
                     self.ros2_topic_names_and_types[localization_config["goal_subscriber_ros2_topic"]]
                 )
 
@@ -457,7 +457,7 @@ class ROS2Adapter:
             try:
                 # If the topic exists, use its type
                 if localization_config["goal_publisher_ros2_topic"] in self.ros2_topic_names_and_types:
-                    goal_pub_type = get_message_type_from_string(
+                    goal_pub_type = get_ros2_type_from_string(
                         self.ros2_topic_names_and_types[localization_config["goal_publisher_ros2_topic"]]
                     )
                 else:
@@ -478,7 +478,7 @@ class ROS2Adapter:
             try:
                 # If the topic exists, use its type
                 if localization_config["cancel_goal_publisher_ros2_topic"] in self.ros2_topic_names_and_types:
-                    cancel_goal_pub_type = get_message_type_from_string(
+                    cancel_goal_pub_type = get_ros2_type_from_string(
                         self.ros2_topic_names_and_types[localization_config["cancel_goal_publisher_ros2_topic"]]
                     )
                 else:
@@ -495,9 +495,50 @@ class ROS2Adapter:
                 print("WARNING: Failed to set up localization cancel goal publisher")
                 print(e)
 
-    def setup_service_calls(self):
-        # TODO: implement service calls, including calling them using commands
-        pass
+    def setup_service_clients(self):
+        # Clean up existing service clients before setting up new ones
+        for service_client in self.ros2_service_clients.keys():
+            self.ros2_service_clients[service_client].destroy()
+
+        self.ros2_service_clients = {}
+        print("INFO: Cleaned up existing service clients")
+
+        # Set up service calls
+        if "service_clients" in self.config:
+            for service_client in self.config["service_clients"]:
+                try:
+                    service_type_string = self.ros2_service_names_and_types[service_client["ros2_service"]]
+                    service_type = get_ros2_type_from_string(service_type_string)
+                    print("INFO: Found service of type", service_type_string)
+                except Exception as e:
+                    print("WARNING: Could not determine service type for service " + service_client["ros2_service"])
+                    print(e)
+                    continue
+
+                # If a type has been specified, make sure it matches
+                if "ros2_service_type" in service_client:
+                    if service_client["ros2_service_type"] != service_type_string:
+                        print("WARNING: Service " + service_client["ros2_service"] + " does not match specified type")
+                        continue
+                    else:
+                        print("INFO: Service " + service_client["ros2_service"] + " matches specified type")
+
+                try:
+                    new_service_client = self.ros2_node.create_client(
+                        srv_type=service_type, 
+                        srv_name=service_client["ros2_service"],
+                        callback_group=None
+                    )
+
+                    if service_client["formant_stream"] not in self.ros2_service_clients:
+                        self.ros2_service_clients[service_client["formant_stream"]] = []
+
+                    self.ros2_service_clients[service_client["formant_stream"]].append(new_service_client)
+
+                    print("INFO: Set up service client for " + service_client["ros2_service"])
+                except Exception as e:
+                    print("WARNING: Failed to set up service client for " + service_client["ros2_service"])
+                    print(e)
 
     def localization_odom_callback(self, msg):
         msg_type = type(msg)
@@ -707,7 +748,7 @@ class ROS2Adapter:
                     self.fclient.agent_stub.PostData(
                         Datapoint(
                             stream=formant_stream,
-                            point_cloud=ros2_laserscan_to_formant_pointcloud(msg),
+                            point_cloud=FPointCloud.from_ros_laserscan(msg).to_proto(),
                             tags=subscriber_config["tags"],
                             timestamp=msg_timestamp,
                         )
@@ -829,6 +870,7 @@ class ROS2Adapter:
             print("WARNING: No ROS2 publisher found for stream " + stream_name)
 
     def handle_formant_command_request_msg(self, msg):
+        # Publish message on topic if a publisher exists for this command
         if msg.command in self.ros2_publishers:
             for publisher in self.ros2_publishers[msg.command]:
                 # Get the ROS2 message type as a string
@@ -847,7 +889,90 @@ class ROS2Adapter:
                 else:
                     print("WARNING: Unsupported ROS2 message type for command: " + ros2_msg_type)
                     self.fclient.send_command_response(msg.id, success=False)
-                    continue       
+                    continue
+        
+        # Call a service if a service exists for this command
+        if msg.command in self.ros2_service_clients:
+            print("INFO: Calling service " + msg.command)
+            
+            # Call the specified service if it exists
+            if msg.command not in self.ros2_service_clients:
+                print("WARNING: Service not configured for formant stream", msg.command)
+                return
+            
+            for service_client in self.ros2_service_clients[msg.command]:
+                # Create the service request
+                service_request = service_client.srv_type.Request()
+                service_request_slots = list(service_request.get_fields_and_field_types().values())
+
+                # If the service has no parameters, just call it
+                if service_request_slots == []:
+                    
+                    service_client.call_async(service_request)
+                    self.fclient.send_command_response(msg.id, success=True)
+
+                # If the service has a single boolean parameter, call it with "true"
+                elif service_request_slots == ["boolean"]:
+                    # Get the name of the attribute to set from the service request
+                    service_request_attribute = list(service_request.get_fields_and_field_types().keys())[0]
+
+                    # Set the attribute on the request to true
+                    setattr(service_request, service_request_attribute, True)
+                    
+                    # Call the service
+                    service_client.call_async(service_request)
+                    self.fclient.send_command_response(msg.id, success=True)
+                
+                # If the service has a single string parameter, call it with the command text
+                elif service_request_slots == ["string"]:
+                    # TODO: get real string values to match against
+
+                    # If the command text is empty, don't call the service
+                    if msg.text == "":
+                        print("WARNING: Command text is empty but service requires a string parameter")
+                        self.fclient.send_command_response(msg.id, success=False)
+                        continue
+
+                    # Get the name of the attribute to set from the service request
+                    service_request_attribute = list(service_request.get_fields_and_field_types().keys())[0]
+
+                    # Set the attribute on the request to the command text
+                    setattr(service_request, service_request_attribute, msg.text)
+                    
+                    # Call the service
+                    service_client.call_async(service_request)
+                    self.fclient.send_command_response(msg.id, success=True)
+                
+                # If the service has a single numeric parameter, call it with the command text
+                elif service_request_slots == ["float64"]:
+                    # TODO: get real numeric types to match against
+
+                    # If the command text is empty, don't call the service
+                    if msg.text == "":
+                        print("WARNING: Command text is empty but service requires a numeric parameter")
+                        self.fclient.send_command_response(msg.id, success=False)
+                        continue
+
+                    # If the command text is not numeric, don't call the service
+                    if not msg.text.isnumeric():
+                        print("WARNING: Command text is not numeric but service requires a numeric parameter")
+                        self.fclient.send_command_response(msg.id, success=False)
+                        continue
+
+                    # Get the name of the attribute to set from the service request
+                    service_request_attribute = list(service_request.get_fields_and_field_types().keys())[0]
+
+                    # Set the attribute on the request to the command text
+                    setattr(service_request, service_request_attribute, float(msg.text))
+
+                    # Call the service
+                    service_client.call_async(service_request)
+                    self.fclient.send_command_response(msg.id, success=True)
+                
+                else:
+                    print("WARNING: Unsupported ROS2 service parameters for command " + msg.command)
+                    self.fclient.send_command_response(msg.id, success=False)
+                    continue
 
     def publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
         if ros2_msg_type == "Float32":
@@ -919,4 +1044,7 @@ if __name__ == "__main__":
     try:
         ROS2Adapter()
     except KeyboardInterrupt:
+        exit()
+    except Exception as e:
+        print(e)
         exit()

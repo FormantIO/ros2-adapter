@@ -104,11 +104,15 @@
                 "ros2_message_type": "geometry_msgs/msg/Pose"
             }  
         ],
-        "service_calls": [
+        "service_clients": [
             {
                 "formant_stream": "reboot",
                 "ros2_service": "/robot_power",
                 "ros2_service_type": "irobot_create_msgs/srv/RobotPower"
+            },
+            {
+                "formant_stream": "estop",
+                "ros2_service": "/e_stop"
             }
         ],
         "localization": {
