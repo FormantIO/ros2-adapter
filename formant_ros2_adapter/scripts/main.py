@@ -62,7 +62,7 @@ from tf2_ros.transform_listener import TransformListener
 from message_utils.utils import (
     get_message_type_from_string,
     message_to_json,
-    get_message_path_value,
+    get_message_path_value
 )
 
 ROS2_NUMERIC_TYPES = [
@@ -203,16 +203,19 @@ class ROS2Adapter:
 
         # Set each of the app config parameters as a ros2 parameter with a "formant" prefix
         self.setup_ros2_params()
-        print("INFO: Set up ROS2 parameters")
+        print("INFO: Finished setting up ROS2 parameters")
 
         self.setup_subscribers()
-        print("INFO: Set up subscribers")
+        print("INFO: Finished setting up subscribers")
 
         self.setup_publishers()
-        print("INFO: Set up publishers")
+        print("INFO: Finished setting up publishers")
 
         self.setup_localization()
         print("INFO: Finished setting up localization")
+
+        self.setup_service_calls()
+        print("INFO: Finished setting up service calls")
 
         self.fclient.post_json("adapter.configuration", json.dumps(self.config))
         self.fclient.create_event(
@@ -492,7 +495,10 @@ class ROS2Adapter:
                 print("WARNING: Failed to set up localization cancel goal publisher")
                 print(e)
 
-        
+    def setup_service_calls(self):
+        # TODO: implement service calls, including calling them using commands
+        pass
+
     def localization_odom_callback(self, msg):
         msg_type = type(msg)
         if msg_type == Odometry:
