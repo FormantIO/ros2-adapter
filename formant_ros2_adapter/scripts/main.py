@@ -115,6 +115,14 @@ class ROS2Adapter:
         self.localization_goal_cancel_pub = None
         self.setup_transform_listener()
 
+        # Set up numeric set objects
+        ###############################################################################################
+        # Currently, numeric sets are different from individual numerics and contain labels and units #
+        # In the future, this will be removed as individual streams will be assembled in the client   #
+        ###############################################################################################
+        self.numeric_set_subscribers = {}
+        self.numeric_set_buffer = {}
+
         # Set up the adapter
         self.fclient = FormantAgentClient(ignore_throttled=True, ignore_unavailable=True)
         self.fclient.register_config_update_callback(self.update_adapter_configuration)
@@ -211,11 +219,16 @@ class ROS2Adapter:
         self.setup_publishers()
         print("INFO: Finished setting up publishers")
 
+        self.setup_service_clients()
+        print("INFO: Finished setting up service calls")
+
+        # TODO: once localization visualization has been shifted to universe, this will be removed
         self.setup_localization()
         print("INFO: Finished setting up localization")
 
-        self.setup_service_clients()
-        print("INFO: Finished setting up service calls")
+        # TODO: once numeric sets can be built from the client, this will be removed
+        self.setup_numeric_set_subscribers()
+        print("INFO: Finished setting up numeric sets")
 
         self.fclient.post_json("adapter.configuration", json.dumps(self.config))
         self.fclient.create_event(
@@ -309,6 +322,51 @@ class ROS2Adapter:
                 self.ros2_publishers[publisher["formant_stream"]] = []
 
             self.ros2_publishers[publisher["formant_stream"]].append(new_pub)
+
+    def setup_service_clients(self):
+        # Clean up existing service clients before setting up new ones
+        for service_client in self.ros2_service_clients.keys():
+            self.ros2_service_clients[service_client].destroy()
+
+        self.ros2_service_clients = {}
+        print("INFO: Cleaned up existing service clients")
+
+        # Set up service calls
+        if "service_clients" in self.config:
+            for service_client in self.config["service_clients"]:
+                try:
+                    service_type_string = self.ros2_service_names_and_types[service_client["ros2_service"]]
+                    service_type = get_ros2_type_from_string(service_type_string)
+                    print("INFO: Found service of type", service_type_string)
+                except Exception as e:
+                    print("WARNING: Could not determine service type for service " + service_client["ros2_service"])
+                    print(e)
+                    continue
+
+                # If a type has been specified, make sure it matches
+                if "ros2_service_type" in service_client:
+                    if service_client["ros2_service_type"] != service_type_string:
+                        print("WARNING: Service " + service_client["ros2_service"] + " does not match specified type")
+                        continue
+                    else:
+                        print("INFO: Service " + service_client["ros2_service"] + " matches specified type")
+
+                try:
+                    new_service_client = self.ros2_node.create_client(
+                        srv_type=service_type, 
+                        srv_name=service_client["ros2_service"],
+                        callback_group=None
+                    )
+
+                    if service_client["formant_stream"] not in self.ros2_service_clients:
+                        self.ros2_service_clients[service_client["formant_stream"]] = []
+
+                    self.ros2_service_clients[service_client["formant_stream"]].append(new_service_client)
+
+                    print("INFO: Set up service client for " + service_client["ros2_service"])
+                except Exception as e:
+                    print("WARNING: Failed to set up service client for " + service_client["ros2_service"])
+                    print(e)
 
     def setup_localization(self):
         print("INFO: Setting up localization")
@@ -495,49 +553,55 @@ class ROS2Adapter:
                 print("WARNING: Failed to set up localization cancel goal publisher")
                 print(e)
 
-    def setup_service_clients(self):
-        # Clean up existing service clients before setting up new ones
-        for service_client in self.ros2_service_clients.keys():
-            self.ros2_service_clients[service_client].destroy()
+    def setup_numeric_set_subscribers(self):
+        print("INFO: Setting up numeric sets")
+    
+        # Remove any existing numeric set subscribers
+        for subscriber_list in self.numeric_set_subscribers.values():
+            for subscriber in subscriber_list:
+                subscriber.destroy_subscriber()
 
-        self.ros2_service_clients = {}
-        print("INFO: Cleaned up existing service clients")
+        self.numeric_set_subscribers = {}
 
-        # Set up service calls
-        if "service_clients" in self.config:
-            for service_client in self.config["service_clients"]:
+        print("INFO: Destroyed existing numeric set subscribers")
+
+        # Create new numeric set subscribers
+        if "numeric_sets" not in self.config:
+            print("INFO: No numeric sets to set up")
+            return
+
+        for numeric_set_config in self.config["numeric_sets"]:
+            formant_stream = numeric_set_config["formant_stream"]
+            self.numeric_set_subscribers[formant_stream] = []
+            print("INFO: Setting up numeric set for formant stream: " + formant_stream)
+
+            for ros2_subscriber_config in numeric_set_config["ros2_subscribers"]:
                 try:
-                    service_type_string = self.ros2_service_names_and_types[service_client["ros2_service"]]
-                    service_type = get_ros2_type_from_string(service_type_string)
-                    print("INFO: Found service of type", service_type_string)
-                except Exception as e:
-                    print("WARNING: Could not determine service type for service " + service_client["ros2_service"])
-                    print(e)
-                    continue
+                    ros2_topic = ros2_subscriber_config["ros2_topic"]
 
-                # If a type has been specified, make sure it matches
-                if "ros2_service_type" in service_client:
-                    if service_client["ros2_service_type"] != service_type_string:
-                        print("WARNING: Service " + service_client["ros2_service"] + " does not match specified type")
-                        continue
+                    if ros2_topic in self.ros2_topic_names_and_types:
+                        ros2_message_type = get_ros2_type_from_string(
+                            self.ros2_topic_names_and_types[ros2_topic]
+                        )
                     else:
-                        print("INFO: Service " + service_client["ros2_service"] + " matches specified type")
+                        print("WARNING: ROS2 topic " + ros2_topic + " does not exist")
+                        continue
 
-                try:
-                    new_service_client = self.ros2_node.create_client(
-                        srv_type=service_type, 
-                        srv_name=service_client["ros2_service"],
-                        callback_group=None
+                    # Create a new subscriber
+                    new_numeric_set_sub = self.ros2_node.create_subscription(
+                        ros2_message_type,
+                        ros2_topic,
+                        lambda msg, stream=formant_stream, config=ros2_subscriber_config: self.handle_ros2_numeric_set_message(
+                            msg, 
+                            stream,
+                            config
+                        ),
+                        qos_profile_sensor_data,
                     )
 
-                    if service_client["formant_stream"] not in self.ros2_service_clients:
-                        self.ros2_service_clients[service_client["formant_stream"]] = []
-
-                    self.ros2_service_clients[service_client["formant_stream"]].append(new_service_client)
-
-                    print("INFO: Set up service client for " + service_client["ros2_service"])
+                    self.numeric_set_subscribers[formant_stream].append(new_numeric_set_sub)
                 except Exception as e:
-                    print("WARNING: Failed to set up service client for " + service_client["ros2_service"])
+                    print("WARNING: Failed to create numeric set subscriber")
                     print(e)
 
     def localization_odom_callback(self, msg):
@@ -786,7 +850,64 @@ class ROS2Adapter:
 
         except AttributeError as e:
             print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
-            
+    
+    def handle_ros2_numeric_set_message(self, msg, formant_stream, subscriber_config):
+        # Get the ROS2 topic name
+        ros2_topic = subscriber_config["ros2_topic"]
+
+        # Get the original message type
+        msg_type = type(msg)
+
+        # If there is a path, get the value from the path
+        if "ros2_message_path" in subscriber_config:
+            path = subscriber_config["ros2_message_path"]
+
+            try:
+                path_msg = get_message_path_value(msg, path)
+                msg = path_msg
+
+                # Re-set the message type if the path is a different type
+                msg_type = type(msg)
+            except:
+                # If this path does not match, ignore it and log the error
+                print(f"ERROR: Could not find path '{path}' in message {msg_type}")
+                return
+
+        # Get the label and unit
+        label = subscriber_config["label"]
+        unit = subscriber_config["unit"]
+       
+        # If the message has a data attribute, use that
+        if hasattr(msg, "data"):
+            msg = msg.data
+        
+        # If the message is already a number, use that
+        if msg_type in [int, float]:
+            value = msg
+
+        # If the message is a ROS2 integer, cast it to an int and use that
+        elif msg_type in [Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]:
+            value = int(msg)
+
+        # If the message is a ROS2 float, cast it to a float and use that
+        elif msg_type in [Float32, Float64]:
+            value = float(msg)
+        
+        else:
+            print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
+            return
+
+        # Update the current set with the new value
+        if formant_stream not in self.numeric_set_buffer:
+            self.numeric_set_buffer[formant_stream] = {}
+
+        self.numeric_set_buffer[formant_stream][label] = (value, unit)
+
+        self.fclient.post_numericset(
+            formant_stream,
+            self.numeric_set_buffer[formant_stream]
+        )
+       
     def handle_formant_teleop_msg(self, msg):
         # Buttons always publish to the "Buttons" stream, so get actual name to use instead
         if msg.stream == "Buttons":
