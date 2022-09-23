@@ -556,12 +556,13 @@ class ROS2Adapter:
     def setup_numeric_set_subscribers(self):
         print("INFO: Setting up numeric sets")
     
-        # Remove any existing numeric set subscribers
+        # Remove any existing numeric set subscribers and clear the buffer
         for subscriber_list in self.numeric_set_subscribers.values():
             for subscriber in subscriber_list:
                 subscriber.destroy_subscriber()
 
         self.numeric_set_subscribers = {}
+        self.numeric_set_buffer = {}
 
         print("INFO: Destroyed existing numeric set subscribers")
 
