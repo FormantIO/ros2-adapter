@@ -14,18 +14,179 @@ Adapter configuration is split into five sections:
 
 ### Subscribers
 
+The `subscribers` section defines a list of ROS2 topics that the adapter will subscribe to, and the Formant streams that they will be mapped to.
 
+| Parameter                 | Description                                          |
+|---------------------------|------------------------------------------------------|
+| `ros2_topic`              | The ROS2 topic to pull messages from                 |
+| `ros2_message_type`       | The type of message to accept                        |
+| `formant_stream`          | The name of the Formant stream to ingest to          |
+| `ros2_message_paths`      | The list of paths configurations to ingest data from |
+| `ros2_message_paths/path` | The path within the ROS2 message                     |
+| `ros2_message_paths/tags` | The tag set to ingest data with                      |
+
+#### Example
+```json
+"ros2_adapter_configuration": {
+    "subscribers": [
+        {
+            "ros2_topic": "/example_topic",
+            "ros2_message_type": "example_msgs/msg/ExampleType",
+            "formant_stream": "example.stream",
+            "ros2_message_paths": [
+                {
+                    "path": "example_path",
+                    "tags": {
+                        "example_key": "example_value"
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
 ### Publishers
 
+The `publishers` section defines a list of ROS2 topics that the adapter will publish to, and the Formant streams that they will be mapped to. 
+
+The Formant application can send a message on a stream from either:
+1. A teleoperation control, such as a button, slider, joystick, or image click
+2. A command
+
+In either of these cases, the name of the configured Formant control input must match the `formant_stream` parameter in the adapter. 
+
+| Parameter           | Description                                         |
+|---------------------|-----------------------------------------------------|
+| `formant_stream`    | The name of the Formant stream to publish data from |
+| `ros2_topic`        | The name of the ROS2 topic to publish data to       |
+| `ros2_message_type` | The type of ROS2 topic to publish data to           |
+
+#### Example
+```json
+"ros2_adapter_configuration": {
+    "publishers": [
+        {
+            "formant_stream": "example.stream",
+            "ros2_topic": "/example_topic",
+            "ros2_message_type": "example_msgs/msg/ExampleType",
+        }
+    ]
+}
+```
 
 ### Service Clients
 
+The `service_clients` section defines a list of ROS2 services that the adapter will call, and the Formant streams that they will be mapped to.
+
+Formant commands can be mapped to services by setting the `formant_stream` parameter to the name of the configured Formant command.
+
+Services with zero or one parameter can be called using the following logic:
+
+1. If the service has zero parameters, a command with any parameter (or no parameters) will call it
+2. If the service has one numeric parameter, a command with a single numeric parameter will call it
+3. If the service has one string parameter, a command with a single string parameter will call it
+3. If the service has one boolean parameter:
+    1. If the command has no parameters, it will call the service with "true"
+    2. If the command has a parameter that maps to a boolean value, it will call the command with that value
+        1. True parameters include `["true", "True", "TRUE", "t", "T", "1"]`
+        2. False parameters include `["false", "False", "FALSE", "f", "F", "0"]`
+
+
+| Parameter           | Description                                            |
+|---------------------|--------------------------------------------------------|
+| `formant_stream`    | The name of the Formant stream to accept commands from |
+| `ros2_service`      | The name of the ROS2 service to call                   |
+| `ros2_service_type` | The type of ROS2 service to call                       |
+
+#### Example
+```json
+"ros2_adapter_configuration": {
+    "service_clients": [
+        {
+            "formant_stream": "example.stream",
+            "ros2_service": "/example_service",
+            "ros2_service_type": "example_services/srv/ExampleService",
+        }
+    ]
+}
+```
 
 ### Localization
 
+The Formant localization datapoint includes many fields which are all aggregated to create a single aligned world perspective.
+
+The `localization` section defines a list of ROS2 topics that the adapter will subscribe to, and the Formant localization datapoint fields that they will be mapped to.
+
+This datapoint uses a special localization manager to aggregate the data from all of the configured topics. It is built to publish only the necessary data in order to save bandwidth.
+
+This configuration section also maps incoming navigation controls such as waypoints from the localization UI to ROS2 topics.
+
+| Parameter                            | Description                                                        |
+|--------------------------------------|--------------------------------------------------------------------|
+| `formant_stream`                     | The name of the Formant stream to ingest to                        |
+| `base_reference_frame`               | The base reference frame to use                                    |
+| `odometry_subscriber_ros2_topic`     | The odometry ROS2 topic name                                       |
+| `map_subscriber_ros2_topic`          | The map ROS2 topic name                                            |
+| `point_cloud_subscriber_ros2_topics` | A list of ROS2 topics to ingest point clouds from                  |
+| `path_subscriber_ros2_topic`         | The ROS2 topic to ingest path messages from                        |
+| `goal_subscriber_ros2_topic`         | The ROS2 topic to ingest goal messages from                        |
+| `goal_publisher_ros2_topic`          | The ROS2 topic to publish goal messages from waypoint UI clicks to |
+| `cancel_goal_publisher_ros2_topic`   | The ROS2 topic to publish waypoint cancellation messages to        |
+
+#### Example
+```json
+{
+    "ros2_adapter_configuration": {
+        "localization": {
+            "formant_stream": "example.localization",
+            "base_reference_frame": "base_link",
+            "odometry_subscriber_ros2_topic": "/odom",
+            "map_subscriber_ros2_topic": "/map",
+            "point_cloud_subscriber_ros2_topics": ["/scan", "/stereo/depth/points"],
+            "path_subscriber_ros2_topic": "/plan",
+            "goal_subscriber_ros2_topic": "/goal_pose",
+            "goal_publisher_ros2_topic": "/goal_pose",
+            "cancel_goal_publisher_ros2_topic": "/move_base/cancel"
+        }
+    }
+}
+```
 
 ### Numeric Sets
 
+| Parameter                            | Description                                                            |
+|--------------------------------------|------------------------------------------------------------------------|
+| `formant_stream`                     | The name of the Formant stream to ingest a numeric set to              |
+| `ros2_subscribers`                   | The list of subscriber configurations to pull numeric data from        |
+| `ros2_subscribers/ros2_topic`        | The ROS2 topic to pull numeric data from                               |
+| `ros2_subscribers/ros2_message_path` | The ROS2 message path to use to select data from messages on the topic |
+| `ros2_subscribers/label`             | The text to use for the label of this value in the numeric set         |
+| `ros2_subscribers/unit`              | The text to use for the unit of this value in the numeric set          |
+
+#### Example
+```json
+"ros2_adapter_configuration": {
+    "numeric_sets": [
+        {
+            "formant_stream": "example.numeric_set",
+            "ros2_subscribers": [
+                {
+                    "ros2_topic": "/example_topic",
+                    "ros2_message_path": "example_numeric_value_path_1",
+                    "label": "example label 1",
+                    "unit": "units"
+                },
+                {
+                    "ros2_topic": "/example_topic",
+                    "ros2_message_path": "example_numeric_value_path_2",
+                    "label": "example label 1",
+                    "unit": "units"
+                },
+            ]
+        }
+    ]
+}
+```
 
 ## ROS2 adapter functionality
 
@@ -60,18 +221,16 @@ Topics will automatically be ingested as their corresponding Formant type:
 | ROS topic type                               | Formant datapoint type |
 |----------------------------------------------|------------------------|
 | Bool, message with bool-valued message paths | bitset                 |
-| Message with numeric-valued message paths    | numeric set            |
 | Char, String                                 | text                   |
 | Float, Int, Uint                             | numeric                |
 | NavSatFix                                    | location               |
 | LaserScan, PointCloud2                       | point cloud            |
 | CompressedImage                              | image, video           |
 
-By default, stream name is automatically configured from the topic. (e.g. "/base/cmd_vel" -> "base.cmd_vel") The `"stream"` configuration can be set to change the stream name of ingested datapoints manually.
+Stream name will be automatically configured from the topic if it is not set. (e.g. "/base/cmd_vel" -> "base.cmd_vel") The `"stream"` configuration can be set to change the stream name of ingested datapoints manually.
 
 ## Running the adapter
 
-### As an Adapter or with the `start.sh` Script
 The repo can either be zipped and configured as an adapter in Formant with "Exec command" `./start.sh`, or can be run manually.
 
 If you use custom messages, you must update the `start.sh` script to source your workspace.
