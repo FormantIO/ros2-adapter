@@ -2,7 +2,7 @@ import re
 import importlib
 import array
 import json
-
+import codecs
 import numpy as np
 
 
@@ -39,7 +39,7 @@ def parse(m):
     if type(m) in [bool, str, int, float]:
         return m
     elif type(m) == bytes:
-        return str(m)
+        return int(codecs.encode(m, "hex"), 16)
     elif type(m) in NUMPY_DTYPE_TO_BUILTIN_MAPPING.keys():
         return NUMPY_DTYPE_TO_BUILTIN_MAPPING[type(m)](m)
     elif type(m) in [list, array.array, np.ndarray]:
