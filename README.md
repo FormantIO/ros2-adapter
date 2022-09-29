@@ -127,6 +127,10 @@ Choose where you would like to have your workspace if you do not already have on
 
 `git clone <URL for this Repo>`
 
+`cd ros2-adapter`
+
+`python3 -m pip install -r requirements.txt`
+
 `cd ../..`
 
 `source /opt/ros/<Desired Distro>/setup.bash` (this adapter is meant to work with any ROS2 distribution eloquent+)
