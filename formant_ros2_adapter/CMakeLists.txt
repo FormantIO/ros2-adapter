@@ -15,10 +15,6 @@ install(DIRECTORY scripts/message_utils DESTINATION lib/${PROJECT_NAME})
 
 ament_python_install_package(scripts)
 
-execute_process (
-    COMMAND bash -c "python3 -m pip install -r ${CMAKE_CURRENT_SOURCE_DIR}/../requirements.txt"
-)
-
 #Install scripts
 install(PROGRAMS
   scripts/main.py
