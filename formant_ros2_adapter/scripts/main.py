@@ -26,35 +26,56 @@ from formant.sdk.agent.v1.localization.types import (
 import rclpy
 from rclpy.parameter import Parameter
 from rclpy.qos import (
-    qos_profile_sensor_data, 
+    qos_profile_sensor_data,
     qos_profile_system_default,
-    qos_profile_unknown
+    qos_profile_unknown,
 )
 
 from cv_bridge import CvBridge
 
+from tf2_msgs.msg import TFMessage
 from std_msgs.msg import (
-    Bool, Char, String, 
-    Float32, Float64,
-    Int8, Int16, Int32, Int64,
-    UInt8, UInt16, UInt32, UInt64
+    Bool,
+    Char,
+    String,
+    Float32,
+    Float64,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
 )
 
 from sensor_msgs.msg import (
-    BatteryState, CompressedImage, Image,
-    Joy, LaserScan, NavSatFix, PointCloud2
+    BatteryState,
+    CompressedImage,
+    Image,
+    Joy,
+    LaserScan,
+    NavSatFix,
+    PointCloud2,
 )
 
 from geometry_msgs.msg import (
-    Point, Point32, Polygon,
-    Pose, PoseStamped, PoseArray,
-    PoseWithCovariance, PoseWithCovarianceStamped,
-    Twist, TwistStamped, Vector3, Vector3Stamped
+    Point,
+    Point32,
+    Polygon,
+    Pose,
+    PoseStamped,
+    PoseArray,
+    PoseWithCovariance,
+    PoseWithCovarianceStamped,
+    Twist,
+    TwistStamped,
+    Vector3,
+    Vector3Stamped,
 )
 
-from nav_msgs.msg import (
-    Odometry, OccupancyGrid, Path
-)
+from nav_msgs.msg import Odometry, OccupancyGrid, Path
 
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
@@ -62,14 +83,22 @@ from tf2_ros.transform_listener import TransformListener
 from message_utils.utils import (
     get_ros2_type_from_string,
     message_to_json,
-    get_message_path_value
+    get_message_path_value,
 )
 
 ROS2_NUMERIC_TYPES = [
-    "Float32", "Float64", "Int8", 
-    "Int16", "Int32", "Int64", "UInt8", 
-    "UInt16", "UInt32", "UInt64"
+    "Float32",
+    "Float64",
+    "Int8",
+    "Int16",
+    "Int32",
+    "Int64",
+    "UInt8",
+    "UInt16",
+    "UInt32",
+    "UInt64",
 ]
+
 
 class ROS2Adapter:
     """
@@ -85,9 +114,9 @@ class ROS2Adapter:
         rclpy.init()
         self.cv_bridge = CvBridge()
         self.ros2_node = rclpy.create_node(
-            "formant_ros2_adapter", 
+            "formant_ros2_adapter",
             allow_undeclared_parameters=True,
-            automatically_declare_parameters_from_overrides=True
+            automatically_declare_parameters_from_overrides=True,
         )
 
         # Set up the config object
@@ -115,6 +144,9 @@ class ROS2Adapter:
         self.localization_goal_cancel_pub = None
         self.setup_transform_listener()
 
+        # Subscribers for transform tree ingestion
+        self.tf_subscribers = []
+
         # Set up numeric set objects
         ###############################################################################################
         # Currently, numeric sets are different from individual numerics and contain labels and units #
@@ -124,10 +156,14 @@ class ROS2Adapter:
         self.numeric_set_buffer = {}
 
         # Set up the adapter
-        self.fclient = FormantAgentClient(ignore_throttled=True, ignore_unavailable=True)
+        self.fclient = FormantAgentClient(
+            ignore_throttled=True, ignore_unavailable=True
+        )
         self.fclient.register_config_update_callback(self.update_adapter_configuration)
         self.fclient.register_teleop_callback(self.handle_formant_teleop_msg)
-        self.fclient.register_command_request_callback(self.handle_formant_command_request_msg)
+        self.fclient.register_command_request_callback(
+            self.handle_formant_command_request_msg
+        )
 
         # Start spinning
         print("INFO: Starting to spin ROS2 node")
@@ -152,7 +188,7 @@ class ROS2Adapter:
                 config_blob = json.loads(f.read())
 
             print("INFO: Loaded config from config.json file")
-            
+
         # Validate configuration based on schema
         with open("config_schema.json") as f:
             try:
@@ -164,7 +200,7 @@ class ROS2Adapter:
 
         print("INFO: Validating config...")
 
-        # Runt the validation check    
+        # Runt the validation check
         try:
             jsonschema.validate(config_blob, self.config_schema)
             print("INFO: Validation succeeded")
@@ -173,7 +209,7 @@ class ROS2Adapter:
             self.fclient.create_event(
                 "ROS2 Adapter configuration failed validation",
                 notify=False,
-                severity="warning", 
+                severity="warning",
             )
             return
 
@@ -183,11 +219,11 @@ class ROS2Adapter:
             self.config = config_blob["ros2_adapter_configuration"]
         else:
             self.config = {}
-        
+
         # Get information about the existing ROS2 system
         self.update_ros2_information()
         print("INFO: Updated ROS2 information")
-        
+
         # Fill out the config with default values
         for subscriber_config in self.config["subscribers"]:
             if "formant_stream" not in subscriber_config:
@@ -197,16 +233,19 @@ class ROS2Adapter:
             if "ros2_message_type" not in subscriber_config:
                 # Get the message type from the topic
                 try:
-                    subscriber_config["ros2_message_type"] = self.ros2_topic_names_and_types[
-                        subscriber_config["ros2_topic"]
-                    ]
+                    subscriber_config[
+                        "ros2_message_type"
+                    ] = self.ros2_topic_names_and_types[subscriber_config["ros2_topic"]]
                 except:
-                    print("WARNING: Setting type bool for unknown topic", subscriber_config["ros2_topic"])
+                    print(
+                        "WARNING: Setting type bool for unknown topic",
+                        subscriber_config["ros2_topic"],
+                    )
                     subscriber_config["ros2_message_type"] = "std_msgs/msg/Bool"
-            
+
             if "tags" not in subscriber_config:
                 subscriber_config["tags"] = []
-        
+
         print("INFO: Updated config with default values")
 
         # Set each of the app config parameters as a ros2 parameter with a "formant" prefix
@@ -226,6 +265,9 @@ class ROS2Adapter:
         self.setup_localization()
         print("INFO: Finished setting up localization")
 
+        self.setup_tf_ingestion()
+        print("INFO: Finished setting up tf ingestion")
+
         # TODO: once numeric sets can be built from the client, this will be removed
         self.setup_numeric_set_subscribers()
         print("INFO: Finished setting up numeric sets")
@@ -234,7 +276,7 @@ class ROS2Adapter:
         self.fclient.create_event(
             "ROS2 Adapter started",
             notify=False,
-            severity="info", 
+            severity="info",
         )
         print("INFO: Posted update event and config")
 
@@ -243,38 +285,42 @@ class ROS2Adapter:
         self.ros2_topic_names_and_types = {}
         ros2_topic_names_and_types = self.ros2_node.get_topic_names_and_types()
         for topic in ros2_topic_names_and_types:
-            self.ros2_topic_names_and_types[topic[0]] = topic[1][0] # Just use the first one
+            self.ros2_topic_names_and_types[topic[0]] = topic[1][
+                0
+            ]  # Just use the first one
 
         self.ros2_service_names_and_types = {}
         ros2_service_names_and_types = self.ros2_node.get_service_names_and_types()
         for service in ros2_service_names_and_types:
-            self.ros2_service_names_and_types[service[0]] = service[1][0] # Just use the first one
+            self.ros2_service_names_and_types[service[0]] = service[1][
+                0
+            ]  # Just use the first one
 
     def setup_ros2_params(self):
         # TODO: these remain in the ROS2 node after being removed from agent config
-        
+
         # Loop through all app config params and set them as ros2 parameters
         new_params = []
         for param_key in self.fclient._app_config.keys():
             param_value = self.fclient._app_config[param_key]
             # self.ros2_node.declare_parameter(f"formant.{param_key}", param_value)
             new_params.append(
-                    Parameter(
-                        param_key,
-                        Parameter.Type.STRING,
-                        self.fclient._app_config[param_key]
-                    )
+                Parameter(
+                    param_key,
+                    Parameter.Type.STRING,
+                    self.fclient._app_config[param_key],
                 )
+            )
 
         print("INFO: Setting new ROS2 parameters")
         self.ros2_node.set_parameters(new_params)
-            
+
     def setup_subscribers(self):
         # Remove any existing subscribers
         for subscriber_list in self.ros2_subscribers.values():
             for subscriber in subscriber_list:
                 self.ros2_node.destroy_subscription(subscriber)
-            
+
         self.ros2_subscribers = {}
 
         # Create new subscribers based on the config
@@ -283,8 +329,7 @@ class ROS2Adapter:
                 get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
                 subscriber_config["ros2_topic"],
                 lambda msg, subscriber_config=subscriber_config: self.handle_ros2_message(
-                    msg, 
-                    subscriber_config
+                    msg, subscriber_config
                 ),
                 qos_profile_sensor_data,
             )
@@ -299,7 +344,7 @@ class ROS2Adapter:
         for publisher_list in self.ros2_publishers.values():
             for publisher in publisher_list:
                 self.ros2_node.destroy_publisher(publisher)
-        
+
         self.ros2_publishers = {}
 
         # Create new publishers based on the config
@@ -307,7 +352,9 @@ class ROS2Adapter:
             # If there is no type, get it from the topic... but this shouldn't happen
             if "ros2_message_type" not in publisher:
                 if publisher["ros2_topic"] in self.ros2_topic_names_and_types:
-                    publisher["ros2_message_type"] = self.ros2_topic_names_and_types[publisher["ros2_topic"]]
+                    publisher["ros2_message_type"] = self.ros2_topic_names_and_types[
+                        publisher["ros2_topic"]
+                    ]
                 else:
                     print("ERROR: No message type for topic", publisher["ros2_topic"])
                     continue
@@ -335,37 +382,61 @@ class ROS2Adapter:
         if "service_clients" in self.config:
             for service_client in self.config["service_clients"]:
                 try:
-                    service_type_string = self.ros2_service_names_and_types[service_client["ros2_service"]]
+                    service_type_string = self.ros2_service_names_and_types[
+                        service_client["ros2_service"]
+                    ]
                     service_type = get_ros2_type_from_string(service_type_string)
                     print("INFO: Found service of type", service_type_string)
                 except Exception as e:
-                    print("WARNING: Could not determine service type for service " + service_client["ros2_service"])
+                    print(
+                        "WARNING: Could not determine service type for service "
+                        + service_client["ros2_service"]
+                    )
                     print(e)
                     continue
 
                 # If a type has been specified, make sure it matches
                 if "ros2_service_type" in service_client:
                     if service_client["ros2_service_type"] != service_type_string:
-                        print("WARNING: Service " + service_client["ros2_service"] + " does not match specified type")
+                        print(
+                            "WARNING: Service "
+                            + service_client["ros2_service"]
+                            + " does not match specified type"
+                        )
                         continue
                     else:
-                        print("INFO: Service " + service_client["ros2_service"] + " matches specified type")
+                        print(
+                            "INFO: Service "
+                            + service_client["ros2_service"]
+                            + " matches specified type"
+                        )
 
                 try:
                     new_service_client = self.ros2_node.create_client(
-                        srv_type=service_type, 
+                        srv_type=service_type,
                         srv_name=service_client["ros2_service"],
-                        callback_group=None
+                        callback_group=None,
                     )
 
-                    if service_client["formant_stream"] not in self.ros2_service_clients:
+                    if (
+                        service_client["formant_stream"]
+                        not in self.ros2_service_clients
+                    ):
                         self.ros2_service_clients[service_client["formant_stream"]] = []
 
-                    self.ros2_service_clients[service_client["formant_stream"]].append(new_service_client)
+                    self.ros2_service_clients[service_client["formant_stream"]].append(
+                        new_service_client
+                    )
 
-                    print("INFO: Set up service client for " + service_client["ros2_service"])
+                    print(
+                        "INFO: Set up service client for "
+                        + service_client["ros2_service"]
+                    )
                 except Exception as e:
-                    print("WARNING: Failed to set up service client for " + service_client["ros2_service"])
+                    print(
+                        "WARNING: Failed to set up service client for "
+                        + service_client["ros2_service"]
+                    )
                     print(e)
 
     def setup_localization(self):
@@ -374,20 +445,20 @@ class ROS2Adapter:
         if self.localization_odom_sub is not None:
             self.ros2_node.destroy_subscription(self.localization_odom_sub)
             self.localization_odom_sub = None
-        
+
         if self.localization_map_sub is not None:
             self.ros2_node.destroy_subscription(self.localization_map_sub)
             self.localization_map_sub = None
 
         for point_cloud_sub in self.localization_point_cloud_subs:
             self.ros2_node.destroy_subscription(point_cloud_sub)
-        
+
         self.localization_point_cloud_subs = []
-        
+
         if self.localization_path_sub is not None:
             self.ros2_node.destroy_subscription(self.localization_path_sub)
             self.localization_path_sub = None
-        
+
         print("INFO: Destroyed existing localization subscribers")
 
         if self.localization_goal_pub is not None:
@@ -397,23 +468,23 @@ class ROS2Adapter:
         if self.localization_goal_cancel_pub is not None:
             self.ros2_node.destroy_publisher(self.localization_goal_cancel_pub)
             self.localization_goal_cancel_pub = None
-        
+
         print("INFO: Destroyed existing localization publishers")
 
         # Skip this if there is no localization config
         if "localization" not in self.config:
             print("INFO: No localization configuration")
             return
-        
+
         localization_config = self.config["localization"]
         print("INFO: Set localization config")
 
         # Make sure the config has all required fields
         if (
-            "formant_stream" not in localization_config or
-            "base_reference_frame" not in localization_config or
-            "odometry_subscriber_ros2_topic" not in localization_config or
-            "map_subscriber_ros2_topic" not in localization_config
+            "formant_stream" not in localization_config
+            or "base_reference_frame" not in localization_config
+            or "odometry_subscriber_ros2_topic" not in localization_config
+            or "map_subscriber_ros2_topic" not in localization_config
         ):
             print("WARNING: Localization config is missing required fields")
             return
@@ -428,7 +499,9 @@ class ROS2Adapter:
         # Set up subscribers
         try:
             odom_type = get_ros2_type_from_string(
-                self.ros2_topic_names_and_types[localization_config["odometry_subscriber_ros2_topic"]]
+                self.ros2_topic_names_and_types[
+                    localization_config["odometry_subscriber_ros2_topic"]
+                ]
             )
             self.localization_odom_sub = self.ros2_node.create_subscription(
                 odom_type,
@@ -443,7 +516,9 @@ class ROS2Adapter:
 
         try:
             map_type = get_ros2_type_from_string(
-                self.ros2_topic_names_and_types[localization_config["map_subscriber_ros2_topic"]]
+                self.ros2_topic_names_and_types[
+                    localization_config["map_subscriber_ros2_topic"]
+                ]
             )
             self.localization_map_sub = self.ros2_node.create_subscription(
                 map_type,
@@ -455,14 +530,18 @@ class ROS2Adapter:
         except Exception as e:
             print("WARNING: Failed to set up localization map subscriber")
             print(e)
-            
+
         if "point_cloud_subscriber_ros2_topics" in localization_config:
             self.localization_point_cloud_subs = []
             if "point_cloud_subscriber_ros2_topics" in localization_config:
-                for point_cloud_subscriber_ros2_topic in localization_config["point_cloud_subscriber_ros2_topics"]:
+                for point_cloud_subscriber_ros2_topic in localization_config[
+                    "point_cloud_subscriber_ros2_topics"
+                ]:
                     try:
                         point_cloud_type = get_ros2_type_from_string(
-                            self.ros2_topic_names_and_types[point_cloud_subscriber_ros2_topic]
+                            self.ros2_topic_names_and_types[
+                                point_cloud_subscriber_ros2_topic
+                            ]
                         )
                         new_sub = self.ros2_node.create_subscription(
                             point_cloud_type,
@@ -472,22 +551,26 @@ class ROS2Adapter:
                         )
                         self.localization_point_cloud_subs.append(new_sub)
                     except Exception as e:
-                        print("WARNING: Failed to create localization point cloud subscriber")
+                        print(
+                            "WARNING: Failed to create localization point cloud subscriber"
+                        )
                         print(e)
-            
+
             print("INFO: Set up localization point cloud subscribers")
 
         if "path_subscriber_ros2_topic" in localization_config:
             try:
                 path_type = get_ros2_type_from_string(
-                    self.ros2_topic_names_and_types[localization_config["path_subscriber_ros2_topic"]]
+                    self.ros2_topic_names_and_types[
+                        localization_config["path_subscriber_ros2_topic"]
+                    ]
                 )
-            
+
                 self.localization_path_sub = self.ros2_node.create_subscription(
                     path_type,
                     localization_config["path_subscriber_ros2_topic"],
                     self.localization_path_callback,
-                    qos_profile_sensor_data
+                    qos_profile_sensor_data,
                 )
                 print("INFO: Set up localization path subscriber")
             except Exception as e:
@@ -497,14 +580,16 @@ class ROS2Adapter:
         if "goal_subscriber_ros2_topic" in localization_config:
             try:
                 goal_sub_type = get_ros2_type_from_string(
-                    self.ros2_topic_names_and_types[localization_config["goal_subscriber_ros2_topic"]]
+                    self.ros2_topic_names_and_types[
+                        localization_config["goal_subscriber_ros2_topic"]
+                    ]
                 )
 
                 self.localization_goal_sub = self.ros2_node.create_subscription(
                     goal_sub_type,
                     localization_config["goal_subscriber_ros2_topic"],
                     self.localization_goal_callback,
-                    qos_profile_sensor_data
+                    qos_profile_sensor_data,
                 )
                 print("INFO: Set up localization goal subscriber")
             except Exception as e:
@@ -514,9 +599,14 @@ class ROS2Adapter:
         if "goal_publisher_ros2_topic" in localization_config:
             try:
                 # If the topic exists, use its type
-                if localization_config["goal_publisher_ros2_topic"] in self.ros2_topic_names_and_types:
+                if (
+                    localization_config["goal_publisher_ros2_topic"]
+                    in self.ros2_topic_names_and_types
+                ):
                     goal_pub_type = get_ros2_type_from_string(
-                        self.ros2_topic_names_and_types[localization_config["goal_publisher_ros2_topic"]]
+                        self.ros2_topic_names_and_types[
+                            localization_config["goal_publisher_ros2_topic"]
+                        ]
                     )
                 else:
                     # Otherwise, use the default type
@@ -525,7 +615,7 @@ class ROS2Adapter:
                 self.localization_goal_pub = self.ros2_node.create_publisher(
                     goal_pub_type,
                     localization_config["goal_publisher_ros2_topic"],
-                    qos_profile_system_default
+                    qos_profile_system_default,
                 )
                 print("INFO: Set up localization goal publisher")
             except Exception as e:
@@ -535,27 +625,56 @@ class ROS2Adapter:
         if "cancel_goal_publisher_ros2_topic" in localization_config:
             try:
                 # If the topic exists, use its type
-                if localization_config["cancel_goal_publisher_ros2_topic"] in self.ros2_topic_names_and_types:
+                if (
+                    localization_config["cancel_goal_publisher_ros2_topic"]
+                    in self.ros2_topic_names_and_types
+                ):
                     cancel_goal_pub_type = get_ros2_type_from_string(
-                        self.ros2_topic_names_and_types[localization_config["cancel_goal_publisher_ros2_topic"]]
+                        self.ros2_topic_names_and_types[
+                            localization_config["cancel_goal_publisher_ros2_topic"]
+                        ]
                     )
                 else:
                     # Otherwise, use the default type
                     cancel_goal_pub_type = Bool
-            
+
                 self.localization_goal_cancel_pub = self.ros2_node.create_publisher(
                     cancel_goal_pub_type,
                     localization_config["cancel_goal_publisher_ros2_topic"],
-                    qos_profile_system_default
+                    qos_profile_system_default,
                 )
                 print("INFO: Set up localization cancel goal publisher")
             except Exception as e:
                 print("WARNING: Failed to set up localization cancel goal publisher")
                 print(e)
 
+    def setup_tf_ingestion(self):
+        print("INFO: Setting up tf ingestion")
+        if "transform_tree" not in self.config:
+            print("INFO: TF ingestion not setup.")
+            return
+        for subscriber in self.tf_subscribers:
+            subscriber.destroy_subscriber()
+        self.tf_subscribers = []
+
+        print("INFO: Destroyed existing tf subscribers")
+        base_reference_frame = self.config["transform_tree"]["base_reference_frame"]
+        print("INFO: tf base reference frame: %s" % base_reference_frame)
+
+        self.fclient.set_base_frame_id(base_reference_frame)
+
+        for topic in ["/tf", "/tf_static"]:
+            self.ros2_node.create_subscription(
+                TFMessage,
+                topic,
+                self.tf_callback,
+                qos_profile_sensor_data,
+            )
+        print("INFO: Subscribed to tf topics")
+
     def setup_numeric_set_subscribers(self):
         print("INFO: Setting up numeric sets")
-    
+
         # Remove any existing numeric set subscribers and clear the buffer
         for subscriber_list in self.numeric_set_subscribers.values():
             for subscriber in subscriber_list:
@@ -593,25 +712,39 @@ class ROS2Adapter:
                         ros2_message_type,
                         ros2_topic,
                         lambda msg, stream=formant_stream, config=ros2_subscriber_config: self.handle_ros2_numeric_set_message(
-                            msg, 
-                            stream,
-                            config
+                            msg, stream, config
                         ),
                         qos_profile_sensor_data,
                     )
 
-                    self.numeric_set_subscribers[formant_stream].append(new_numeric_set_sub)
+                    self.numeric_set_subscribers[formant_stream].append(
+                        new_numeric_set_sub
+                    )
                 except Exception as e:
                     print("WARNING: Failed to create numeric set subscriber")
                     print(e)
+
+    def tf_callback(self, msg):
+        for tf in msg.transforms:
+            parent_frame = tf.header.frame_id
+            child_frame = tf.child_frame_id
+            tx = tf.transform.translation.x
+            ty = tf.transform.translation.y
+            tz = tf.transform.translation.z
+            rx = tf.transform.rotation.x
+            ry = tf.transform.rotation.y
+            rz = tf.transform.rotation.z
+            rw = tf.transform.rotation.w
+            self.fclient.post_transform_frame(
+                parent_frame, child_frame, tx, ty, tz, rx, ry, rz, rw
+            )
 
     def localization_odom_callback(self, msg):
         msg_type = type(msg)
         if msg_type == Odometry:
             odometry = FOdometry.from_ros(msg)
             odometry.transform_to_world = self.lookup_transform(
-                msg,
-                self.config["localization"]["base_reference_frame"]
+                msg, self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_odometry(odometry)
         else:
@@ -622,8 +755,7 @@ class ROS2Adapter:
         if msg_type is OccupancyGrid:
             map = FMap.from_ros(msg)
             map.transform_to_world = self.lookup_transform(
-                msg, 
-                self.config["localization"]["base_reference_frame"]
+                msg, self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_map(map)
         else:
@@ -643,27 +775,22 @@ class ROS2Adapter:
             return
 
         point_cloud.transform_to_world = self.lookup_transform(
-            msg,
-            self.config["localization"]["base_reference_frame"]
+            msg, self.config["localization"]["base_reference_frame"]
         )
 
         if msg.header.frame_id != None:
             point_cloud_name = msg.header.frame_id
         else:
-            point_cloud_name = "point_cloud" # TODO: should get something unique here, like the topic name
+            point_cloud_name = "point_cloud"  # TODO: should get something unique here, like the topic name
 
-        self.localization_manager.update_point_cloud(
-            point_cloud,
-            point_cloud_name
-        )
+        self.localization_manager.update_point_cloud(point_cloud, point_cloud_name)
 
     def localization_path_callback(self, msg):
         msg_type = type(msg)
         if msg_type == Path:
             path = FPath.from_ros(msg)
             path.transform_to_world = self.lookup_transform(
-                msg,
-                self.config["localization"]["base_reference_frame"]
+                msg, self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_path(path)
         else:
@@ -674,8 +801,7 @@ class ROS2Adapter:
         if msg_type == PoseStamped:
             goal = FGoal.from_ros(msg)
             goal.transform_to_world = self.lookup_transform(
-                msg,
-                self.config["localization"]["base_reference_frame"]
+                msg, self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_goal(goal)
         else:
@@ -701,13 +827,15 @@ class ROS2Adapter:
                     # Pass tags to the path subscriber config
                     if "tags" in path_config:
                         path_subscriber_config["tags"] = path_config["tags"]
-                        
+
                     # Recursively call this function with the message in the path
                     self.handle_ros2_message(path_msg, path_subscriber_config)
 
                 except:
                     # If this path does not match, ignore it and log the error
-                    print(f"ERROR: Could not find path '{path_config['path']}' in message {msg_type}")
+                    print(
+                        f"ERROR: Could not find path '{path_config['path']}' in message {msg_type}"
+                    )
                     pass
 
         # TODO: make sure there is a good message timestamp
@@ -715,7 +843,7 @@ class ROS2Adapter:
         #     msg_timestamp = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
         # except:
         msg_timestamp = int(time.time() * 1000)
-        
+
         # Handle the message based on its type
         try:
             if msg_type in [str, String, Char]:
@@ -723,10 +851,10 @@ class ROS2Adapter:
                     msg = msg.data
 
                 self.fclient.post_text(
-                    formant_stream, 
+                    formant_stream,
                     str(msg),
                     tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp
+                    timestamp=msg_timestamp,
                 )
 
             elif msg_type in [Bool, bool]:
@@ -734,26 +862,34 @@ class ROS2Adapter:
                     msg = msg.data
 
                 self.fclient.post_bitset(
-                    formant_stream, {
-                        ros2_topic: msg
-                    },
+                    formant_stream,
+                    {ros2_topic: msg},
                     tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp
+                    timestamp=msg_timestamp,
                 )
 
             elif msg_type in [
-                int, float, Float32, Float64,
-                Int8, Int16, Int32, Int64,
-                UInt8, UInt16, UInt32, UInt64
+                int,
+                float,
+                Float32,
+                Float64,
+                Int8,
+                Int16,
+                Int32,
+                Int64,
+                UInt8,
+                UInt16,
+                UInt32,
+                UInt64,
             ]:
                 if hasattr(msg, "data"):
                     msg = msg.data
 
                 self.fclient.post_numeric(
-                    formant_stream, 
+                    formant_stream,
                     msg,
                     tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp
+                    timestamp=msg_timestamp,
                 )
 
             elif msg_type == NavSatFix:
@@ -766,7 +902,7 @@ class ROS2Adapter:
                     tags=subscriber_config["tags"],
                     timestamp=msg_timestamp,
                 )
-            
+
             elif msg_type == Image:
                 # Convert Image to a Formant image
                 cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "passthrough")
@@ -789,8 +925,8 @@ class ROS2Adapter:
                     print("WARNING: Image format", msg.format, "not supported")
                     return
                 self.fclient.post_image(
-                    formant_stream, 
-                    value=bytes(msg.data), 
+                    formant_stream,
+                    value=bytes(msg.data),
                     content_type=content_type,
                     tags=subscriber_config["tags"],
                     timestamp=msg_timestamp,
@@ -840,18 +976,18 @@ class ROS2Adapter:
                     print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
                     return
 
-                else:  
+                else:
                     # Ingest any messages without a direct mapping to a Formant type as JSON
                     self.fclient.post_json(
-                        formant_stream, 
+                        formant_stream,
                         message_to_json(msg),
                         tags=subscriber_config["tags"],
-                        timestamp=msg_timestamp
+                        timestamp=msg_timestamp,
                     )
 
         except AttributeError as e:
             print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
-    
+
     def handle_ros2_numeric_set_message(self, msg, formant_stream, subscriber_config):
         # Get the ROS2 topic name
         ros2_topic = subscriber_config["ros2_topic"]
@@ -877,11 +1013,11 @@ class ROS2Adapter:
         # Get the label and unit
         label = subscriber_config["label"]
         unit = subscriber_config["unit"]
-       
+
         # If the message has a data attribute, use that
         if hasattr(msg, "data"):
             msg = msg.data
-        
+
         # If the message is already a number, use that
         if msg_type in [int, float]:
             value = msg
@@ -893,7 +1029,7 @@ class ROS2Adapter:
         # If the message is a ROS2 float, cast it to a float and use that
         elif msg_type in [Float32, Float64]:
             value = float(msg)
-        
+
         else:
             print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
             return
@@ -905,10 +1041,9 @@ class ROS2Adapter:
         self.numeric_set_buffer[formant_stream][label] = (value, unit)
 
         self.fclient.post_numericset(
-            formant_stream,
-            self.numeric_set_buffer[formant_stream]
+            formant_stream, self.numeric_set_buffer[formant_stream]
         )
-       
+
     def handle_formant_teleop_msg(self, msg):
         # Buttons always publish to the "Buttons" stream, so get actual name to use instead
         if msg.stream == "Buttons":
@@ -940,7 +1075,10 @@ class ROS2Adapter:
                         ros2_msg = String()
                         ros2_msg.data = str(msg_value)
                     else:
-                        print("WARNING: Unsupported ROS2 message type for bitset: " + ros2_msg_type)
+                        print(
+                            "WARNING: Unsupported ROS2 message type for bitset: "
+                            + ros2_msg_type
+                        )
                         continue
 
                     publisher.publish(ros2_msg)
@@ -975,15 +1113,18 @@ class ROS2Adapter:
                     elif ros2_msg_type == "Joy":
                         ros2_msg = Joy()
                         ros2_msg.axes = [
-                            msg.twist.linear.x, 
-                            msg.twist.linear.y, 
-                            msg.twist.linear.z, 
-                            msg.twist.angular.x, 
-                            msg.twist.angular.y, 
-                            msg.twist.angular.z
+                            msg.twist.linear.x,
+                            msg.twist.linear.y,
+                            msg.twist.linear.z,
+                            msg.twist.angular.x,
+                            msg.twist.angular.y,
+                            msg.twist.angular.z,
                         ]
                     else:
-                        print("WARNING: Unsupported ROS2 message type for twist: " + ros2_msg_type)
+                        print(
+                            "WARNING: Unsupported ROS2 message type for twist: "
+                            + ros2_msg_type
+                        )
                         continue
 
                     publisher.publish(ros2_msg)
@@ -1009,40 +1150,50 @@ class ROS2Adapter:
                     self.fclient.send_command_response(msg.id, success=True)
 
                 else:
-                    print("WARNING: Unsupported ROS2 message type for command: " + ros2_msg_type)
+                    print(
+                        "WARNING: Unsupported ROS2 message type for command: "
+                        + ros2_msg_type
+                    )
                     self.fclient.send_command_response(msg.id, success=False)
                     continue
-        
+
         # Call a service if a service exists for this command
         if msg.command in self.ros2_service_clients:
             print("INFO: Calling service " + msg.command)
-            
+
             # Call the specified service if it exists
             if msg.command not in self.ros2_service_clients:
                 print("WARNING: Service not configured for formant stream", msg.command)
                 return
-            
+
             for service_client in self.ros2_service_clients[msg.command]:
                 # Create the service request
                 service_request = service_client.srv_type.Request()
-                service_request_slots = list(service_request.get_fields_and_field_types().values())
+                service_request_slots = list(
+                    service_request.get_fields_and_field_types().values()
+                )
 
                 # We only handle single-param requests for now
                 if len(service_request_slots) > 1:
-                    print("WARNING: Unsupported service request type for command: " + msg.command)
+                    print(
+                        "WARNING: Unsupported service request type for command: "
+                        + msg.command
+                    )
                     self.fclient.send_command_response(msg.id, success=False)
                     continue
 
                 # If the service has no parameters, just call it
                 if service_request_slots == []:
-                    
+
                     service_client.call_async(service_request)
                     self.fclient.send_command_response(msg.id, success=True)
 
                 # If the service has a single boolean parameter, call it with "true"
                 elif service_request_slots == ["boolean"]:
                     # Get the name of the attribute to set from the service request
-                    service_request_attribute = list(service_request.get_fields_and_field_types().keys())[0]
+                    service_request_attribute = list(
+                        service_request.get_fields_and_field_types().keys()
+                    )[0]
 
                     # Check to see if a parameter was passed in the command text
                     if msg.text == "":
@@ -1052,50 +1203,77 @@ class ROS2Adapter:
                     elif msg.text in ["false", "False", "FALSE", "f", "F", "0"]:
                         service_request_value = False
                     else:
-                        print("WARNING: Invalid parameter for service " + msg.command + ": " + msg.text)
+                        print(
+                            "WARNING: Invalid parameter for service "
+                            + msg.command
+                            + ": "
+                            + msg.text
+                        )
                         self.fclient.send_command_response(msg.id, success=False)
                         continue
 
                     # Set the attribute on the request to true
-                    setattr(service_request, service_request_attribute, service_request_value)
-                    
+                    setattr(
+                        service_request,
+                        service_request_attribute,
+                        service_request_value,
+                    )
+
                     # Call the service
                     service_client.call_async(service_request)
                     self.fclient.send_command_response(msg.id, success=True)
-                
+
                 # If the service has a single string parameter, call it with the command text
                 elif service_request_slots == ["string"]:
                     # If the command text is empty, don't call the service
                     if msg.text == "":
-                        print("WARNING: Command text is empty but service requires a string parameter")
+                        print(
+                            "WARNING: Command text is empty but service requires a string parameter"
+                        )
                         self.fclient.send_command_response(msg.id, success=False)
                         continue
 
-                    service_request_attribute = list(service_request.get_fields_and_field_types().keys())[0]
+                    service_request_attribute = list(
+                        service_request.get_fields_and_field_types().keys()
+                    )[0]
                     setattr(service_request, service_request_attribute, msg.text)
                     service_client.call_async(service_request)
                     self.fclient.send_command_response(msg.id, success=True)
-                
+
                 # If the service has a single numeric parameter, call it with the command text
                 # Float32, Float64, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64
                 elif service_request_slots[0] in [
-                    "float32", "float64", "int8", "int16", "int32", 
-                    "int64", "uint8", "uint16", "uint32", "uint64"
+                    "float32",
+                    "float64",
+                    "int8",
+                    "int16",
+                    "int32",
+                    "int64",
+                    "uint8",
+                    "uint16",
+                    "uint32",
+                    "uint64",
                 ]:
                     # If the command text is empty, don't call the service
                     if msg.text == "":
-                        print("WARNING: Command text is empty but service requires a numeric parameter")
+                        print(
+                            "WARNING: Command text is empty but service requires a numeric parameter"
+                        )
                         self.fclient.send_command_response(msg.id, success=False)
                         continue
 
                     # If the command text is not numeric, don't call the service
                     if not msg.text.isnumeric():
-                        print("WARNING: Command text is not numeric but service requires a numeric parameter")
+                        print(
+                            "WARNING: Command text is not numeric but service requires a numeric parameter"
+                        )
                         self.fclient.send_command_response(msg.id, success=False)
                         continue
 
                     # Get the name of the attribute to set from the service request
-                    service_request_attribute = list(service_request.get_fields_and_field_types().keys())[0]
+                    service_request_attribute = list(
+                        service_request.get_fields_and_field_types().keys()
+                    )[0]
 
                     # Cast the command value to the type determined by the service request slot
                     slot_type = service_request_slots[0]
@@ -1120,19 +1298,31 @@ class ROS2Adapter:
                     elif slot_type == "uint64":
                         service_request_value = np.uint64(msg.text)
                     else:
-                        print("WARNING: Unsupported parameter type for service " + msg.command + ": " + slot_type)
+                        print(
+                            "WARNING: Unsupported parameter type for service "
+                            + msg.command
+                            + ": "
+                            + slot_type
+                        )
                         self.fclient.send_command_response(msg.id, success=False)
                         continue
 
                     # Set the attribute on the request to the command text
-                    setattr(service_request, service_request_attribute, service_request_value)
+                    setattr(
+                        service_request,
+                        service_request_attribute,
+                        service_request_value,
+                    )
 
                     # Call the service
                     service_client.call_async(service_request)
                     self.fclient.send_command_response(msg.id, success=True)
-                
+
                 else:
-                    print("WARNING: Unsupported ROS2 service parameters for command " + msg.command)
+                    print(
+                        "WARNING: Unsupported ROS2 service parameters for command "
+                        + msg.command
+                    )
                     self.fclient.send_command_response(msg.id, success=False)
                     continue
 
@@ -1157,7 +1347,7 @@ class ROS2Adapter:
             ros2_msg.data = np.int64(msg_value)
         elif ros2_msg_type == "UInt8":
             ros2_msg = UInt8()
-            ros2_msg.data = np.uint8(msg_value) 
+            ros2_msg.data = np.uint8(msg_value)
         elif ros2_msg_type == "UInt16":
             ros2_msg = UInt16()
             ros2_msg.data = np.uint16(msg_value)
@@ -1171,9 +1361,11 @@ class ROS2Adapter:
             ros2_msg = String()
             ros2_msg.data = str(msg_value)
         else:
-            print("WARNING: Unsupported ROS2 message type for numeric: " + ros2_msg_type)
+            print(
+                "WARNING: Unsupported ROS2 message type for numeric: " + ros2_msg_type
+            )
             return
-        
+
         publisher.publish(ros2_msg)
 
     def setup_transform_listener(self):
@@ -1189,12 +1381,11 @@ class ROS2Adapter:
             return FTransform()
         try:
             transform = self.tf_buffer.lookup_transform(
-                base_reference_frame,
-                msg.header.frame_id,
-                rclpy.time.Time()
+                base_reference_frame, msg.header.frame_id, rclpy.time.Time()
             )
             return FTransform.from_ros_transform_stamped(transform)
         except Exception as e:
+            pass
             print(
                 "ERROR: Could not look up transform between %s and %s: %s, using identity"
                 % (base_reference_frame, msg.header.frame_id, str(e))

@@ -37,7 +37,9 @@
                                             "description": "The value of the tag to use for this path.",
                                             "type": "string"
                                         },
-                                        "required": ["path"]
+                                        "required": [
+                                            "path"
+                                        ]
                                     }
                                 }
                             },
@@ -50,7 +52,9 @@
                                 "type": "string"
                             }
                         },
-                        "required": ["ros2_topic"]
+                        "required": [
+                            "ros2_topic"
+                        ]
                     }
                 },
                 "publishers": {
@@ -76,7 +80,11 @@
                                 "type": "string"
                             }
                         },
-                        "required": ["formant_stream", "ros2_topic", "ros2_message_type"]
+                        "required": [
+                            "formant_stream",
+                            "ros2_topic",
+                            "ros2_message_type"
+                        ]
                     }
                 },
                 "service_clients": {
@@ -98,7 +106,11 @@
                                 "type": "string"
                             }
                         },
-                        "required": ["formant_stream", "ros2_service", "ros2_service_type"]
+                        "required": [
+                            "formant_stream",
+                            "ros2_service",
+                            "ros2_service_type"
+                        ]
                     }
                 },
                 "localization": {
@@ -132,7 +144,9 @@
                                         "type": "string"
                                     }
                                 },
-                                "required": ["ros2_topic"]
+                                "required": [
+                                    "ros2_topic"
+                                ]
                             }
                         },
                         "path_subscriber_ros2_topic": {
@@ -152,12 +166,25 @@
                             "type": "string"
                         },
                         "required": [
-                            "formant_stream", 
-                            "base_reference_frame", 
-                            "odometry_subscriber_ros2_topic", 
+                            "formant_stream",
+                            "base_reference_frame",
+                            "odometry_subscriber_ros2_topic",
                             "map_subscriber_ros2_topic"
                         ]
                     }
+                },
+                "transform_tree": {
+                    "description": "The configuration of transform tree ingestion",
+                    "type": "object",
+                    "properties": {
+                        "base_reference_frame": {
+                            "description": "The base reference frame of the transform tree",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "base_reference_frame"
+                    ]
                 },
                 "numeric_sets": {
                     "description": "The full subscriber configuration for numeric sets.",
@@ -196,15 +223,23 @@
                                             "type": "string"
                                         }
                                     },
-                                    "required": ["ros2_topic", "label"]
+                                    "required": [
+                                        "ros2_topic",
+                                        "label"
+                                    ]
                                 }
                             },
-                            "required": ["formant_stream", "ros2_subscribers"]
+                            "required": [
+                                "formant_stream",
+                                "ros2_subscribers"
+                            ]
                         }
-                    }   
+                    }
                 }
             }
         }
     },
-    "required": ["ros2_adapter_configuration"]
-  }
+    "required": [
+        "ros2_adapter_configuration"
+    ]
+}
