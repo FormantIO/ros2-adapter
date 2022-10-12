@@ -86,6 +86,10 @@ from message_utils.utils import (
     get_message_path_value,
 )
 
+FORMANT_OVERRIDE_TIMESTAMP = (
+    os.getenv("FORMANT_OVERRIDE_TIMESTAMP", "").lower() == "true"
+)
+
 ROS2_NUMERIC_TYPES = [
     "Float32",
     "Float64",
@@ -838,11 +842,15 @@ class ROS2Adapter:
                     )
                     pass
 
-        # TODO: make sure there is a good message timestamp
-        # try:
-        #     msg_timestamp = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
-        # except:
-        msg_timestamp = int(time.time() * 1000)
+        timestamp = int(time.time() * 1000)
+        if hasattr(msg, "header"):
+            if not FORMANT_OVERRIDE_TIMESTAMP:
+                header_timestamp = (
+                    msg.header.stamp.secs * 1000 + msg.header.stamp.nsecs / 1000000
+                )
+                # sanity check to make sure ros header stamp is in epoch time
+                if header_timestamp > 1500000000000:
+                    timestamp = header_timestamp
 
         # Handle the message based on its type
         try:
