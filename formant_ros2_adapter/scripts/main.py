@@ -187,8 +187,7 @@ class ROS2Adapter:
             print("INFO: Loaded config from agent")
         except:
             # Otherwise, load from the config.json file shipped with the adapter
-            current_directory = os.path.dirname(os.path.realpath(__file__))
-            with open(f"{current_directory}/config.json") as f:
+            with open("config.json") as f:
                 config_blob = json.loads(f.read())
 
             print("INFO: Loaded config from config.json file")
@@ -251,7 +250,7 @@ class ROS2Adapter:
                 subscriber_config["tags"] = []
 
         print("INFO: Updated config with default values")
-
+        try:
         # Set each of the app config parameters as a ros2 parameter with a "formant" prefix
         self.setup_ros2_params()
         print("INFO: Finished setting up ROS2 parameters")
@@ -283,6 +282,8 @@ class ROS2Adapter:
             severity="info",
         )
         print("INFO: Posted update event and config")
+        except Exception as e:
+            print("Exception setting up: %s" % str(e))
 
     def update_ros2_information(self):
         # Update knowledge about topics and services
@@ -328,7 +329,7 @@ class ROS2Adapter:
         self.ros2_subscribers = {}
 
         # Create new subscribers based on the config
-        for subscriber_config in self.config["subscribers"]:
+        for subscriber_config in self.config.get("subscribers", []):
             new_sub = self.ros2_node.create_subscription(
                 get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
                 subscriber_config["ros2_topic"],
@@ -352,7 +353,7 @@ class ROS2Adapter:
         self.ros2_publishers = {}
 
         # Create new publishers based on the config
-        for publisher in self.config["publishers"]:
+        for publisher in self.config.get("publishers", []):
             # If there is no type, get it from the topic... but this shouldn't happen
             if "ros2_message_type" not in publisher:
                 if publisher["ros2_topic"] in self.ros2_topic_names_and_types:
