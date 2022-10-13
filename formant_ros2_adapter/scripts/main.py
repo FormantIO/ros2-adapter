@@ -251,37 +251,37 @@ class ROS2Adapter:
 
         print("INFO: Updated config with default values")
         try:
-        # Set each of the app config parameters as a ros2 parameter with a "formant" prefix
-        self.setup_ros2_params()
-        print("INFO: Finished setting up ROS2 parameters")
+            # Set each of the app config parameters as a ros2 parameter with a "formant" prefix
+            self.setup_ros2_params()
+            print("INFO: Finished setting up ROS2 parameters")
 
-        self.setup_subscribers()
-        print("INFO: Finished setting up subscribers")
+            self.setup_subscribers()
+            print("INFO: Finished setting up subscribers")
 
-        self.setup_publishers()
-        print("INFO: Finished setting up publishers")
+            self.setup_publishers()
+            print("INFO: Finished setting up publishers")
 
-        self.setup_service_clients()
-        print("INFO: Finished setting up service calls")
+            self.setup_service_clients()
+            print("INFO: Finished setting up service calls")
 
-        # TODO: once localization visualization has been shifted to universe, this will be removed
-        self.setup_localization()
-        print("INFO: Finished setting up localization")
+            # TODO: once localization visualization has been shifted to universe, this will be removed
+            self.setup_localization()
+            print("INFO: Finished setting up localization")
 
-        self.setup_tf_ingestion()
-        print("INFO: Finished setting up tf ingestion")
+            self.setup_tf_ingestion()
+            print("INFO: Finished setting up tf ingestion")
 
-        # TODO: once numeric sets can be built from the client, this will be removed
-        self.setup_numeric_set_subscribers()
-        print("INFO: Finished setting up numeric sets")
+            # TODO: once numeric sets can be built from the client, this will be removed
+            self.setup_numeric_set_subscribers()
+            print("INFO: Finished setting up numeric sets")
 
-        self.fclient.post_json("adapter.configuration", json.dumps(self.config))
-        self.fclient.create_event(
-            "ROS2 Adapter started",
-            notify=False,
-            severity="info",
-        )
-        print("INFO: Posted update event and config")
+            self.fclient.post_json("adapter.configuration", json.dumps(self.config))
+            self.fclient.create_event(
+                "ROS2 Adapter started",
+                notify=False,
+                severity="info",
+            )
+            print("INFO: Posted update event and config")
         except Exception as e:
             print("Exception setting up: %s" % str(e))
 
