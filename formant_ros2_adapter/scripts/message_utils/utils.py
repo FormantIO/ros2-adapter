@@ -31,9 +31,12 @@ def get_ros2_type_from_string(message_type_string: str):
         module = importlib.import_module(module_name)
         return getattr(module, path[-1])
     except:
-        print("WARNING: Couldn't import ROS2 message type from string: ", message_type_string)
-        print(e)
+        print(
+            "WARNING: Couldn't import ROS2 message type from string: ",
+            message_type_string,
+        )
         return None
+
 
 def parse(m):
     if type(m) in [bool, str, int, float]:
@@ -46,6 +49,7 @@ def parse(m):
         return [parse(o) for o in m]
     else:
         return {k: parse(getattr(m, k)) for k in m._fields_and_field_types}
+
 
 def message_to_json(message) -> str:
     """
@@ -90,7 +94,7 @@ def get_message_path_value(message, messagePath: str):
             if step[0] == "attribute":
                 message = getattr(message, step[1])
             elif step[0] == "indexing":
-                indices = [int(s[1:]) for s in step[1].split("]")]
+                indices = [int(s[1:]) for s in step[1].split("]")[:-1]]
                 for index in indices:
                     message = message[index]
     except (AttributeError, KeyError):
