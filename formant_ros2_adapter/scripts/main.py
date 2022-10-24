@@ -985,14 +985,14 @@ class ROS2Adapter:
                     print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
                     return
 
-                else:
-                    # Ingest any messages without a direct mapping to a Formant type as JSON
-                    self.fclient.post_json(
-                        formant_stream,
-                        message_to_json(msg),
-                        tags=subscriber_config["tags"],
-                        timestamp=msg_timestamp,
-                    )
+            else:
+                # Ingest any messages without a direct mapping to a Formant type as JSON
+                self.fclient.post_json(
+                    formant_stream,
+                    message_to_json(msg),
+                    tags=subscriber_config["tags"],
+                    timestamp=msg_timestamp,
+                )
 
         except AttributeError as e:
             print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
