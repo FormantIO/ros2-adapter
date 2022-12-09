@@ -851,7 +851,7 @@ class ROS2Adapter:
                 )
                 # sanity check to make sure ros header stamp is in epoch time
                 if header_timestamp > 1500000000000:
-                    msg_timestamp = header_timestamp
+                    msg_timestamp = int(header_timestamp)
 
         # Handle the message based on its type
         try:
