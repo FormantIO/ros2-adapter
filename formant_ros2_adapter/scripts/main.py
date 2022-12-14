@@ -114,6 +114,8 @@ class ROS2Adapter:
         # hasn't yet established communication with the Formant agent.
         print("INFO: ROS2 Adapter has started")
 
+        print("greg", self.fclient.get_agent_configuration())
+
         # Set up ROS2
         rclpy.init()
         self.cv_bridge = CvBridge()
