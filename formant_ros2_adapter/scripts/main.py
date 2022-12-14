@@ -146,6 +146,7 @@ class Adapter:
         self.joystick_publisher = None
         self.button_publishers = {}
 
+        print("hello", self.fclient.get_agent_configuration())
         # Load config from either the agent's json blob or the config.json file
         try:
             config_blob = json.loads(self.fclient.get_config_blob_data())
