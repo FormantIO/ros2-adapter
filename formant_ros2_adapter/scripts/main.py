@@ -114,7 +114,7 @@ class ROS2Adapter:
         # hasn't yet established communication with the Formant agent.
         print("INFO: ROS2 Adapter has started")
 
-        print("greg", self.fclient.get_agent_configuration())
+        
 
         # Set up ROS2
         rclpy.init()
@@ -165,6 +165,7 @@ class ROS2Adapter:
         self.fclient = FormantAgentClient(
             ignore_throttled=True, ignore_unavailable=True
         )
+        print("greg", self.fclient.get_agent_configuration())
         self.fclient.register_config_update_callback(self.update_adapter_configuration)
         self.fclient.register_teleop_callback(self.handle_formant_teleop_msg)
         self.fclient.register_command_request_callback(
