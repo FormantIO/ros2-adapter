@@ -181,18 +181,14 @@ class ROS2Adapter:
         rclpy.shutdown()
 
     def update_adapter_configuration(self):
-        # Load config from either the agent's json blob or the config.json file
+        # Load config from either the adapter config or the config.json file
         try:
             adapters = self.fclient.get_agent_configuration().document.adapters
-            print("daniel", adapters)
-            config_blob = json.loads(adapters[0].configuration)
-            # config_blob = json.loads(self.fclient.get_config_blob_data())
-            print("config blob", config_blob)
-            print("INFO: Loaded config from agent")
+            config = json.loads(adapters[0].configuration)
         except:
             # Otherwise, load from the config.json file shipped with the adapter
             with open("config.json") as f:
-                config_blob = json.loads(f.read())
+                config = json.loads(f.read())
 
             print("INFO: Loaded config from config.json file")
 
@@ -209,7 +205,7 @@ class ROS2Adapter:
 
         # Runt the validation check
         try:
-            jsonschema.validate(config_blob, self.config_schema)
+            jsonschema.validate(config, self.config_schema)
             print("INFO: Validation succeeded")
         except Exception as e:
             print("WARNING: Validation failed:", e)
@@ -221,9 +217,9 @@ class ROS2Adapter:
             return
 
         # Set the config object to the validated configuration
-        if "ros2_adapter_configuration" in config_blob:
+        if "ros2_adapter_configuration" in config:
             # Check the json blob for a "ros2_adapter_configuration" section and use it first
-            self.config = config_blob["ros2_adapter_configuration"]
+            self.config = config["ros2_adapter_configuration"]
         else:
             self.config = {}
 
