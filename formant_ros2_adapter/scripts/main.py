@@ -168,6 +168,7 @@ class ROS2Adapter:
         self.fclient.register_command_request_callback(
             self.handle_formant_command_request_msg
         )
+        print("greg", self.fclient.get_agent_configuration().document.adapters)
 
         # Start spinning
         print("INFO: Starting to spin ROS2 node")
