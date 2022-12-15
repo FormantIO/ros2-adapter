@@ -168,7 +168,6 @@ class ROS2Adapter:
         self.fclient.register_command_request_callback(
             self.handle_formant_command_request_msg
         )
-        print("greg", self.fclient.get_agent_configuration().document.adapters)
 
         # Start spinning
         print("INFO: Starting to spin ROS2 node")
@@ -184,7 +183,10 @@ class ROS2Adapter:
     def update_adapter_configuration(self):
         # Load config from either the agent's json blob or the config.json file
         try:
-            config_blob = json.loads(self.fclient.get_config_blob_data())
+            adapters = self.fclient.get_agent_configuration().document.adapters
+            config_blob = json.loads(adapters[0].configuration)
+            # config_blob = json.loads(self.fclient.get_config_blob_data())
+            print("greg", config_blob)
             print("INFO: Loaded config from agent")
         except:
             # Otherwise, load from the config.json file shipped with the adapter
