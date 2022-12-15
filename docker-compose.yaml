@@ -6,3 +6,6 @@ services:
     network_mode: host
     volumes:
       - "/var/lib/formant:/var/lib/formant"
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION}
