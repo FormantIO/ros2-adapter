@@ -184,9 +184,10 @@ class ROS2Adapter:
         # Load config from either the agent's json blob or the config.json file
         try:
             adapters = self.fclient.get_agent_configuration().document.adapters
+            print("daniel", adapters)
             config_blob = json.loads(adapters[0].configuration)
             # config_blob = json.loads(self.fclient.get_config_blob_data())
-            print("greg", config_blob)
+            print("config blob", config_blob)
             print("INFO: Loaded config from agent")
         except:
             # Otherwise, load from the config.json file shipped with the adapter
