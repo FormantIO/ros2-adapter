@@ -1344,28 +1344,28 @@ class ROS2Adapter:
             ros2_msg.data = np.float64(msg_value).item()
         elif ros2_msg_type == "Int8":
             ros2_msg = Int8()
-            ros2_msg.data = np.int8(msg_value)
+            ros2_msg.data = np.int8(msg_value).item()
         elif ros2_msg_type == "Int16":
             ros2_msg = Int16()
-            ros2_msg.data = np.int16(msg_value)
+            ros2_msg.data = np.int16(msg_value).item()
         elif ros2_msg_type == "Int32":
             ros2_msg = Int32()
-            ros2_msg.data = np.int32(msg_value)
+            ros2_msg.data = np.int32(msg_value).item()
         elif ros2_msg_type == "Int64":
             ros2_msg = Int64()
-            ros2_msg.data = np.int64(msg_value)
+            ros2_msg.data = np.int64(msg_value).item()
         elif ros2_msg_type == "UInt8":
             ros2_msg = UInt8()
-            ros2_msg.data = np.uint8(msg_value)
+            ros2_msg.data = np.uint8(msg_value).item()
         elif ros2_msg_type == "UInt16":
             ros2_msg = UInt16()
-            ros2_msg.data = np.uint16(msg_value)
+            ros2_msg.data = np.uint16(msg_value).item()
         elif ros2_msg_type == "UInt32":
             ros2_msg = UInt32()
-            ros2_msg.data = np.uint32(msg_value)
+            ros2_msg.data = np.uint32(msg_value).item()
         elif ros2_msg_type == "UInt64":
             ros2_msg = UInt64()
-            ros2_msg.data = np.uint64(msg_value)
+            ros2_msg.data = np.uint64(msg_value).item()
         elif ros2_msg_type == "String":
             ros2_msg = String()
             ros2_msg.data = str(msg_value)
