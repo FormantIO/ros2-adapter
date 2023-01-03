@@ -1338,10 +1338,10 @@ class ROS2Adapter:
     def publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
         if ros2_msg_type == "Float32":
             ros2_msg = Float32()
-            ros2_msg.data = np.float32(msg_value)
+            ros2_msg.data = np.float32(msg_value).item()
         elif ros2_msg_type == "Float64":
             ros2_msg = Float64()
-            ros2_msg.data = np.float64(msg_value)
+            ros2_msg.data = np.float64(msg_value).item()
         elif ros2_msg_type == "Int8":
             ros2_msg = Int8()
             ros2_msg.data = np.int8(msg_value)
