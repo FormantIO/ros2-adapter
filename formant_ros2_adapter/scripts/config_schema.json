@@ -1,245 +1,263 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://formant.io/formant_ros2_adapter_configuration.schema.json",
-    "title": "Formant ROS2 Adapter Configuration",
-    "description": "Configuration for all capabilities of the Formant ROS2 Adapter.",
-    "type": "object",
-    "properties": {
-        "ros2_adapter_configuration": {
-            "description": "The top level wrapper for ROS2 adapter configuration.",
-            "type": "object",
-            "items": {
-                "subscribers": {
-                    "description": "A list of the subscribers to configure.",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "ros2_topic": {
-                                "description": "The ROS2 topic to collect data from.",
-                                "type": "string"
-                            },
-                            "ros2_message_paths": {
-                                "description": "The paths within the ROS2 message to select.",
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "path": {
-                                            "description": "A path within the message to select data from.",
-                                            "type": "string"
-                                        },
-                                        "tag_key": {
-                                            "description": "The key of the tag to use for this path.",
-                                            "type": "string"
-                                        },
-                                        "tag_value": {
-                                            "description": "The value of the tag to use for this path.",
-                                            "type": "string"
-                                        },
-                                        "required": [
-                                            "path"
-                                        ]
-                                    }
-                                }
-                            },
-                            "ros2_message_type": {
-                                "description": "The ROS2 type to allow messages of.",
-                                "type": "string"
-                            },
-                            "formant_stream": {
-                                "description": "The Formant stream name to ingest data using.",
-                                "type": "string"
-                            }
-                        },
-                        "required": [
-                            "ros2_topic"
-                        ]
-                    }
-                },
-                "publishers": {
-                    "description": "A list of the publishers to configure.",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "formant_stream": {
-                                "description": "The Formant stream name to accept data from.",
-                                "type": "string"
-                            },
-                            "formant_datapoint_type": {
-                                "description": "The type of Formant datapoint messages to accept in the form of 'package/msg/Type'.",
-                                "type": "string"
-                            },
-                            "ros2_topic": {
-                                "description": "The ROS2 topic to publish to.",
-                                "type": "string"
-                            },
-                            "ros2_message_type": {
-                                "description": "The type of ROS2 message to publish.",
-                                "type": "string"
-                            }
-                        },
-                        "required": [
-                            "formant_stream",
-                            "ros2_topic",
-                            "ros2_message_type"
-                        ]
-                    }
-                },
-                "service_clients": {
-                    "description": "A list of service clients to configure.",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "formant_stream": {
-                                "description": "The Formant stream name to accept calls from.",
-                                "type": "string"
-                            },
-                            "ros2_service": {
-                                "description": "The ROS2 service to call.",
-                                "type": "string"
-                            },
-                            "ros2_service_type": {
-                                "description": "The ROS2 service type to .",
-                                "type": "string"
-                            }
-                        },
-                        "required": [
-                            "formant_stream",
-                            "ros2_service",
-                            "ros2_service_type"
-                        ]
-                    }
-                },
-                "localization": {
-                    "description": "The full subscription and publisher configuration for the robot's localization",
-                    "type": "object",
-                    "properties": {
-                        "formant_stream": {
-                            "description": "The Formant stream name to ingest data using.",
-                            "type": "string"
-                        },
-                        "base_reference_frame": {
-                            "description": "The base reference frame used for the robot's localization.",
-                            "type": "string"
-                        },
-                        "odometry_subscriber_ros2_topic": {
-                            "description": "The ROS2 topic to collect odometry data from.",
-                            "type": "string"
-                        },
-                        "map_subscriber_ros2_topic": {
-                            "description": "The ROS2 topic to collect map data from.",
-                            "type": "string"
-                        },
-                        "point_cloud_subscriber_ros2_topics": {
-                            "description": "A list of ROS2 topics to collect point clouds from.",
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "ros2_topic": {
-                                        "description": "The ROS2 topic to collect a point cloud from.",
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "ros2_topic"
-                                ]
-                            }
-                        },
-                        "path_subscriber_ros2_topic": {
-                            "description": "The ROS2 topic to collect the current path from.",
-                            "type": "string"
-                        },
-                        "goal_subscriber_ros2_topic": {
-                            "description": "The ROS2 topic to collect the current goal from.",
-                            "type": "string"
-                        },
-                        "goal_publisher_ros2_topic": {
-                            "description": "The ROS2 topic to publish goals to while teleoperating.",
-                            "type": "string"
-                        },
-                        "cancel_goal_publisher_ros2_topic": {
-                            "description": "The ROS2 topic to publish goal cancellations to while teleoperating.",
-                            "type": "string"
-                        },
-                        "required": [
-                            "formant_stream",
-                            "base_reference_frame",
-                            "odometry_subscriber_ros2_topic",
-                            "map_subscriber_ros2_topic"
-                        ]
-                    }
-                },
-                "transform_tree": {
-                    "description": "The configuration of transform tree ingestion",
-                    "type": "object",
-                    "properties": {
-                        "base_reference_frame": {
-                            "description": "The base reference frame of the transform tree",
-                            "type": "string"
-                        }
-                    },
-                    "required": [
-                        "base_reference_frame"
-                    ]
-                },
-                "numeric_sets": {
-                    "description": "The full subscriber configuration for numeric sets.",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "formant_stream": {
-                                "description": "The Formant stream to post this numeric set to.",
-                                "type": "string"
-                            },
-                            "ros2_subscribers": {
-                                "description": "The set of ROS2 subscribers to collect data using.",
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "ros2_topic": {
-                                            "description": "The ROS2 topic to collect data from.",
-                                            "type": "string"
-                                        },
-                                        "ros2_message_path": {
-                                            "description": "The paths within the ROS2 message to select.",
-                                            "type": "string"
-                                        },
-                                        "ros2_message_type": {
-                                            "description": "The ROS2 type to allow messages of.",
-                                            "type": "string"
-                                        },
-                                        "label": {
-                                            "description": "The label to use for this data point.",
-                                            "type": "string"
-                                        },
-                                        "unit": {
-                                            "description": "The unit to use for this data point.",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "ros2_topic",
-                                        "label"
-                                    ]
-                                }
-                            },
-                            "required": [
-                                "formant_stream",
-                                "ros2_subscribers"
-                            ]
-                        }
-                    }
-                }
-            }
-        }
-    },
-    "required": [
-        "ros2_adapter_configuration"
-    ]
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://formant.io/formant_ros2_adapter_configuration.schema.json",
+	"title": "Formant ROS 2 Adapter Configuration",
+	"description": "Configuration for all capabilities of the Formant ROS 2 Adapter.",
+	"type": "object",
+	"properties": {
+		"ros2_adapter_configuration": {
+		  	"title": "ROS 2 Adapter Configuration", 
+			"description": "The top level wrapper for ROS2 adapter configuration.",
+			"type": "object",
+			"properties": {
+				"subscribers": {
+					"description": "A list of the subscribers to configure.",
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"ros2_topic": {
+							  	"title": "ROS 2 Topic", 
+								"description": "The ROS2 topic to collect data from.",
+								"type": "string"
+							},
+							"ros2_message_paths": {
+							  	"title": "ROS 2 Message Paths", 
+								"description": "The paths within the ROS 2 message to select.",
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"path": {
+											"description": "A path within the message to select data from.",
+											"type": "string"
+										},
+										"tag_key": {
+											"description": "The key of the tag to use for this path.",
+											"type": "string"
+										},
+										"tag_value": {
+											"description": "The value of the tag to use for this path.",
+											"type": "string"
+										},
+										"required": [
+											"path"
+										]
+									}
+								}
+							},
+							"ros2_message_type": {
+							  	"title": "ROS 2 Message Type", 
+								"description": "The ROS2 type to allow messages of.",
+								"type": "string"
+							},
+							"formant_stream": {
+							  	"title": "Formant Stream", 
+								"description": "The Formant stream name to ingest data using.",
+								"type": "string"
+							}
+						},
+						"required": [
+							"ros2_topic"
+						]
+					}
+				},
+				"publishers": {
+					"description": "A list of the publishers to configure.",
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"formant_stream": {
+								"description": "The Formant stream name to accept data from.",
+								"type": "string"
+							},
+							"formant_datapoint_type": {
+								"description": "The type of Formant datapoint messages to accept in the form of 'package/msg/Type'.",
+								"type": "string"
+							},
+							"ros2_topic": {
+							  	"title": "ROS 2 Topic", 
+								"description": "The ROS2 topic to publish to.",
+								"type": "string"
+							},
+							"ros2_message_type": {
+							  	"title": "ROS 2 Message Type", 
+								"description": "The type of ROS2 message to publish.",
+								"type": "string"
+							}
+						},
+						"required": [
+							"formant_stream",
+							"ros2_topic",
+							"ros2_message_type"
+						]
+					}
+				},
+				"service_clients": {
+					"description": "A list of service clients to configure.",
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"formant_stream": {
+								"description": "The Formant stream name to accept calls from.",
+								"type": "string"
+							},
+							"ros2_service": {
+							  	"title": "ROS 2 Service", 
+								"description": "The ROS2 service to call.",
+								"type": "string"
+							},
+							"ros2_service_type": {
+							  	"title": "ROS 2 Service Type", 
+								"description": "The ROS2 service type to .",
+								"type": "string"
+							}
+						},
+						"required": [
+							"formant_stream",
+							"ros2_service",
+							"ros2_service_type"
+						]
+					}
+				},
+				"localization": {
+					"description": "The full subscription and publisher configuration for the robot's localization",
+					"type": "object",
+					"properties": {
+						"formant_stream": {
+							"description": "The Formant stream name to ingest data using.",
+							"type": "string"
+						},
+						"base_reference_frame": {
+							"description": "The base reference frame used for the robot's localization.",
+							"type": "string"
+						},
+						"odometry_subscriber_ros2_topic": {
+						  	"title": "Odometry Subscriber ROS 2 Topic", 
+							"description": "The ROS 2 topic to collect odometry data from.",
+							"type": "string"
+						},
+						"map_subscriber_ros2_topic": {
+						  	"title": "Map Subscriber ROS 2 Topic", 
+							"description": "The ROS2 topic to collect map data from.",
+							"type": "string"
+						},
+						"point_cloud_subscriber_ros2_topics": {
+						  	"title": "Point Cloud Subscriber ROS 2 Topics", 
+							"description": "A list of ROS2 topics to collect point clouds from.",
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"ros2_topic": {
+									  	"title": "ROS 2 Topic ", 
+										"description": "The ROS2 topic to collect a point cloud from.",
+										"type": "string"
+									}
+								},
+								"required": [
+									"ros2_topic"
+								]
+							}
+						},
+						"path_subscriber_ros2_topic": {
+						  "title": "Path Subscriber ROS 2 Topic", 
+							"description": "The ROS2 topic to collect the current path from.",
+							"type": "string"
+						},
+						"goal_subscriber_ros2_topic": {
+							"description": "The ROS2 topic to collect the current goal from.",
+							"type": "string"
+						},
+						"goal_publisher_ros2_topic": {
+							"description": "The ROS2 topic to publish goals to while teleoperating.",
+							"type": "string"
+						},
+						"cancel_goal_publisher_ros2_topic": {
+							"description": "The ROS2 topic to publish goal cancellations to while teleoperating.",
+							"type": "string"
+						},
+						"required": [
+							"formant_stream",
+							"base_reference_frame",
+							"odometry_subscriber_ros2_topic",
+							"map_subscriber_ros2_topic"
+						]
+					}
+				},
+				"transform_tree": {
+					"description": "The configuration of transform tree ingestion",
+					"type": "object",
+					"properties": {
+						"base_reference_frame": {
+							"description": "The base reference frame of the transform tree",
+							"type": "string"
+						}
+					},
+					"required": [
+						"base_reference_frame"
+					]
+				},
+				"numeric_sets": {
+					"description": "The full subscriber configuration for numeric sets.",
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"formant_stream": {
+								"description": "The Formant stream to post this numeric set to.",
+								"type": "string"
+							},
+							"ros2_subscribers": {
+								"description": "The set of ROS2 subscribers to collect data using.",
+								  "title": "ROS 2 Subscribers", 
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"ros2_topic": {
+										  	"title": "ROS 2 Topic", 
+											"description": "The ROS2 topic to collect data from.",
+											"type": "string"
+										},
+										"ros2_message_path": {
+										  	"title": "ROS 2 Message Path", 
+											"description": "The paths within the ROS2 message to select.",
+											"type": "string"
+										},
+										"ros2_message_type": {
+										  	"title": "ROS 2 Message Type", 
+											"description": "The ROS2 type to allow messages of.",
+											"type": "string"
+										},
+										"label": {
+											"description": "The label to use for this data point.",
+											"type": "string"
+										},
+										"unit": {
+											"description": "The unit to use for this data point.",
+											"type": "string"
+										}
+									},
+									"required": [
+										"ros2_topic",
+										"label"
+									]
+								}
+							},
+							"required": [
+								"formant_stream",
+								"ros2_subscribers"
+							]
+						}
+					}
+				}
+			}
+		}
+	},
+	"required": [
+		"ros2_adapter_configuration"
+	]
 }
