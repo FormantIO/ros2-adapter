@@ -181,9 +181,12 @@ class ROS2Adapter:
         rclpy.shutdown()
 
     def update_adapter_configuration(self):
+        print("Getting Adapter Configuration")
         # Load config from either the adapter config or the config.json file
         try:
             adapters = self.fclient.get_agent_configuration().document.adapters
+            for adapter in adapters:
+                print(str(adapter))
             config = json.loads(adapters[0].configuration)
         except:
             # Otherwise, load from the config.json file shipped with the adapter

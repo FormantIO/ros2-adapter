@@ -1,4 +1,3 @@
-while :
-do
-	sleep 1
-done
+#!/bin/bash
+
+sleep infinity
