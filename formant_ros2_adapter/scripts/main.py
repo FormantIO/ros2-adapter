@@ -188,6 +188,7 @@ class ROS2Adapter:
             for adapter in adapters:
                 print(str(adapter))
             config = json.loads(adapters[0].configuration)
+            print("Using config: %s" % str(config))
         except:
             # Otherwise, load from the config.json file shipped with the adapter
             with open("config.json") as f:
@@ -195,15 +196,20 @@ class ROS2Adapter:
 
             print("INFO: Loaded config from config.json file")
 
+        print("Validating configuration")
         # Validate configuration based on schema
-        with open("config_schema.json") as f:
-            try:
-                self.config_schema = json.load(f)
-                print("INFO: Loaded config schema from config_schema.json file")
-            except:
-                print("ERROR: Could not load config schema. Is the file valid json?")
-                return
-
+        try:
+            with open("config_schema.json") as f:
+                try:
+                    self.config_schema = json.load(f)
+                    print("INFO: Loaded config schema from config_schema.json file")
+                except:
+                    print("ERROR: Could not load config schema. Is the file valid json?")
+                    return
+                finally:
+                    print("Errored out due to issue in config")
+        except Exception as e:
+            print("Error validating config: %s" % str(e))
         print("INFO: Validating config...")
 
         # Runt the validation check
