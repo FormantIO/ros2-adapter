@@ -762,10 +762,10 @@ class ROS2Adapter:
             ros_pose = msg.pose.pose
 
             # Formant types
-            odometry = FOdometry()
-            transform = FTransform()
-            transform.from_ros_pose(ros_pose)
-            odometry.pose = transform
+            odometry = FOdometry(pose=FTransform.from_ros_pose(ros_pose))
+            odometry.transform_to_world = self.lookup_transform(
+                msg, self.config["localization"]["base_reference_frame"]
+            )
 
             self.localization_manager.update_odometry(odometry)
         else:
@@ -789,35 +789,15 @@ class ROS2Adapter:
             ros_origin = msg.metadata.origin
             ros_origin_position = ros_origin.position
             ros_origin_orientation = ros_origin.orientation
-            # Need to convert to bytes
-            ros_raw_data = bytes(msg.data)
 
             # Formant types
             formant_map = FMap(
                 resolution=ros_resolution,
                 width=ros_width,
                 height=ros_height,
-                raw_data=ros_raw_data
+                origin=FTransform.from_ros_pose(ros_origin),
+                occupancy_grid_data=msg.data
             )
-
-            formant_vector3 = FVector3(
-                    x=ros_origin_position.x,
-                    y=ros_origin_position.y,
-                    z=ros_origin_position.z
-            )
-
-            formant_quaternion = FQuaternion(
-                    x = ros_origin_orientation.x,
-                    y = ros_origin_orientation.y,
-                    z = ros_origin_orientation.z,
-                    w = ros_origin_orientation.w
-            )
-
-            formant_origin = FTransform()
-            formant_origin.translation = formant_vector3
-            formant_origin.rotation = formant_quaternion
-
-            formant_map.origin = formant_origin
 
             self.localization_manager.update_map(formant_map)
         else:
