@@ -1013,6 +1013,7 @@ class ROS2Adapter:
         # Get the original message type
         msg_type = type(msg)
 
+        path = ""
         # If there is a path, get the value from the path
         if "ros2_message_path" in subscriber_config:
             path = subscriber_config["ros2_message_path"]
@@ -1029,8 +1030,8 @@ class ROS2Adapter:
                 return
 
         # Get the label and unit
-        label = subscriber_config["label"]
-        unit = subscriber_config["unit"]
+        label = subscriber_config.get("label",path)
+        unit = subscriber_config.get("unit","")
 
         # If the message has a data attribute, use that
         if hasattr(msg, "data"):
