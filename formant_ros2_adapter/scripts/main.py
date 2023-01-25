@@ -498,7 +498,6 @@ class ROS2Adapter:
             "formant_stream" not in localization_config
             or "base_reference_frame" not in localization_config
             or "odometry_subscriber_ros2_topic" not in localization_config
-            or "map_subscriber_ros2_topic" not in localization_config
         ):
             print("WARNING: Localization config is missing required fields")
             return
@@ -668,7 +667,10 @@ class ROS2Adapter:
             print("INFO: TF ingestion not setup.")
             return
         for subscriber in self.tf_subscribers:
-            subscriber.destroy_subscriber()
+            try:
+                subscriber.destroy_subscriber()
+            except:
+                pass
         self.tf_subscribers = []
 
         print("INFO: Destroyed existing tf subscribers")
@@ -692,8 +694,10 @@ class ROS2Adapter:
         # Remove any existing numeric set subscribers and clear the buffer
         for subscriber_list in self.numeric_set_subscribers.values():
             for subscriber in subscriber_list:
-                subscriber.destroy_subscriber()
-
+                try:
+                    subscriber.destroy_subscriber()
+                except:
+                    pass
         self.numeric_set_subscribers = {}
         self.numeric_set_buffer = {}
 
