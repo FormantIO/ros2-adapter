@@ -22,6 +22,7 @@ from formant.sdk.agent.v1.localization.types import (
     Goal as FGoal,
     Odometry as FOdometry,
 )
+from formant.sdk.agent.adapter_utils.json_schema_validator import JsonSchemaValidator
 
 import rclpy
 from rclpy.parameter import Parameter
@@ -163,7 +164,14 @@ class ROS2Adapter:
         self.fclient = FormantAgentClient(
             ignore_throttled=True, ignore_unavailable=True
         )
-        self.fclient.register_config_update_callback(self.update_adapter_configuration)
+
+        self.configuration_validator = JsonSchemaValidator(
+            self.fclient,
+            "ros2_adapter_configuration",
+            self.update_adapter_configuration,
+            validate=False,
+        )
+
         self.fclient.register_teleop_callback(self.handle_formant_teleop_msg)
         self.fclient.register_command_request_callback(
             self.handle_formant_command_request_msg
@@ -180,51 +188,9 @@ class ROS2Adapter:
 
         rclpy.shutdown()
 
-    def update_adapter_configuration(self):
-        print("Getting Adapter Configuration")
-        # Load config from either the adapter config or the config.json file
-        try:
-            adapters = self.fclient.get_agent_configuration().document.adapters
-            for adapter in adapters:
-                print(str(adapter))
-            config = json.loads(adapters[0].configuration)
-            print("Using config: %s" % str(config))
-        except:
-            # Otherwise, load from the config.json file shipped with the adapter
-            with open("config.json") as f:
-                config = json.loads(f.read())
-
-            print("INFO: Loaded config from config.json file")
-
-        print("Validating configuration")
-        # Validate configuration based on schema
-        try:
-            with open("config_schema.json") as f:
-                try:
-                    self.config_schema = json.load(f)
-                    print("INFO: Loaded config schema from config_schema.json file")
-                except:
-                    print("ERROR: Could not load config schema. Is the file valid json?")
-                    return
-                finally:
-                    print("Errored out due to issue in config")
-        except Exception as e:
-            print("Error validating config: %s" % str(e))
-        print("INFO: Validating config...")
-
-        # Runt the validation check
-        try:
-            jsonschema.validate(config, self.config_schema)
-            print("INFO: Validation succeeded")
-        except Exception as e:
-            print("WARNING: Validation failed:", e)
-            self.fclient.create_event(
-                "ROS2 Adapter configuration failed validation",
-                notify=False,
-                severity="warning",
-            )
-            return
-
+    def update_adapter_configuration(self, config:Dict):
+        print("Received Adapter Configuration")
+        
         # Set the config object to the validated configuration
         if "ros2_adapter_configuration" in config:
             # Check the json blob for a "ros2_adapter_configuration" section and use it first
@@ -1034,8 +1000,8 @@ class ROS2Adapter:
                 return
 
         # Get the label and unit
-        label = subscriber_config.get("label",path)
-        unit = subscriber_config.get("unit","")
+        label = subscriber_config.get("label", path)
+        unit = subscriber_config.get("unit", "")
 
         # If the message has a data attribute, use that
         if hasattr(msg, "data"):
