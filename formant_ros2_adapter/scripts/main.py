@@ -22,6 +22,7 @@ from formant.sdk.agent.v1.localization.types import (
     Goal as FGoal,
     Odometry as FOdometry,
 )
+from formant.sdk.agent.adapter_utils.json_schema_validator import JsonSchemaValidator
 
 import rclpy
 from rclpy.parameter import Parameter
@@ -163,7 +164,14 @@ class ROS2Adapter:
         self.fclient = FormantAgentClient(
             ignore_throttled=True, ignore_unavailable=True
         )
-        self.fclient.register_config_update_callback(self.update_adapter_configuration)
+
+        self.configuration_validator = JsonSchemaValidator(
+            self.fclient,
+            "ros2_adapter_configuration",
+            self.update_adapter_configuration,
+            validate=False,
+        )
+
         self.fclient.register_teleop_callback(self.handle_formant_teleop_msg)
         self.fclient.register_command_request_callback(
             self.handle_formant_command_request_msg
@@ -180,66 +188,30 @@ class ROS2Adapter:
 
         rclpy.shutdown()
 
-    def update_adapter_configuration(self):
-        print("Getting Adapter Configuration")
-        # Load config from either the adapter config or the config.json file
-        try:
-            adapters = self.fclient.get_agent_configuration().document.adapters
-            for adapter in adapters:
-                print(str(adapter))
-            config = json.loads(adapters[0].configuration)
-            print("Using config: %s" % str(config))
-        except:
-            # Otherwise, load from the config.json file shipped with the adapter
-            with open("config.json") as f:
-                config = json.loads(f.read())
-
-            print("INFO: Loaded config from config.json file")
-
-        print("Validating configuration")
-        # Validate configuration based on schema
-        try:
-            with open("config_schema.json") as f:
-                try:
-                    self.config_schema = json.load(f)
-                    print("INFO: Loaded config schema from config_schema.json file")
-                except:
-                    print("ERROR: Could not load config schema. Is the file valid json?")
-                    return
-                finally:
-                    print("Errored out due to issue in config")
-        except Exception as e:
-            print("Error validating config: %s" % str(e))
-        print("INFO: Validating config...")
-
-        # Runt the validation check
-        try:
-            jsonschema.validate(config, self.config_schema)
-            print("INFO: Validation succeeded")
-        except Exception as e:
-            print("WARNING: Validation failed:", e)
-            self.fclient.create_event(
-                "ROS2 Adapter configuration failed validation",
-                notify=False,
-                severity="warning",
-            )
-            return
-
+    def update_adapter_configuration(self, config:Dict):
+        print("Received Adapter Configuration")
+        
         # Set the config object to the validated configuration
         if "ros2_adapter_configuration" in config:
             # Check the json blob for a "ros2_adapter_configuration" section and use it first
             self.config = config["ros2_adapter_configuration"]
         else:
             self.config = {}
+            print("Adapter Config invalid")
+            return
 
         # Get information about the existing ROS2 system
         self.update_ros2_information()
         print("INFO: Updated ROS2 information")
 
         # Fill out the config with default values
-        for subscriber_config in self.config["subscribers"]:
+        for subscriber_config in self.config.get("subscribers",[]):
+            if "ros2_topic" not in subscriber_config:
+                print("Skipping, 'ros2_topic' not found in: %s" % str(subscriber_config))
+                continue
+            topic = subscriber_config["ros2_topic"]
             if "formant_stream" not in subscriber_config:
-                formant_stream = subscriber_config["ros2_topic"][1:].replace("/", ".")
+                formant_stream = topic[1:].replace("/", ".")
                 subscriber_config["formant_stream"] = formant_stream
 
             if "ros2_message_type" not in subscriber_config:
@@ -247,11 +219,11 @@ class ROS2Adapter:
                 try:
                     subscriber_config[
                         "ros2_message_type"
-                    ] = self.ros2_topic_names_and_types[subscriber_config["ros2_topic"]]
+                    ] = self.ros2_topic_names_and_types[topic]
                 except:
                     print(
                         "WARNING: Setting type bool for unknown topic",
-                        subscriber_config["ros2_topic"],
+                        topic,
                     )
                     subscriber_config["ros2_message_type"] = "std_msgs/msg/Bool"
 
@@ -393,65 +365,64 @@ class ROS2Adapter:
         print("INFO: Cleaned up existing service clients")
 
         # Set up service calls
-        if "service_clients" in self.config:
-            for service_client in self.config["service_clients"]:
-                try:
-                    service_type_string = self.ros2_service_names_and_types[
-                        service_client["ros2_service"]
-                    ]
-                    service_type = get_ros2_type_from_string(service_type_string)
-                    print("INFO: Found service of type", service_type_string)
-                except Exception as e:
+        for service_client in self.config.get("service_clients",[]):
+            try:
+                service_type_string = self.ros2_service_names_and_types[
+                    service_client["ros2_service"]
+                ]
+                service_type = get_ros2_type_from_string(service_type_string)
+                print("INFO: Found service of type", service_type_string)
+            except Exception as e:
+                print(
+                    "WARNING: Could not determine service type for service "
+                    + service_client["ros2_service"]
+                )
+                print(e)
+                continue
+
+            # If a type has been specified, make sure it matches
+            if "ros2_service_type" in service_client:
+                if service_client["ros2_service_type"] != service_type_string:
                     print(
-                        "WARNING: Could not determine service type for service "
+                        "WARNING: Service "
                         + service_client["ros2_service"]
+                        + " does not match specified type"
                     )
-                    print(e)
                     continue
-
-                # If a type has been specified, make sure it matches
-                if "ros2_service_type" in service_client:
-                    if service_client["ros2_service_type"] != service_type_string:
-                        print(
-                            "WARNING: Service "
-                            + service_client["ros2_service"]
-                            + " does not match specified type"
-                        )
-                        continue
-                    else:
-                        print(
-                            "INFO: Service "
-                            + service_client["ros2_service"]
-                            + " matches specified type"
-                        )
-
-                try:
-                    new_service_client = self.ros2_node.create_client(
-                        srv_type=service_type,
-                        srv_name=service_client["ros2_service"],
-                        callback_group=None,
-                    )
-
-                    if (
-                        service_client["formant_stream"]
-                        not in self.ros2_service_clients
-                    ):
-                        self.ros2_service_clients[service_client["formant_stream"]] = []
-
-                    self.ros2_service_clients[service_client["formant_stream"]].append(
-                        new_service_client
-                    )
-
+                else:
                     print(
-                        "INFO: Set up service client for "
+                        "INFO: Service "
                         + service_client["ros2_service"]
+                        + " matches specified type"
                     )
-                except Exception as e:
-                    print(
-                        "WARNING: Failed to set up service client for "
-                        + service_client["ros2_service"]
-                    )
-                    print(e)
+
+            try:
+                new_service_client = self.ros2_node.create_client(
+                    srv_type=service_type,
+                    srv_name=service_client["ros2_service"],
+                    callback_group=None,
+                )
+
+                if (
+                    service_client["formant_stream"]
+                    not in self.ros2_service_clients
+                ):
+                    self.ros2_service_clients[service_client["formant_stream"]] = []
+
+                self.ros2_service_clients[service_client["formant_stream"]].append(
+                    new_service_client
+                )
+
+                print(
+                    "INFO: Set up service client for "
+                    + service_client["ros2_service"]
+                )
+            except Exception as e:
+                print(
+                    "WARNING: Failed to set up service client for "
+                    + service_client["ros2_service"]
+                )
+                print(e)
 
     def setup_localization(self):
         print("INFO: Setting up localization")
@@ -1034,8 +1005,8 @@ class ROS2Adapter:
                 return
 
         # Get the label and unit
-        label = subscriber_config.get("label",path)
-        unit = subscriber_config.get("unit","")
+        label = subscriber_config.get("label", path)
+        unit = subscriber_config.get("unit", "")
 
         # If the message has a data attribute, use that
         if hasattr(msg, "data"):
