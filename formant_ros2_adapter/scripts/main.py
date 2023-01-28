@@ -208,6 +208,7 @@ class ROS2Adapter:
         for subscriber_config in self.config.get("subscribers",[]):
             if "ros2_topic" not in subscriber_config:
                 print("Skipping, 'ros2_topic' not found in: %s" % str(subscriber_config))
+                continue
             topic = subscriber_config["ros2_topic"]
             if "formant_stream" not in subscriber_config:
                 formant_stream = topic[1:].replace("/", ".")
