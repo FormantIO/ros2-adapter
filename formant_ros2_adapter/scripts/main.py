@@ -747,6 +747,7 @@ class ROS2Adapter:
                 parent_frame, child_frame, tx, ty, tz, rx, ry, rz, rw
             )
 
+    # To do: use Agent SDK localization_manager for PoseWithCovarianceStamp
     def localization_odom_callback(self, msg):
         msg_type = type(msg)
         if msg_type == Odometry:
@@ -771,6 +772,7 @@ class ROS2Adapter:
         else:
             print("WARNING: Unknown odom type", msg_type)
 
+    # To do: use Agent SDK localization_manager for Costmap
     def localization_map_callback(self, msg):
         msg_type = type(msg)
         if msg_type is OccupancyGrid:
