@@ -197,15 +197,20 @@ class ROS2Adapter:
             self.config = config["ros2_adapter_configuration"]
         else:
             self.config = {}
+            print("Adapter Config invalid")
+            return
 
         # Get information about the existing ROS2 system
         self.update_ros2_information()
         print("INFO: Updated ROS2 information")
 
         # Fill out the config with default values
-        for subscriber_config in self.config["subscribers"]:
+        for subscriber_config in self.config.get("subscribers",[]):
+            if "ros2_topic" not in subscriber_config:
+                print("Skipping, 'ros2_topic' not found in: %s" % str(subscriber_config))
+            topic = subscriber_config["ros2_topic"]
             if "formant_stream" not in subscriber_config:
-                formant_stream = subscriber_config["ros2_topic"][1:].replace("/", ".")
+                formant_stream = topic[1:].replace("/", ".")
                 subscriber_config["formant_stream"] = formant_stream
 
             if "ros2_message_type" not in subscriber_config:
@@ -213,11 +218,11 @@ class ROS2Adapter:
                 try:
                     subscriber_config[
                         "ros2_message_type"
-                    ] = self.ros2_topic_names_and_types[subscriber_config["ros2_topic"]]
+                    ] = self.ros2_topic_names_and_types[topic]
                 except:
                     print(
                         "WARNING: Setting type bool for unknown topic",
-                        subscriber_config["ros2_topic"],
+                        topic,
                     )
                     subscriber_config["ros2_message_type"] = "std_msgs/msg/Bool"
 
@@ -359,65 +364,64 @@ class ROS2Adapter:
         print("INFO: Cleaned up existing service clients")
 
         # Set up service calls
-        if "service_clients" in self.config:
-            for service_client in self.config["service_clients"]:
-                try:
-                    service_type_string = self.ros2_service_names_and_types[
-                        service_client["ros2_service"]
-                    ]
-                    service_type = get_ros2_type_from_string(service_type_string)
-                    print("INFO: Found service of type", service_type_string)
-                except Exception as e:
+        for service_client in self.config.get("service_clients",[]):
+            try:
+                service_type_string = self.ros2_service_names_and_types[
+                    service_client["ros2_service"]
+                ]
+                service_type = get_ros2_type_from_string(service_type_string)
+                print("INFO: Found service of type", service_type_string)
+            except Exception as e:
+                print(
+                    "WARNING: Could not determine service type for service "
+                    + service_client["ros2_service"]
+                )
+                print(e)
+                continue
+
+            # If a type has been specified, make sure it matches
+            if "ros2_service_type" in service_client:
+                if service_client["ros2_service_type"] != service_type_string:
                     print(
-                        "WARNING: Could not determine service type for service "
+                        "WARNING: Service "
                         + service_client["ros2_service"]
+                        + " does not match specified type"
                     )
-                    print(e)
                     continue
-
-                # If a type has been specified, make sure it matches
-                if "ros2_service_type" in service_client:
-                    if service_client["ros2_service_type"] != service_type_string:
-                        print(
-                            "WARNING: Service "
-                            + service_client["ros2_service"]
-                            + " does not match specified type"
-                        )
-                        continue
-                    else:
-                        print(
-                            "INFO: Service "
-                            + service_client["ros2_service"]
-                            + " matches specified type"
-                        )
-
-                try:
-                    new_service_client = self.ros2_node.create_client(
-                        srv_type=service_type,
-                        srv_name=service_client["ros2_service"],
-                        callback_group=None,
-                    )
-
-                    if (
-                        service_client["formant_stream"]
-                        not in self.ros2_service_clients
-                    ):
-                        self.ros2_service_clients[service_client["formant_stream"]] = []
-
-                    self.ros2_service_clients[service_client["formant_stream"]].append(
-                        new_service_client
-                    )
-
+                else:
                     print(
-                        "INFO: Set up service client for "
+                        "INFO: Service "
                         + service_client["ros2_service"]
+                        + " matches specified type"
                     )
-                except Exception as e:
-                    print(
-                        "WARNING: Failed to set up service client for "
-                        + service_client["ros2_service"]
-                    )
-                    print(e)
+
+            try:
+                new_service_client = self.ros2_node.create_client(
+                    srv_type=service_type,
+                    srv_name=service_client["ros2_service"],
+                    callback_group=None,
+                )
+
+                if (
+                    service_client["formant_stream"]
+                    not in self.ros2_service_clients
+                ):
+                    self.ros2_service_clients[service_client["formant_stream"]] = []
+
+                self.ros2_service_clients[service_client["formant_stream"]].append(
+                    new_service_client
+                )
+
+                print(
+                    "INFO: Set up service client for "
+                    + service_client["ros2_service"]
+                )
+            except Exception as e:
+                print(
+                    "WARNING: Failed to set up service client for "
+                    + service_client["ros2_service"]
+                )
+                print(e)
 
     def setup_localization(self):
         print("INFO: Setting up localization")
