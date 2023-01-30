@@ -21,6 +21,8 @@ from formant.sdk.agent.v1.localization.types import (
     Transform as FTransform,
     Goal as FGoal,
     Odometry as FOdometry,
+    Vector3 as FVector3,
+    Quaternion as FQuaternion
 )
 from formant.sdk.agent.adapter_utils.json_schema_validator import JsonSchemaValidator
 
@@ -77,6 +79,7 @@ from geometry_msgs.msg import (
 )
 
 from nav_msgs.msg import Odometry, OccupancyGrid, Path
+from nav2_msgs.msg import Costmap
 
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
@@ -728,6 +731,7 @@ class ROS2Adapter:
                 parent_frame, child_frame, tx, ty, tz, rx, ry, rz, rw
             )
 
+    # To do: use Agent SDK localization_manager for PoseWithCovarianceStamp
     def localization_odom_callback(self, msg):
         msg_type = type(msg)
         if msg_type == Odometry:
@@ -736,17 +740,52 @@ class ROS2Adapter:
                 msg, self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_odometry(odometry)
+        elif msg_type == PoseWithCovarianceStamped:
+            print("PoseWithCovarianceStamped message type")
+
+            # ROS types
+            ros_pose = msg.pose.pose
+
+            # Formant types
+            odometry = FOdometry(pose=FTransform.from_ros_pose(ros_pose))
+            odometry.transform_to_world = self.lookup_transform(
+                msg, self.config["localization"]["base_reference_frame"]
+            )
+
+            self.localization_manager.update_odometry(odometry)
         else:
             print("WARNING: Unknown odom type", msg_type)
 
+    # To do: use Agent SDK localization_manager for Costmap
     def localization_map_callback(self, msg):
         msg_type = type(msg)
         if msg_type is OccupancyGrid:
-            map = FMap.from_ros(msg)
-            map.transform_to_world = self.lookup_transform(
+            formant_map = FMap.from_ros(msg)
+            formant_map.transform_to_world = self.lookup_transform(
                 msg, self.config["localization"]["base_reference_frame"]
             )
-            self.localization_manager.update_map(map)
+            self.localization_manager.update_map(formant_map)
+        elif msg_type is Costmap:
+            print("Costmap message type")
+
+            # ROS types
+            ros_resolution = msg.metadata.resolution
+            ros_width = msg.metadata.size_x
+            ros_height = msg.metadata.size_y
+            ros_origin = msg.metadata.origin
+            ros_origin_position = ros_origin.position
+            ros_origin_orientation = ros_origin.orientation
+
+            # Formant types
+            formant_map = FMap(
+                resolution=ros_resolution,
+                width=ros_width,
+                height=ros_height,
+                origin=FTransform.from_ros_pose(ros_origin),
+                occupancy_grid_data=msg.data
+            )
+
+            self.localization_manager.update_map(formant_map)
         else:
             print("WARNING: Unknown map type", msg_type)
 
