@@ -28,11 +28,15 @@ from formant.sdk.agent.adapter_utils.json_schema_validator import JsonSchemaVali
 
 import rclpy
 from rclpy.parameter import Parameter
+# To do (maybe): import QoSPresetProfiles instead?
 from rclpy.qos import (
-    QoSProfile,
-    qos_profile_sensor_data,
-    qos_profile_system_default,
     qos_profile_unknown,
+    qos_profile_system_default,
+    qos_profile_sensor_data,
+    qos_profile_services_default,
+    qos_profile_parameters,
+    qos_profile_parameter_events,
+    qos_profile_action_status_default,
 )
 
 from cv_bridge import CvBridge
@@ -108,8 +112,15 @@ ROS2_NUMERIC_TYPES = [
     "UInt64",
 ]
 
-# Temp hardcode: 0 for reliable, 1 for best effort, 2 for custom profile
-QOS_PROFILE = 0
+QOS_PROFILES = {
+    "UNKNOWN": qos_profile_unknown,
+    "SYSTEM_DEFAULT": qos_profile_system_default,
+    "SENSOR_DATA": qos_profile_sensor_data,
+    "SERVICES_DEFAULT": qos_profile_services_default,
+    "PARAMETERS": qos_profile_parameters,
+    "PARAMETER_EVENTS":qos_profile_parameter_events,
+    "ACTION_STATUS_DEFAULT": qos_profile_action_status_default,
+}
 
 class ROS2Adapter:
     """
@@ -137,17 +148,6 @@ class ROS2Adapter:
         self.ros2_subscribers = {}
         self.ros2_publishers = {}
         self.ros2_service_clients = {}
-
-        # Quality of Service options
-        if QOS_PROFILE == 1:
-            self.qos_profile = qos_profile_sensor_data
-        # To do? Totally custom profile
-        # elif QOS_PROFILE == 2:
-        #     self.qos_option = QoSProfile(
-
-        #         )
-        else
-            self.qos_profile = qos_profile_system_default
 
         # Set up the localization objects
         ###########################################################################################
@@ -334,7 +334,7 @@ class ROS2Adapter:
                 lambda msg, subscriber_config=subscriber_config: self.handle_ros2_message(
                     msg, subscriber_config
                 ),
-                self.qos_profile,
+                QOS_PROFILES.get(subscriber_config["ros2_qos_profile"], qos_profile_system_default),
             )
 
             if subscriber_config["ros2_topic"] not in self.ros2_subscribers:
@@ -365,7 +365,7 @@ class ROS2Adapter:
             new_pub = self.ros2_node.create_publisher(
                 get_ros2_type_from_string(publisher["ros2_message_type"]),
                 publisher["ros2_topic"],
-                self.qos_profile,
+                QOS_PROFILES.get(publisher["ros2_qos_profile"], qos_profile_system_default),
             )
 
             if publisher["formant_stream"] not in self.ros2_publishers:
