@@ -672,7 +672,7 @@ class ROS2Adapter:
                 TFMessage,
                 topic,
                 self.tf_callback,
-                self.qos_profile,
+                qos_profile_sensor_data,
             )
         print("INFO: Subscribed to tf topics")
 
@@ -720,7 +720,7 @@ class ROS2Adapter:
                         lambda msg, stream=formant_stream, config=ros2_subscriber_config: self.handle_ros2_numeric_set_message(
                             msg, stream, config
                         ),
-                        self.qos_profile,
+                        qos_profile_sensor_data,
                     )
 
                     self.numeric_set_subscribers[formant_stream].append(
