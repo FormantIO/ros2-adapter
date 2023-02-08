@@ -51,6 +51,10 @@
 								"description": "The ROS2 type to allow messages of.",
 								"type": "string"
 							},
+							"ros2_qos_profile": {
+								"description": "The ROS2 Quality of Service profile for the subscriber.",
+								"type": "string"
+							},
 							"formant_stream": {
 							  	"title": "Formant Stream", 
 								"description": "The Formant stream name to ingest data using.",
@@ -84,6 +88,10 @@
 							"ros2_message_type": {
 							  	"title": "ROS 2 Message Type", 
 								"description": "The type of ROS2 message to publish.",
+								"type": "string"
+							},
+							"ros2_qos_profile": {
+								"description": "The ROS2 Quality of Service profile for the publisher.",
 								"type": "string"
 							}
 						},
