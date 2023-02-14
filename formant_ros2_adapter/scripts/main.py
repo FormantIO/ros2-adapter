@@ -79,7 +79,12 @@ from geometry_msgs.msg import (
 )
 
 from nav_msgs.msg import Odometry, OccupancyGrid, Path
-from nav2_msgs.msg import Costmap
+
+Costmap = None
+try:
+    from nav2_msgs.msg import Costmap
+except ModuleNotFoundError:
+    pass
 
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
@@ -765,7 +770,7 @@ class ROS2Adapter:
                 msg, self.config["localization"]["base_reference_frame"]
             )
             self.localization_manager.update_map(formant_map)
-        elif msg_type is Costmap:
+        elif Costmap is not None and msg_type is Costmap:
             print("Costmap message type")
 
             # ROS types
