@@ -1170,6 +1170,171 @@ class ROS2Adapter:
         else:
             print("WARNING: No ROS2 publisher found for stream " + stream_name)
 
+    def ros2_service_call(self, service_command, command_text):
+        # Call the specified service if it exists
+        # To do: is this redundant?
+        if service_command not in self.ros2_service_clients:
+            print("WARNING: Service not configured for formant stream", service_request)
+            return
+
+        for service_client in self.ros2_service_clients[service_command]:
+            # Create the service request
+            service_request = service_client.srv_type.Request()
+            service_request_slots = list(
+                service_request.get_fields_and_field_types().values()
+            )
+
+            # We only handle single-param requests for now
+            if len(service_request_slots) > 1:
+                print(
+                    "WARNING: Unsupported service request type for command: "
+                    + msg.command
+                )
+                #self.fclient.send_command_response(msg.id, success=False)
+                continue
+
+            # If the service has no parameters, just call it
+            if service_request_slots == []:
+                pass
+
+            # If the service has a single boolean parameter, call it with "true"
+            elif service_request_slots == ["boolean"]:
+                # Get the name of the attribute to set from the service request
+                service_request_attribute = list(
+                    service_request.get_fields_and_field_types().keys()
+                )[0]
+
+                # Check to see if a parameter was passed in the command text
+                if command_text == "":
+                    service_request_value = True
+                elif command_text in ["true", "True", "TRUE", "t", "T", "1"]:
+                    service_request_value = True
+                elif command_text in ["false", "False", "FALSE", "f", "F", "0"]:
+                    service_request_value = False
+                else:
+                    print(
+                        "WARNING: Invalid parameter for service "
+                        + service_command
+                        + ": "
+                        + command_text
+                    )
+                    #self.fclient.send_command_response(msg.id, success=False)
+                    continue
+
+                # Set the attribute on the request to true
+                setattr(
+                    service_request,
+                    service_request_attribute,
+                    service_request_value,
+                )
+
+            # If the service has a single string parameter, call it with the command text
+            elif service_request_slots == ["string"]:
+                # If the command text is empty, don't call the service
+                if command_text == "":
+                    print(
+                        "WARNING: Command text is empty but service requires a string parameter"
+                    )
+                    #self.fclient.send_command_response(msg.id, success=False)
+                    continue
+
+                service_request_attribute = list(
+                    service_request.get_fields_and_field_types().keys()
+                )[0]
+                setattr(service_request, service_request_attribute, msg.text)
+                #service_client.call_async(service_request)
+                #self.fclient.send_command_response(msg.id, success=True)
+                ## sync call
+
+            # If the service has a single numeric parameter, call it with the command text
+            # Float32, Float64, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64
+            elif service_request_slots[0] in [
+                "float32",
+                "float64",
+                "int8",
+                "int16",
+                "int32",
+                "int64",
+                "uint8",
+                "uint16",
+                "uint32",
+                "uint64",
+            ]:
+                # If the command text is empty, don't call the service
+                if command_text == "":
+                    print(
+                        "WARNING: Command text is empty but service requires a numeric parameter"
+                    )
+                    #self.fclient.send_command_response(msg.id, success=False)
+                    continue
+
+                # If the command text is not numeric, don't call the service
+                if not command_text.isnumeric():
+                    print(
+                        "WARNING: Command text is not numeric but service requires a numeric parameter"
+                    )
+                    #self.fclient.send_command_response(msg.id, success=False)
+                    continue
+
+                # Get the name of the attribute to set from the service request
+                service_request_attribute = list(
+                    service_request.get_fields_and_field_types().keys()
+                )[0]
+
+                # Cast the command value to the type determined by the service request slot
+                slot_type = service_request_slots[0]
+                if slot_type == "float32":
+                    service_request_value = np.float32(msg.text)
+                elif slot_type == "float64":
+                    service_request_value = np.float64(msg.text)
+                elif slot_type == "int8":
+                    service_request_value = np.int8(msg.text)
+                elif slot_type == "int16":
+                    service_request_value = np.int16(msg.text)
+                elif slot_type == "int32":
+                    service_request_value = np.int32(msg.text)
+                elif slot_type == "int64":
+                    service_request_value = np.int64(msg.text)
+                elif slot_type == "uint8":
+                    service_request_value = np.uint8(msg.text)
+                elif slot_type == "uint16":
+                    service_request_value = np.uint16(msg.text)
+                elif slot_type == "uint32":
+                    service_request_value = np.uint32(msg.text)
+                elif slot_type == "uint64":
+                    service_request_value = np.uint64(msg.text)
+                else:
+                    print(
+                        "WARNING: Unsupported parameter type for service "
+                        + service_command
+                        + ": "
+                        + slot_type
+                    )
+                    #self.fclient.send_command_response(msg.id, success=False)
+                    continue
+
+                # Set the attribute on the request to the command text
+                setattr(
+                    service_request,
+                    service_request_attribute,
+                    service_request_value,
+                )
+
+            else:
+                print(
+                    "WARNING: Unsupported ROS2 service parameters for command "
+                    + service_command
+                )
+                #self.fclient.send_command_response(msg.id, success=False)
+                continue
+
+            # Call the service
+            service_response = service_client.call_sync(service_request, timeout=10)
+            #self.fclient.send_command_response(msg.id, success=True)
+            print(service_response)
+            # To do: if response good, return good, if response bad, return bad
+            # return success
+
     def handle_formant_command_request_msg(self, msg):
         # Publish message on topic if a publisher exists for this command
         if msg.command in self.ros2_publishers:
@@ -1199,170 +1364,17 @@ class ROS2Adapter:
         if msg.command in self.ros2_service_clients:
             print("INFO: Calling service " + msg.command)
 
-            # Call the specified service if it exists
-            if msg.command not in self.ros2_service_clients:
-                print("WARNING: Service not configured for formant stream", msg.command)
-                return
+            service_command_result = ros2_service_call(
+                service_command=msg.command,
+                command_text=msg.text
+            )
+            print(service_command_result)
+        else:
+            print("Not a service??")
 
-            for service_client in self.ros2_service_clients[msg.command]:
-                # Create the service request
-                service_request = service_client.srv_type.Request()
-                service_request_slots = list(
-                    service_request.get_fields_and_field_types().values()
-                )
-
-                # We only handle single-param requests for now
-                if len(service_request_slots) > 1:
-                    print(
-                        "WARNING: Unsupported service request type for command: "
-                        + msg.command
-                    )
-                    self.fclient.send_command_response(msg.id, success=False)
-                    continue
-
-                # If the service has no parameters, just call it
-                if service_request_slots == []:
-
-                    service_client.call_async(service_request)
-                    self.fclient.send_command_response(msg.id, success=True)
-
-                # If the service has a single boolean parameter, call it with "true"
-                elif service_request_slots == ["boolean"]:
-                    # Get the name of the attribute to set from the service request
-                    service_request_attribute = list(
-                        service_request.get_fields_and_field_types().keys()
-                    )[0]
-
-                    # Check to see if a parameter was passed in the command text
-                    if msg.text == "":
-                        service_request_value = True
-                    elif msg.text in ["true", "True", "TRUE", "t", "T", "1"]:
-                        service_request_value = True
-                    elif msg.text in ["false", "False", "FALSE", "f", "F", "0"]:
-                        service_request_value = False
-                    else:
-                        print(
-                            "WARNING: Invalid parameter for service "
-                            + msg.command
-                            + ": "
-                            + msg.text
-                        )
-                        self.fclient.send_command_response(msg.id, success=False)
-                        continue
-
-                    # Set the attribute on the request to true
-                    setattr(
-                        service_request,
-                        service_request_attribute,
-                        service_request_value,
-                    )
-
-                    # Call the service
-                    service_client.call_async(service_request)
-                    self.fclient.send_command_response(msg.id, success=True)
-
-                # If the service has a single string parameter, call it with the command text
-                elif service_request_slots == ["string"]:
-                    # If the command text is empty, don't call the service
-                    if msg.text == "":
-                        print(
-                            "WARNING: Command text is empty but service requires a string parameter"
-                        )
-                        self.fclient.send_command_response(msg.id, success=False)
-                        continue
-
-                    service_request_attribute = list(
-                        service_request.get_fields_and_field_types().keys()
-                    )[0]
-                    setattr(service_request, service_request_attribute, msg.text)
-                    service_client.call_async(service_request)
-                    self.fclient.send_command_response(msg.id, success=True)
-
-                # If the service has a single numeric parameter, call it with the command text
-                # Float32, Float64, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64
-                elif service_request_slots[0] in [
-                    "float32",
-                    "float64",
-                    "int8",
-                    "int16",
-                    "int32",
-                    "int64",
-                    "uint8",
-                    "uint16",
-                    "uint32",
-                    "uint64",
-                ]:
-                    # If the command text is empty, don't call the service
-                    if msg.text == "":
-                        print(
-                            "WARNING: Command text is empty but service requires a numeric parameter"
-                        )
-                        self.fclient.send_command_response(msg.id, success=False)
-                        continue
-
-                    # If the command text is not numeric, don't call the service
-                    if not msg.text.isnumeric():
-                        print(
-                            "WARNING: Command text is not numeric but service requires a numeric parameter"
-                        )
-                        self.fclient.send_command_response(msg.id, success=False)
-                        continue
-
-                    # Get the name of the attribute to set from the service request
-                    service_request_attribute = list(
-                        service_request.get_fields_and_field_types().keys()
-                    )[0]
-
-                    # Cast the command value to the type determined by the service request slot
-                    slot_type = service_request_slots[0]
-                    if slot_type == "float32":
-                        service_request_value = np.float32(msg.text)
-                    elif slot_type == "float64":
-                        service_request_value = np.float64(msg.text)
-                    elif slot_type == "int8":
-                        service_request_value = np.int8(msg.text)
-                    elif slot_type == "int16":
-                        service_request_value = np.int16(msg.text)
-                    elif slot_type == "int32":
-                        service_request_value = np.int32(msg.text)
-                    elif slot_type == "int64":
-                        service_request_value = np.int64(msg.text)
-                    elif slot_type == "uint8":
-                        service_request_value = np.uint8(msg.text)
-                    elif slot_type == "uint16":
-                        service_request_value = np.uint16(msg.text)
-                    elif slot_type == "uint32":
-                        service_request_value = np.uint32(msg.text)
-                    elif slot_type == "uint64":
-                        service_request_value = np.uint64(msg.text)
-                    else:
-                        print(
-                            "WARNING: Unsupported parameter type for service "
-                            + msg.command
-                            + ": "
-                            + slot_type
-                        )
-                        self.fclient.send_command_response(msg.id, success=False)
-                        continue
-
-                    # Set the attribute on the request to the command text
-                    setattr(
-                        service_request,
-                        service_request_attribute,
-                        service_request_value,
-                    )
-
-                    # Call the service
-                    service_client.call_async(service_request)
-                    self.fclient.send_command_response(msg.id, success=True)
-
-                else:
-                    print(
-                        "WARNING: Unsupported ROS2 service parameters for command "
-                        + msg.command
-                    )
-                    self.fclient.send_command_response(msg.id, success=False)
-                    continue
+        # To do: success = something
+        # To do: does this go somewhere else?
+        self.fclient.send_command_response(msg.id, success=something)
 
     def publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
         if ros2_msg_type == "Float32":
