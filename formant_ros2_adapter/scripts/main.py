@@ -1172,10 +1172,9 @@ class ROS2Adapter:
 
     def ros2_service_call(self, service_command, command_text):
         # Call the specified service if it exists
-        # To do: is this redundant?
         if service_command not in self.ros2_service_clients:
-            print("WARNING: Service not configured for formant stream", service_request)
-            return
+            print(f"WARNING: Service not configured for formant stream: {service_request}")
+            return None
 
         for service_client in self.ros2_service_clients[service_command]:
             # Create the service request
@@ -1190,7 +1189,6 @@ class ROS2Adapter:
                     "WARNING: Unsupported service request type for command: "
                     + msg.command
                 )
-                #self.fclient.send_command_response(msg.id, success=False)
                 continue
 
             # If the service has no parameters, just call it
@@ -1218,7 +1216,6 @@ class ROS2Adapter:
                         + ": "
                         + command_text
                     )
-                    #self.fclient.send_command_response(msg.id, success=False)
                     continue
 
                 # Set the attribute on the request to true
@@ -1235,16 +1232,12 @@ class ROS2Adapter:
                     print(
                         "WARNING: Command text is empty but service requires a string parameter"
                     )
-                    #self.fclient.send_command_response(msg.id, success=False)
                     continue
 
                 service_request_attribute = list(
                     service_request.get_fields_and_field_types().keys()
                 )[0]
                 setattr(service_request, service_request_attribute, msg.text)
-                #service_client.call_async(service_request)
-                #self.fclient.send_command_response(msg.id, success=True)
-                ## sync call
 
             # If the service has a single numeric parameter, call it with the command text
             # Float32, Float64, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64
@@ -1265,7 +1258,6 @@ class ROS2Adapter:
                     print(
                         "WARNING: Command text is empty but service requires a numeric parameter"
                     )
-                    #self.fclient.send_command_response(msg.id, success=False)
                     continue
 
                 # If the command text is not numeric, don't call the service
@@ -1273,7 +1265,6 @@ class ROS2Adapter:
                     print(
                         "WARNING: Command text is not numeric but service requires a numeric parameter"
                     )
-                    #self.fclient.send_command_response(msg.id, success=False)
                     continue
 
                 # Get the name of the attribute to set from the service request
@@ -1310,7 +1301,6 @@ class ROS2Adapter:
                         + ": "
                         + slot_type
                     )
-                    #self.fclient.send_command_response(msg.id, success=False)
                     continue
 
                 # Set the attribute on the request to the command text
@@ -1325,15 +1315,18 @@ class ROS2Adapter:
                     "WARNING: Unsupported ROS2 service parameters for command "
                     + service_command
                 )
-                #self.fclient.send_command_response(msg.id, success=False)
                 continue
 
             # Call the service
-            service_response = service_client.call_sync(service_request, timeout=10)
-            #self.fclient.send_command_response(msg.id, success=True)
-            print(service_response)
-            # To do: if response good, return good, if response bad, return bad
-            # return success
+            # To do: add timeout...maybe with wait_for_service()?
+            service_result = service_client.call(service_request)
+            print(f"INFO: Service call result: {service_result}")
+
+            # To do: success={something based on service call result}
+            # To do: does this go somewhere else?
+            self.fclient.send_command_response(msg.id, success=something)
+
+            return service_result
 
     def handle_formant_command_request_msg(self, msg):
         # Publish message on topic if a publisher exists for this command
@@ -1361,20 +1354,14 @@ class ROS2Adapter:
                     continue
 
         # Call a service if a service exists for this command
+        # To do: is this elif?
         if msg.command in self.ros2_service_clients:
+            # To do: for loop here instead of ros2_service_call()?
             print("INFO: Calling service " + msg.command)
-
             service_command_result = ros2_service_call(
                 service_command=msg.command,
                 command_text=msg.text
             )
-            print(service_command_result)
-        else:
-            print("Not a service??")
-
-        # To do: success = something
-        # To do: does this go somewhere else?
-        self.fclient.send_command_response(msg.id, success=something)
 
     def publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
         if ros2_msg_type == "Float32":
