@@ -1223,7 +1223,7 @@ class ROS2Adapter:
                     + ": "
                     + command_text
                 )
-                continue
+                return None
 
             # Set the attribute on the request to true
             setattr(
@@ -1239,7 +1239,7 @@ class ROS2Adapter:
                 print(
                     "WARNING: Command text is empty but service requires a string parameter"
                 )
-                continue
+                return None
 
             service_request_attribute = list(
                 service_request.get_fields_and_field_types().keys()
@@ -1265,14 +1265,14 @@ class ROS2Adapter:
                 print(
                     "WARNING: Command text is empty but service requires a numeric parameter"
                 )
-                continue
+                return None
 
             # If the command text is not numeric, don't call the service
             if not command_text.isnumeric():
                 print(
                     "WARNING: Command text is not numeric but service requires a numeric parameter"
                 )
-                continue
+                return None
 
             # Get the name of the attribute to set from the service request
             service_request_attribute = list(
@@ -1308,7 +1308,7 @@ class ROS2Adapter:
                     + ": "
                     + slot_type
                 )
-                continue
+                return None
 
             # Set the attribute on the request to the command text
             setattr(
@@ -1322,7 +1322,7 @@ class ROS2Adapter:
                 "WARNING: Unsupported ROS2 service parameters for command "
                 + service_command
             )
-            continue
+            return None
 
         # Call the service
         # To do: add timeout...maybe with wait_for_service()?
@@ -1331,6 +1331,8 @@ class ROS2Adapter:
         return service_result
 
     def handle_formant_command_request_msg(self, msg):
+        print(f"INFO: Formant command received:\n{msg}")
+
         # Publish message on topic if a publisher exists for this command
         if msg.command in self.ros2_publishers:
             for publisher in self.ros2_publishers[msg.command]:
@@ -1373,11 +1375,13 @@ class ROS2Adapter:
                         "WARNING: Unsupported service request type for command: "
                         + msg.command
                     )
-                    continue
+                    print(service_request_slots)
+                    #continue
 
-                service_command_result = ros2_service_call(
+                service_command_result = self.ros2_service_call(
                     service_command=msg.command,
                     command_text=msg.text
+                    # To do: pass service request slots?
                 )
 
                 # To do: success={something based on service call result}
