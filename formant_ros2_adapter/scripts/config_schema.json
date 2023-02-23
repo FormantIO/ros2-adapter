@@ -52,7 +52,7 @@
 								"type": "string"
 							},
 							"ros2_qos_profile": {
-								"description": "The ROS2 Quality of Service profile for the subscriber.",
+								"description": "The ROS 2 Quality of Service profile for the subscriber.",
 								"type": "string"
 							},
 							"formant_stream": {
@@ -91,7 +91,7 @@
 								"type": "string"
 							},
 							"ros2_qos_profile": {
-								"description": "The ROS2 Quality of Service profile for the publisher.",
+								"description": "The ROS 2 Quality of Service profile for the publisher.",
 								"type": "string"
 							}
 						},
