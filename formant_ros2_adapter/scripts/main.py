@@ -328,13 +328,17 @@ class ROS2Adapter:
 
         # Create new subscribers based on the config
         for subscriber_config in self.config.get("subscribers", []):
+            subscriber_topic = subscriber_config["ros2_topic"]
+            print(f"Subscriber for topic: {subscriber_topic}")
+            subscriber_qos = QOS_PROFILES.get(subscriber_config["ros2_qos_profile"], qos_profile_system_default)
+            print(f"QoS: {subscriber_qos}, {type(subscriber_qos)}")
             new_sub = self.ros2_node.create_subscription(
-                get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
-                subscriber_config["ros2_topic"],
-                lambda msg, subscriber_config=subscriber_config: self.handle_ros2_message(
+                msg_type=get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
+                topic=subscriber_topic,
+                callback=lambda msg, subscriber_config=subscriber_config: self.handle_ros2_message(
                     msg, subscriber_config
                 ),
-                QOS_PROFILES.get(subscriber_config["ros2_qos_profile"], qos_profile_system_default),
+                qos_profile=subscriber_qos,
             )
 
             if subscriber_config["ros2_topic"] not in self.ros2_subscribers:
@@ -362,10 +366,14 @@ class ROS2Adapter:
                     print("ERROR: No message type for topic", publisher["ros2_topic"])
                     continue
 
+            publisher_topic = publisher["ros2_topic"]
+            print(f"Publisher for topic: {publisher_topic}")
+            publisher_qos = QOS_PROFILES.get(publisher["ros2_qos_profile"], qos_profile_system_default)
+            print(f"QoS: {publisher_qos}, {type(publisher_qos)}")
             new_pub = self.ros2_node.create_publisher(
-                get_ros2_type_from_string(publisher["ros2_message_type"]),
-                publisher["ros2_topic"],
-                QOS_PROFILES.get(publisher["ros2_qos_profile"], qos_profile_system_default),
+                msg_type=get_ros2_type_from_string(publisher["ros2_message_type"]),
+                topic=publisher_topic,
+                qos_profile=publisher_qos,
             )
 
             if publisher["formant_stream"] not in self.ros2_publishers:
