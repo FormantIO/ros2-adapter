@@ -1359,7 +1359,9 @@ class ROS2Adapter:
             return None
 
         # Call the service
-        # To do: add timeout...maybe with wait_for_service()?
+        if service_client.wait_for_service(5) == False:
+            print("WARNING: Timeout waiting for service")
+            return None
         service_result = service_client.call(service_request)
         print(f"INFO: Service call result: {service_result}, {type(service_result)}")
         return service_result
