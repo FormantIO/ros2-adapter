@@ -265,7 +265,7 @@ class ROS2Adapter:
             print("INFO: Finished setting up publishers")
 
             self.setup_service_clients()
-            print("INFO: Finished setting up service calls")
+            print(f"INFO: Finished setting up service calls\n{self.ros2_service_clients}")
 
             # TODO: once localization visualization has been shifted to universe, this will be removed
             self.setup_localization()
@@ -1192,11 +1192,30 @@ class ROS2Adapter:
         else:
             print("WARNING: No ROS2 publisher found for stream " + stream_name)
 
-    def ros2_service_call(self, service_command, command_text):
+    def ros2_service_call(self, service_client, msg):
+        # To do: get rid of these?
+        service_command = msg.command
+        command_text = msg.text
+
         # Call the specified service if it exists
         if service_command not in self.ros2_service_clients:
             print(f"WARNING: Service not configured for formant stream: {service_request}")
             return None
+
+        # Create the service request
+        service_request = service_client.srv_type.Request()
+        service_request_slots = list(
+            service_request.get_fields_and_field_types().values()
+        )
+
+        # We only handle single-param requests for now
+        print(f"INFO: Service request slots: {service_request_slots}")
+        if len(service_request_slots) > 1:
+            print(
+                "WARNING: Unsupported service request type for command: "
+                + msg.command
+            )
+            #continue
 
         # If the service has no parameters, just call it
         if service_request_slots == []:
@@ -1319,7 +1338,7 @@ class ROS2Adapter:
 
         else:
             print(
-                "WARNING: Unsupported ROS2 service parameters for command "
+                "WARNING: Unsupported ROS 2 service parameters for command "
                 + service_command
             )
             return None
@@ -1360,28 +1379,10 @@ class ROS2Adapter:
         # Call a service if a service exists for this command
         if msg.command in self.ros2_service_clients:
             print("INFO: Calling service " + msg.command)
-
             for service_client in self.ros2_service_clients[msg.command]:
-                # Create the service request
-                service_request = service_client.srv_type.Request()
-                service_request_slots = list(
-                    service_request.get_fields_and_field_types().values()
-                )
-
-                # We only handle single-param requests for now
-                # To do: put this in ros2_service_call()
-                if len(service_request_slots) > 1:
-                    print(
-                        "WARNING: Unsupported service request type for command: "
-                        + msg.command
-                    )
-                    print(service_request_slots)
-                    #continue
-
-                service_command_result = self.ros2_service_call(
-                    service_command=msg.command,
-                    command_text=msg.text
-                    # To do: pass service request slots?
+                service_call_result = self.ros2_service_call(
+                    service_client,
+                    msg
                 )
 
                 # To do: success={something based on service call result}
