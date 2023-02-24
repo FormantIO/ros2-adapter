@@ -1265,6 +1265,21 @@ class ROS2Adapter:
             )[0]
             setattr(service_request, service_request_attribute, msg.text)
 
+        # If the service has a string list parameter, send the sequence itself
+        # (not a string of it)
+        elif service_request_slots == ["sequence<string>"]:
+            try:
+                command_text_json = json.loads(command_text)
+            except json.decoder.JSONDecodeError:
+            #if type(command_text_json) is not list:
+                print("WARNING: Invalid parameter for string sequence service")
+                return None
+
+            service_request_attribute = list(
+                service_request.get_fields_and_field_types().keys()
+            )[0]
+            setattr(service_request, service_request_attribute, command_text_json)
+
         # If the service has a single numeric parameter, call it with the command text
         # Float32, Float64, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64
         elif service_request_slots[0] in [
@@ -1346,7 +1361,7 @@ class ROS2Adapter:
         # Call the service
         # To do: add timeout...maybe with wait_for_service()?
         service_result = service_client.call(service_request)
-        print(f"INFO: Service call result: {service_result}, {type(service_call_result)}")
+        print(f"INFO: Service call result: {service_result}, {type(service_result)}")
         return service_result
 
     def handle_formant_command_request_msg(self, msg):
