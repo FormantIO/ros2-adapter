@@ -127,6 +127,9 @@ QOS_PROFILES = {
     "ACTION_STATUS_DEFAULT": qos_profile_action_status_default,
 }
 
+# Seconds
+SERVICE_CALL_TIMEOUT = 5
+
 class ROS2Adapter:
     """
     Formant <-> ROS2 Adapter
@@ -1215,7 +1218,7 @@ class ROS2Adapter:
                 "WARNING: Unsupported service request type for command: "
                 + msg.command
             )
-            #continue
+            return None
 
         # If the service has no parameters, just call it
         if service_request_slots == []:
@@ -1237,7 +1240,7 @@ class ROS2Adapter:
                 service_request_value = False
             else:
                 print(
-                    "WARNING: Invalid parameter for service "
+                    "WARNING: Invalid parameter for boolean service "
                     + service_command
                     + ": "
                     + command_text
@@ -1359,7 +1362,7 @@ class ROS2Adapter:
             return None
 
         # Call the service
-        if service_client.wait_for_service(5) == False:
+        if service_client.wait_for_service(SERVICE_CALL_TIMEOUT) == False:
             print("WARNING: Timeout waiting for service")
             return None
         service_result = service_client.call(service_request)
@@ -1402,8 +1405,14 @@ class ROS2Adapter:
                     msg
                 )
 
-                # To do: success={something based on service call result}
-                #self.fclient.send_command_response(msg.id, success=service_command_result)
+                if service_call_result is None:
+                    print(f"Service call {msg.command} failed")
+                    success=False
+                else:
+                # To do: more precise measure of success/fail? rcl_interfaces.srv...
+                    print(f"Service call {msg.command} succeeded")
+                    success=True
+                self.fclient.send_command_response(msg.id, success=success)
 
     def publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
         if ros2_msg_type == "Float32":
