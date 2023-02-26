@@ -1195,8 +1195,9 @@ class ROS2Adapter:
         else:
             print("WARNING: No ROS2 publisher found for stream " + stream_name)
 
+        # To do: handle service calls here
+
     def ros2_service_call(self, service_client, msg):
-        # To do: get rid of these?
         service_command = msg.command
         command_text = msg.text
 
@@ -1345,7 +1346,7 @@ class ROS2Adapter:
                 service_request_value = np.uint64(command_text)
             else:
                 print(
-                    "WARNING: Unsupported parameter type for service "
+                    "WARNING: Unsupported parameter type for numeric service "
                     f"{service_command}: "
                     f"{slot_type}"
                 )
@@ -1381,17 +1382,14 @@ class ROS2Adapter:
             for publisher in self.ros2_publishers[msg.command]:
                 # Get the ROS2 message type as a string
                 ros2_msg_type = publisher.msg_type.__name__
-
                 if ros2_msg_type == "String":
                     ros2_msg = String()
                     ros2_msg.data = msg.text
                     publisher.publish(ros2_msg)
                     self.fclient.send_command_response(msg.id, success=True)
-
                 elif (ros2_msg_type in ROS2_NUMERIC_TYPES) and msg.text.isnumeric():
                     self.publish_ros2_numeric(publisher, ros2_msg_type, msg.text)
                     self.fclient.send_command_response(msg.id, success=True)
-
                 else:
                     print(
                         "WARNING: Unsupported ROS2 message type for command: "
@@ -1402,13 +1400,12 @@ class ROS2Adapter:
 
         # Call a service if a service exists for this command
         if msg.command in self.ros2_service_clients:
-            print("INFO: Calling service " + msg.command)
+            print(f"INFO: Calling service {msg.command}")
             for service_client in self.ros2_service_clients[msg.command]:
                 service_call_result = self.ros2_service_call(
                     service_client,
                     msg
                 )
-
                 if service_call_result is None:
                     print(f"Service call {msg.command} failed")
                     success=False
