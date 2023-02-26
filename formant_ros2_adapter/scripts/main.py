@@ -1202,7 +1202,10 @@ class ROS2Adapter:
 
         # Call the specified service if it exists
         if service_command not in self.ros2_service_clients:
-            print(f"WARNING: Service not configured for formant stream: {service_request}")
+            print(
+                "WARNING: Service not configured for formant stream: "
+                f"{service_request}"
+            )
             return None
 
         # Create the service request
@@ -1216,7 +1219,7 @@ class ROS2Adapter:
         if len(service_request_slots) > 1:
             print(
                 "WARNING: Unsupported service request type for command: "
-                + msg.command
+                f"{service_command}"
             )
             return None
 
@@ -1241,9 +1244,8 @@ class ROS2Adapter:
             else:
                 print(
                     "WARNING: Invalid parameter for boolean service "
-                    + service_command
-                    + ": "
-                    + command_text
+                    f"{service_command}: "
+                    f"{command_text}"
                 )
                 return None
 
@@ -1259,7 +1261,8 @@ class ROS2Adapter:
             # If the command text is empty, don't call the service
             if command_text == "":
                 print(
-                    "WARNING: Command text is empty but service requires a string parameter"
+                    "WARNING: "
+                    "Command text is empty but service requires a string parameter"
                 )
                 return None
 
@@ -1300,14 +1303,16 @@ class ROS2Adapter:
             # If the command text is empty, don't call the service
             if command_text == "":
                 print(
-                    "WARNING: Command text is empty but service requires a numeric parameter"
+                    "WARNING: "
+                    "Command text is empty but service requires a numeric parameter"
                 )
                 return None
 
             # If the command text is not numeric, don't call the service
             if not command_text.isnumeric():
                 print(
-                    "WARNING: Command text is not numeric but service requires a numeric parameter"
+                    "WARNING: "
+                    "Command text is not numeric but service requires a numeric parameter"
                 )
                 return None
 
@@ -1341,9 +1346,8 @@ class ROS2Adapter:
             else:
                 print(
                     "WARNING: Unsupported parameter type for service "
-                    + service_command
-                    + ": "
-                    + slot_type
+                    f"{service_command}: "
+                    f"{slot_type}"
                 )
                 return None
 
@@ -1357,7 +1361,7 @@ class ROS2Adapter:
         else:
             print(
                 "WARNING: Unsupported ROS 2 service parameters for command "
-                + service_command
+                f"{service_command}"
             )
             return None
 
@@ -1391,7 +1395,7 @@ class ROS2Adapter:
                 else:
                     print(
                         "WARNING: Unsupported ROS2 message type for command: "
-                        + ros2_msg_type
+                        f"{ros2_msg_type}"
                     )
                     self.fclient.send_command_response(msg.id, success=False)
                     continue
