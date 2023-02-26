@@ -1196,6 +1196,7 @@ class ROS2Adapter:
             print("WARNING: No ROS2 publisher found for stream " + stream_name)
 
         # To do: handle service calls here
+        # Test
 
     def ros2_service_call(self, service_client, msg):
         service_command = msg.command
@@ -1249,7 +1250,6 @@ class ROS2Adapter:
                     f"{command_text}"
                 )
                 return None
-
             # Set the attribute on the request to true
             setattr(
                 service_request,
@@ -1266,12 +1266,10 @@ class ROS2Adapter:
                     "Command text is empty but service requires a string parameter"
                 )
                 return None
-
             service_request_attribute = list(
                 service_request.get_fields_and_field_types().keys()
             )[0]
             setattr(service_request, service_request_attribute, msg.text)
-
         # If the service has a string list parameter, send the sequence itself
         # (not a string of it)
         elif service_request_slots == ["sequence<string>"]:
@@ -1281,7 +1279,6 @@ class ROS2Adapter:
             #if type(command_text_json) is not list:
                 print("WARNING: Invalid parameter for string sequence service")
                 return None
-
             service_request_attribute = list(
                 service_request.get_fields_and_field_types().keys()
             )[0]
@@ -1308,7 +1305,6 @@ class ROS2Adapter:
                     "Command text is empty but service requires a numeric parameter"
                 )
                 return None
-
             # If the command text is not numeric, don't call the service
             if not command_text.isnumeric():
                 print(
@@ -1316,12 +1312,10 @@ class ROS2Adapter:
                     "Command text is not numeric but service requires a numeric parameter"
                 )
                 return None
-
             # Get the name of the attribute to set from the service request
             service_request_attribute = list(
                 service_request.get_fields_and_field_types().keys()
             )[0]
-
             # Cast the command value to the type determined by the service request slot
             slot_type = service_request_slots[0]
             if slot_type == "float32":
@@ -1351,7 +1345,6 @@ class ROS2Adapter:
                     f"{slot_type}"
                 )
                 return None
-
             # Set the attribute on the request to the command text
             setattr(
                 service_request,
