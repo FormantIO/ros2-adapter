@@ -758,7 +758,6 @@ class ROS2Adapter:
                 parent_frame, child_frame, tx, ty, tz, rx, ry, rz, rw
             )
 
-    # To do: use Agent SDK localization_manager for PoseWithCovarianceStamp
     def localization_odom_callback(self, msg):
         msg_type = type(msg)
         if msg_type == Odometry:
@@ -768,17 +767,10 @@ class ROS2Adapter:
             )
             self.localization_manager.update_odometry(odometry)
         elif msg_type == PoseWithCovarianceStamped:
-            print("PoseWithCovarianceStamped message type")
-
-            # ROS types
-            ros_pose = msg.pose.pose
-
-            # Formant types
-            odometry = FOdometry(pose=FTransform.from_ros_pose(ros_pose))
+            odometry = FOdometry.from_pose_with_covariance_stamped(msg)
             odometry.transform_to_world = self.lookup_transform(
                 msg, self.config["localization"]["base_reference_frame"]
             )
-
             self.localization_manager.update_odometry(odometry)
         else:
             print("WARNING: Unknown odom type", msg_type)
