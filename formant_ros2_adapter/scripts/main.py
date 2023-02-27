@@ -1269,14 +1269,17 @@ class ROS2Adapter:
             service_request_attribute = list(
                 service_request.get_fields_and_field_types().keys()
             )[0]
-            setattr(service_request, service_request_attribute, msg.text)
+            setattr(service_request, service_request_attribute, command_text)
+
         # If the service has a string list parameter, send the sequence itself
         # (not a string of it)
         elif service_request_slots == ["sequence<string>"]:
             try:
                 command_text_json = json.loads(command_text)
             except json.decoder.JSONDecodeError:
-            #if type(command_text_json) is not list:
+                print("WARNING: Invalid parameter for string sequence service")
+                return None
+            if type(command_text_json) is not list:
                 print("WARNING: Invalid parameter for string sequence service")
                 return None
             service_request_attribute = list(
