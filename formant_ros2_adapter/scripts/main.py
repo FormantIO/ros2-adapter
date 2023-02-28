@@ -1192,16 +1192,37 @@ class ROS2Adapter:
 
                     publisher.publish(ros2_msg)
 
-        else:
-            print("WARNING: No ROS2 publisher found for stream " + stream_name)
+        # Handle service call
+        elif stream_name in self.ros2_service_clients:
+            print(f"INFO: Calling service {stream_name}")
+            for service_client in self.ros2_service_clients[stream_name]:
+                # Get parameter from bitset (button) or numeric (slider/dial) stream
+                # Other teleop stream types are not supported
+                if msg.HasField("bitset"):
+                    if msg.bitset.bits[0].value is True:
+                        command_text = "True"
+                    # To do: does it make sense to handle False too?
+                elif msg.HasField("numeric"):
+                    command_text = msg.numeric.value
+                else:
+                    print(
+                        "WARNING: Invalid teleop control datapoint "
+                        "(requires bitset or numeric)"
+                    )
+                    continue
+                service_call_result = self.ros2_service_call(
+                    service_client,
+                    stream_name,
+                    command_text
+                )
 
-        # To do: handle service calls here
-        # Test
+                # To do: something here to inform Formant? Or no?
+                if service_call_result is None:
+                    print(f"Service call {stream_name} failed")
+                else:
+                    print(f"Service call {stream_name} succeeded")
 
-    def ros2_service_call(self, service_client, msg):
-        service_command = msg.command
-        command_text = msg.text
-
+    def ros2_service_call(self, service_client, service_command, command_text):
         # Call the specified service if it exists
         if service_command not in self.ros2_service_clients:
             print(
