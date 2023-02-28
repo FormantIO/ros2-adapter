@@ -1422,7 +1422,8 @@ class ROS2Adapter:
             for service_client in self.ros2_service_clients[msg.command]:
                 service_call_result = self.ros2_service_call(
                     service_client,
-                    msg
+                    msg.command,
+                    msg.text
                 )
                 if service_call_result is None:
                     print(f"Service call {msg.command} failed")
