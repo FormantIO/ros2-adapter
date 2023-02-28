@@ -1198,6 +1198,7 @@ class ROS2Adapter:
             for service_client in self.ros2_service_clients[stream_name]:
                 # Get parameter from bitset (button) or numeric (slider/dial) stream
                 # Other teleop stream types are not supported
+                command_text = ""
                 if msg.HasField("bitset"):
                     if msg.bitset.bits[0].value is True:
                         command_text = "True"
