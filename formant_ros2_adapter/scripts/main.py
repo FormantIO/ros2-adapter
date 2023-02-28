@@ -14,6 +14,7 @@ from typing import List, Dict
 
 from formant.sdk.agent.v1 import Client as FormantAgentClient
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
+from formant.protos.model.v1.text_pb2 import Text
 from formant.sdk.agent.v1.localization.types import (
     PointCloud as FPointCloud,
     Map as FMap,
@@ -1299,10 +1300,10 @@ class ROS2Adapter:
             try:
                 command_text_json = json.loads(command_text)
             except json.decoder.JSONDecodeError:
-                print("WARNING: Invalid parameter for string sequence service")
+                print("WARNING: Invalid JSON for string sequence service")
                 return None
             if type(command_text_json) is not list:
-                print("WARNING: Invalid parameter for string sequence service")
+                print("WARNING: Invalid list for string sequence service")
                 return None
             service_request_attribute = list(
                 service_request.get_fields_and_field_types().keys()
@@ -1390,6 +1391,8 @@ class ROS2Adapter:
             return None
         service_result = service_client.call(service_request)
         print(f"INFO: Service call result: {service_result}, {type(service_result)}")
+
+        # To do: this should be a tuple of success, message
         return service_result
 
     def handle_formant_command_request_msg(self, msg):
@@ -1429,10 +1432,20 @@ class ROS2Adapter:
                     print(f"Service call {msg.command} failed")
                     success=False
                 else:
-                # To do: more precise measure of success/fail? rcl_interfaces.srv...
                     print(f"Service call {msg.command} succeeded")
                     success=True
-                self.fclient.send_command_response(msg.id, success=success)
+
+                msg_timestamp = int(time.time() * 1000)
+                self.fclient.send_command_response(
+                    request_id=msg.id,
+                    success=success,
+                    datapoint=Datapoint(
+                        stream="service.response",
+                        text=Text(
+                            value=str(service_call_result)),
+                        timestamp=msg_timestamp
+                    )
+                )
 
     def publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
         if ros2_msg_type == "Float32":
