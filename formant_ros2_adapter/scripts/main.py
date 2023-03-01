@@ -1364,26 +1364,34 @@ class ROS2Adapter:
             )[0]
             # Cast the command value to the type determined by the service request slot
             slot_type = service_request_slots[0]
-            if slot_type == "float32":
-                service_request_value = np.float32(command_text)
-            elif slot_type == "float64":
-                service_request_value = np.float64(command_text)
-            elif slot_type == "int8":
-                service_request_value = np.int8(command_text)
-            elif slot_type == "int16":
-                service_request_value = np.int16(command_text)
-            elif slot_type == "int32":
-                service_request_value = np.int32(command_text)
-            elif slot_type == "int64":
-                service_request_value = np.int64(command_text)
-            elif slot_type == "uint8":
-                service_request_value = np.uint8(command_text)
-            elif slot_type == "uint16":
-                service_request_value = np.uint16(command_text)
-            elif slot_type == "uint32":
-                service_request_value = np.uint32(command_text)
-            elif slot_type == "uint64":
-                service_request_value = np.uint64(command_text)
+
+            # Big question: the numpy types don't work? Get:
+            # AssertionError: The 'input' field must be of type 'int'
+            # if slot_type == "float32":
+            #     service_request_value = np.float32(command_text)
+            # elif slot_type == "float64":
+            #     service_request_value = np.float64(command_text)
+            # elif slot_type == "int8":
+            #     service_request_value = np.int8(command_text)
+            # elif slot_type == "int16":
+            #     service_request_value = np.int16(command_text)
+            # elif slot_type == "int32":
+            #     service_request_value = np.int32(command_text)
+            # elif slot_type == "int64":
+            #     service_request_value = np.int64(command_text)
+            # elif slot_type == "uint8":
+            #     service_request_value = np.uint8(command_text)
+            # elif slot_type == "uint16":
+            #     service_request_value = np.uint16(command_text)
+            # elif slot_type == "uint32":
+            #     service_request_value = np.uint32(command_text)
+            # elif slot_type == "uint64":
+            #     service_request_value = np.uint64(command_text)
+
+            if "int" in slot_type:
+                service_request_value = int(command_text)
+            elif "float" in slot_type:
+                service_request_value = float(command_text)
             else:
                 service_result = (
                     "WARNING: Unsupported parameter type for numeric service " +
@@ -1396,7 +1404,7 @@ class ROS2Adapter:
             setattr(
                 service_request,
                 service_request_attribute,
-                # Cast as string?
+                # To do: is this what it supposed to be cast to string?
                 service_request_value,
             )
 
