@@ -1331,8 +1331,10 @@ class ROS2Adapter:
         # If the service has a single numeric parameter, call it with the command text
         # Float32, Float64, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64
         elif service_request_slots[0] in [
+            "float",
             "float32",
             "float64",
+            "int",
             "int8",
             "int16",
             "int32",
@@ -1351,7 +1353,10 @@ class ROS2Adapter:
                 print(service_result)
                 return success, service_result
             # If the command text is not numeric, don't call the service
-            if not command_text.isnumeric():
+            # (this instead of isnumeric() to support decimal numbers)
+            try:
+                number_check = float(command_text)
+            except ValueError:
                 service_result = (
                     "WARNING: " +
                     "Command text is not numeric but service requires a numeric parameter"
