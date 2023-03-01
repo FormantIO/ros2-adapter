@@ -1394,7 +1394,7 @@ class ROS2Adapter:
             #     service_request_value = np.uint64(command_text)
 
             if "int" in slot_type:
-                service_request_value = int(command_text)
+                service_request_value = int(float(command_text))
             elif "float" in slot_type:
                 service_request_value = float(command_text)
             else:
