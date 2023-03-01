@@ -1203,8 +1203,8 @@ class ROS2Adapter:
                 if msg.HasField("bitset"):
                     if msg.bitset.bits[0].value is True:
                         command_text = "True"
-                    # To do: does it make sense to handle False too?
                 elif msg.HasField("numeric"):
+                    # Nicolas note: this works? Didn't need to change type or anything
                     command_text = msg.numeric.value
                 else:
                     print(
@@ -1212,17 +1212,17 @@ class ROS2Adapter:
                         "(requires bitset or numeric)"
                     )
                     continue
-                service_call_result = self.ros2_service_call(
+                success, service_call_result = self.ros2_service_call(
                     service_client,
                     stream_name,
                     command_text
                 )
 
                 # To do: something here to inform Formant? Or no?
-                if service_call_result is None:
-                    print(f"Service call {stream_name} failed")
+                if success is True:
+                    print(f"INFO: Service call {stream_name} succeeded")
                 else:
-                    print(f"Service call {stream_name} succeeded")
+                    print(f"WARNING: Service call {stream_name} failed")
 
     def ros2_service_call(self, service_client, service_command, command_text):
         # Set to True if parameters are valid and service call happens
@@ -1468,11 +1468,11 @@ class ROS2Adapter:
                     msg.command,
                     msg.text
                 )
+
                 if success is True:
                     print(f"INFO: Service call {msg.command} succeeded")
                 else:
                     print(f"WARNING: Service call {msg.command} failed")
-
                 msg_timestamp = int(time.time() * 1000)
                 self.fclient.send_command_response(
                     request_id=msg.id,
