@@ -1225,13 +1225,20 @@ class ROS2Adapter:
                     print(f"Service call {stream_name} succeeded")
 
     def ros2_service_call(self, service_client, service_command, command_text):
-        # Call the specified service if it exists
+        # Set to True if parameters are valid and service call happens
+        success = False
+        # Stores error message on fail, service call result on success
+        service_result = ""
+
+        # Check if the specified service if it exists
         if service_command not in self.ros2_service_clients:
-            print(
-                "WARNING: Service not configured for formant stream: "
+            service_result = (
+                "WARNING: Service not configured for formant stream: " +
                 f"{service_request}"
             )
-            return None
+            # Future optimization: streamline code so only have these two lines once
+            print(service_result)
+            return success, service_result
 
         # Create the service request
         service_request = service_client.srv_type.Request()
@@ -1242,11 +1249,12 @@ class ROS2Adapter:
         # We only handle single-param requests for now
         print(f"INFO: Service request slots: {service_request_slots}")
         if len(service_request_slots) > 1:
-            print(
-                "WARNING: Unsupported service request type for command: "
+            service_result = (
+                "WARNING: Unsupported service request type for command: " +
                 f"{service_command}"
             )
-            return None
+            print(service_result)
+            return success, service_result
 
         # If the service has no parameters, just call it
         if service_request_slots == []:
@@ -1267,12 +1275,13 @@ class ROS2Adapter:
             elif command_text in ["false", "False", "FALSE", "f", "F", "0"]:
                 service_request_value = False
             else:
-                print(
-                    "WARNING: Invalid parameter for boolean service "
-                    f"{service_command}: "
+                service_result = (
+                    "WARNING: Invalid parameter for boolean service " +
+                    f"{service_command}: " +
                     f"{command_text}"
                 )
-                return None
+                print(service_result)
+                return success, service_result
             # Set the attribute on the request to true
             setattr(
                 service_request,
@@ -1284,11 +1293,11 @@ class ROS2Adapter:
         elif service_request_slots == ["string"]:
             # If the command text is empty, don't call the service
             if command_text == "":
-                print(
-                    "WARNING: "
+                service_result = (
+                    "WARNING: " +
                     "Command text is empty but service requires a string parameter"
                 )
-                return None
+                return success, service_result
             service_request_attribute = list(
                 service_request.get_fields_and_field_types().keys()
             )[0]
@@ -1297,14 +1306,23 @@ class ROS2Adapter:
         # If the service has a string list parameter, send the sequence itself
         # (not a string of it)
         elif service_request_slots == ["sequence<string>"]:
+            command_text_json = {}
             try:
                 command_text_json = json.loads(command_text)
             except json.decoder.JSONDecodeError:
-                print("WARNING: Invalid JSON for string sequence service")
-                return None
+                service_result = (
+                    "WARNING: Invalid parameter for string sequence service: " +
+                    "not a JSON"
+                )
+                print(service_result)
+                return success, service_result
             if type(command_text_json) is not list:
-                print("WARNING: Invalid list for string sequence service")
-                return None
+                service_result = (
+                    "WARNING: Invalid parameter for string sequence service: " +
+                    "not a list"
+                )
+                print(service_result)
+                return success, service_result
             service_request_attribute = list(
                 service_request.get_fields_and_field_types().keys()
             )[0]
@@ -1326,18 +1344,18 @@ class ROS2Adapter:
         ]:
             # If the command text is empty, don't call the service
             if command_text == "":
-                print(
-                    "WARNING: "
+                service_result = (
+                    "WARNING: " +
                     "Command text is empty but service requires a numeric parameter"
                 )
-                return None
+                return success, service_result
             # If the command text is not numeric, don't call the service
             if not command_text.isnumeric():
-                print(
-                    "WARNING: "
+                service_result = (
+                    "WARNING: " +
                     "Command text is not numeric but service requires a numeric parameter"
                 )
-                return None
+                return success, service_result
             # Get the name of the attribute to set from the service request
             service_request_attribute = list(
                 service_request.get_fields_and_field_types().keys()
@@ -1365,12 +1383,12 @@ class ROS2Adapter:
             elif slot_type == "uint64":
                 service_request_value = np.uint64(command_text)
             else:
-                print(
-                    "WARNING: Unsupported parameter type for numeric service "
-                    f"{service_command}: "
+                service_result = (
+                    "WARNING: Unsupported parameter type for numeric service " +
+                    f"{service_command}: " +
                     f"{slot_type}"
                 )
-                return None
+                return success, service_result
             # Set the attribute on the request to the command text
             setattr(
                 service_request,
@@ -1379,21 +1397,25 @@ class ROS2Adapter:
             )
 
         else:
-            print(
-                "WARNING: Unsupported ROS 2 service parameters for command "
+            service_result = (
+                "WARNING: Unsupported ROS 2 service parameters for command " +
                 f"{service_command}"
             )
-            return None
+            return success, service_result
 
-        # Call the service
+        # Check if the service is available
         if service_client.wait_for_service(SERVICE_CALL_TIMEOUT) == False:
-            print("WARNING: Timeout waiting for service")
-            return None
-        service_result = service_client.call(service_request)
-        print(f"INFO: Service call result: {service_result}, {type(service_result)}")
+            service_result = ("WARNING: Timeout waiting for service")
+            print(service_result)
+            return success, service_result
 
-        # To do: this should be a tuple of success, message
-        return service_result
+        # Call the service if the paramaters are valid
+        if service_result == "":
+            service_result = service_client.call(service_request)
+            success = True
+            print(f"INFO: Service call result: {service_result}")
+
+        return success, service_result
 
     def handle_formant_command_request_msg(self, msg):
         print(f"INFO: Formant command received:\n{msg}")
@@ -1423,17 +1445,15 @@ class ROS2Adapter:
         if msg.command in self.ros2_service_clients:
             print(f"INFO: Calling service {msg.command}")
             for service_client in self.ros2_service_clients[msg.command]:
-                service_call_result = self.ros2_service_call(
+                success, service_call_result = self.ros2_service_call(
                     service_client,
                     msg.command,
                     msg.text
                 )
-                if service_call_result is None:
-                    print(f"Service call {msg.command} failed")
-                    success=False
+                if success is True:
+                    print(f"INFO: Service call {msg.command} succeeded")
                 else:
-                    print(f"Service call {msg.command} succeeded")
-                    success=True
+                    print(f"WARNING: Service call {msg.command} failed")
 
                 msg_timestamp = int(time.time() * 1000)
                 self.fclient.send_command_response(
