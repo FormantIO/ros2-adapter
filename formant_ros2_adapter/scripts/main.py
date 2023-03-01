@@ -1348,6 +1348,7 @@ class ROS2Adapter:
                     "WARNING: " +
                     "Command text is empty but service requires a numeric parameter"
                 )
+                print(service_result)
                 return success, service_result
             # If the command text is not numeric, don't call the service
             if not command_text.isnumeric():
@@ -1355,6 +1356,7 @@ class ROS2Adapter:
                     "WARNING: " +
                     "Command text is not numeric but service requires a numeric parameter"
                 )
+                print(service_result)
                 return success, service_result
             # Get the name of the attribute to set from the service request
             service_request_attribute = list(
@@ -1388,11 +1390,13 @@ class ROS2Adapter:
                     f"{service_command}: " +
                     f"{slot_type}"
                 )
+                print(service_result)
                 return success, service_result
             # Set the attribute on the request to the command text
             setattr(
                 service_request,
                 service_request_attribute,
+                # Cast as string?
                 service_request_value,
             )
 
@@ -1401,6 +1405,7 @@ class ROS2Adapter:
                 "WARNING: Unsupported ROS 2 service parameters for command " +
                 f"{service_command}"
             )
+            print(service_result)
             return success, service_result
 
         # Check if the service is available
