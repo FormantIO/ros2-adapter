@@ -1193,7 +1193,7 @@ class ROS2Adapter:
 
                     publisher.publish(ros2_msg)
 
-        # Handle service call
+        # Handle service calls
         elif stream_name in self.ros2_service_clients:
             print(f"INFO: Calling service {stream_name}")
             for service_client in self.ros2_service_clients[stream_name]:
@@ -1204,7 +1204,7 @@ class ROS2Adapter:
                     if msg.bitset.bits[0].value is True:
                         command_text = "True"
                 elif msg.HasField("numeric"):
-                    # Nicolas note: this works? Didn't need to change type or anything
+                    # This works, don't need to cast as string or anything
                     command_text = msg.numeric.value
                 else:
                     print(
@@ -1218,16 +1218,15 @@ class ROS2Adapter:
                     command_text
                 )
 
-                # To do: something here to inform Formant? Or no?
+                # To do: something here to inform Formant like with commands?
                 if success is True:
                     print(f"INFO: Service call {stream_name} succeeded")
                 else:
                     print(f"WARNING: Service call {stream_name} failed")
 
     def ros2_service_call(self, service_client, service_command, command_text):
-        # Set to True if parameters are valid and service call happens
+        # Return values
         success = False
-        # Stores error message on fail, service call result on success
         service_result = ""
 
         # Check if the specified service if it exists
@@ -1370,7 +1369,9 @@ class ROS2Adapter:
             # Cast the command value to the type determined by the service request slot
             slot_type = service_request_slots[0]
 
-            # Big question: the numpy types don't work? Get:
+            # To do:
+            # Using numpy types seems like a good idea, but I can't get it working
+            # Error:
             # AssertionError: The 'input' field must be of type 'int'
             # if slot_type == "float32":
             #     service_request_value = np.float32(command_text)
@@ -1394,6 +1395,7 @@ class ROS2Adapter:
             #     service_request_value = np.uint64(command_text)
 
             if "int" in slot_type:
+                # If user sends a float, convert to int
                 service_request_value = int(float(command_text))
             elif "float" in slot_type:
                 service_request_value = float(command_text)
@@ -1409,7 +1411,6 @@ class ROS2Adapter:
             setattr(
                 service_request,
                 service_request_attribute,
-                # To do: is this what it supposed to be cast to string?
                 service_request_value,
             )
 
@@ -1426,13 +1427,14 @@ class ROS2Adapter:
             service_result = ("WARNING: Timeout waiting for service")
             print(service_result)
             return success, service_result
-
         # Call the service if the paramaters are valid
         if service_result == "":
             service_result = service_client.call(service_request)
             success = True
             print(f"INFO: Service call result: {service_result}")
 
+        # success is True or False
+        # service_result is response from the call if success, error message if fail
         return success, service_result
 
     def handle_formant_command_request_msg(self, msg):
