@@ -1478,7 +1478,7 @@ class ROS2Adapter:
                     request_id=msg.id,
                     success=success,
                     datapoint=Datapoint(
-                        stream="service.response",
+                        stream="ros2.service_call.response",
                         text=Text(
                             value=str(service_call_result)),
                         timestamp=msg_timestamp
