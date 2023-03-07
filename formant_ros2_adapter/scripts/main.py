@@ -29,7 +29,6 @@ from formant.sdk.agent.adapter_utils.json_schema_validator import JsonSchemaVali
 
 import rclpy
 from rclpy.parameter import Parameter
-# To do (maybe): import QoSPresetProfiles instead?
 from rclpy.qos import (
     qos_profile_unknown,
     qos_profile_system_default,
@@ -119,12 +118,14 @@ ROS2_NUMERIC_TYPES = [
 ]
 
 QOS_PROFILES = {
+    # Profile details: https://github.com/ros2/rmw/blob/humble/rmw/include/rmw/qos_profiles.h
     "UNKNOWN": qos_profile_unknown,
     "SYSTEM_DEFAULT": qos_profile_system_default,
     "SENSOR_DATA": qos_profile_sensor_data,
     "SERVICES_DEFAULT": qos_profile_services_default,
     "PARAMETERS": qos_profile_parameters,
     "PARAMETER_EVENTS":qos_profile_parameter_events,
+    # Profile details: https://github.com/ros2/rcl/blob/rolling/rcl_action/include/rcl_action/default_qos.h
     "ACTION_STATUS_DEFAULT": qos_profile_action_status_default,
 }
 
