@@ -1,0 +1,8 @@
+version: "3.3"
+services:
+  ros2-adapter:
+    container_name: ros2-adapter
+    build: .
+    network_mode: host
+    volumes:
+      - "/var/lib/formant:/var/lib/formant"

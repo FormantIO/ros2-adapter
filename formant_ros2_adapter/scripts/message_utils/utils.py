@@ -21,7 +21,7 @@ NUMPY_DTYPE_TO_BUILTIN_MAPPING = {
 }
 
 
-def get_message_type_from_string(message_type_string: str):
+def get_ros2_type_from_string(message_type_string: str):
     """
     Returns a ROS2 message type for the provided ROS2 message type string
     """
@@ -31,7 +31,10 @@ def get_message_type_from_string(message_type_string: str):
         module = importlib.import_module(module_name)
         return getattr(module, path[-1])
     except:
-        print("Couldn't import ROS2 message type from string: ", message_type_string)
+        print(
+            "WARNING: Couldn't import ROS2 message type from string: ",
+            message_type_string,
+        )
         return None
 
 
