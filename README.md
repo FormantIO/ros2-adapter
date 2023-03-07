@@ -24,6 +24,7 @@ The `subscribers` section defines a list of ROS2 topics that the adapter will su
 | `ros2_message_paths`      | The list of paths configurations to ingest data from |
 | `ros2_message_paths/path` | The path within the ROS2 message                     |
 | `ros2_message_paths/tags` | The tag set to ingest data with                      |
+| `ros2_qos_profile`        | The Quality of Service profile for the messages      |
 
 #### Example
 
@@ -41,7 +42,8 @@ The `subscribers` section defines a list of ROS2 topics that the adapter will su
                         "example_key": "example_value"
                     }
                 }
-            ]
+            ],
+            "ros2_qos_profile": "SYSTEM_DEFAULT"
         }
     ]
 }
@@ -63,6 +65,7 @@ In either of these cases, the name of the configured Formant control input must 
 | `formant_stream`    | The name of the Formant stream to publish data from |
 | `ros2_topic`        | The name of the ROS2 topic to publish data to       |
 | `ros2_message_type` | The type of ROS2 topic to publish data to           |
+| `ros2_qos_profile`  | The Quality of Service profile for the messages     |
 
 #### Example
 
@@ -73,6 +76,7 @@ In either of these cases, the name of the configured Formant control input must 
             "formant_stream": "example.stream",
             "ros2_topic": "/example_topic",
             "ros2_message_type": "example_msgs/msg/ExampleType",
+            "ros2_qos_profile": "SYSTEM_DEFAULT"
         }
     ]
 }
