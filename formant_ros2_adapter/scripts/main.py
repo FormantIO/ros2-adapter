@@ -30,6 +30,11 @@ from formant.sdk.agent.adapter_utils.json_schema_validator import JsonSchemaVali
 import rclpy
 from rclpy.parameter import Parameter
 from rclpy.qos import (
+    QoSProfile,
+    HistoryPolicy,
+    ReliabilityPolicy,
+    DurabilityPolicy,
+    LivelinessPolicy,
     qos_profile_unknown,
     qos_profile_system_default,
     qos_profile_sensor_data,
@@ -117,6 +122,10 @@ ROS2_NUMERIC_TYPES = [
     "UInt64",
 ]
 
+qos_profile_example_custom = QoSProfile(
+    history=HistoryPolicy.KEEP_ALL,
+)
+
 QOS_PROFILES = {
     # Profile details: https://github.com/ros2/rmw/blob/humble/rmw/include/rmw/qos_profiles.h
     "UNKNOWN": qos_profile_unknown,
@@ -127,6 +136,8 @@ QOS_PROFILES = {
     "PARAMETER_EVENTS":qos_profile_parameter_events,
     # Profile details: https://github.com/ros2/rcl/blob/rolling/rcl_action/include/rcl_action/default_qos.h
     "ACTION_STATUS_DEFAULT": qos_profile_action_status_default,
+    # Example profile created above
+    "EXAMPLE_CUSTOM": qos_profile_example_custom,
 }
 
 # Seconds
@@ -341,7 +352,6 @@ class ROS2Adapter:
             subscriber_topic = subscriber_config["ros2_topic"]
             print(f"Subscriber for topic: {subscriber_topic}")
             subscriber_qos = QOS_PROFILES.get(subscriber_config["ros2_qos_profile"], qos_profile_system_default)
-            print(f"QoS: {subscriber_qos}, {type(subscriber_qos)}")
             new_sub = self.ros2_node.create_subscription(
                 msg_type=get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
                 topic=subscriber_topic,
@@ -379,7 +389,6 @@ class ROS2Adapter:
             publisher_topic = publisher["ros2_topic"]
             print(f"Publisher for topic: {publisher_topic}")
             publisher_qos = QOS_PROFILES.get(publisher["ros2_qos_profile"], qos_profile_system_default)
-            print(f"QoS: {publisher_qos}, {type(publisher_qos)}")
             new_pub = self.ros2_node.create_publisher(
                 msg_type=get_ros2_type_from_string(publisher["ros2_message_type"]),
                 topic=publisher_topic,
