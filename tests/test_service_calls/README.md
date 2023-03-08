@@ -21,8 +21,8 @@ New interfaces can easily be created by following the "Custom-ROS2-Interfaces" t
 
 To create new service call servers, you can take a shortcut and copy/modify one of the existing examples. You will notice that they are all almost the same structurally, but there are a few things that need to be changed:
 
-* "package.xml": `name` field, maybe `exec_depend` depending on the dependencies (ha)
+* "package.xml": `name` field, maybe `exec_depend` depending on the dependencies
 * "setup.py": `package_name`, `entry_points` fields
 * "setup.cfg": `script_dir` and `install_dir` fields
 * "resource" folder: change name of file inside to match packge
-* "service.py": whatever you want your service to look like and do!
+* "service.py": what the service actually does
