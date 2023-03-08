@@ -15,6 +15,8 @@ Set up a colcon workspace if you haven't already, and put the contents of "src" 
 
 Source the packages with source `{workspace}/install/setup.bash`.
 
+Run `ros2 pkg list`, `ros2 pkg executables {package}`, `ros2 interface list`, and `ros2 interface show {interface}` to see the new services and how to use them.
+
 ## Creating more examples
 
 New interfaces can easily be created by following the "Custom-ROS2-Interfaces" tutorial mentioned above.
