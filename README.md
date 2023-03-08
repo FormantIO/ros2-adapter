@@ -265,6 +265,28 @@ Topics will automatically be ingested as their corresponding Formant type:
 
 Stream name will be automatically configured from the topic if it is not set. (e.g. "/base/cmd_vel" -> "base.cmd_vel") The `"stream"` configuration can be set to change the stream name of ingested datapoints manually.
 
+### Quality of Service profiles
+
+The adapter currently supports selecting from a set of predefined Quality of Service profiles for publishers and subscribers, based on these default profiles: https://docs.ros.org/en/rolling/Concepts/About-Quality-of-Service-Settings.html#qos-profiles
+
+The possible configuration options are:
+
+- SYSTEM_DEFAULT
+
+- SENSOR_DATA
+
+- SERVICES_DEFAULT
+
+- PARAMETERS
+
+- PARAMETER_EVENTS
+
+- ACTION_STATUS_DEFAULT (reliable reliability, transient local durability)
+
+- EXAMPLE_CUSTOM (keep all history)
+
+The EXAMPLE_CUSTOM option shows how additional custom profiles can be created in the code of the adapter.
+
 ## Running the adapter
 
 The repo can either be zipped and configured as an adapter in Formant with "Exec command" `./start.sh`, or can be run manually.
