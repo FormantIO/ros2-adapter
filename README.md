@@ -266,3 +266,27 @@ Stream name will be automatically configured from the topic if it is not set. (e
 The repo can either be zipped and configured as an adapter in Formant with "Exec command" `./start.sh`, or can be run manually.
 
 If you use custom messages, you must update the `start.sh` script to source your workspace.
+
+## As a ROS2 Package
+Choose where you would like to have your workspace if you do not already have one created. If one already exists, skip the first command.
+```
+mkdir -p colcon_ws/src
+
+cd colcon_ws/src
+
+git clone <URL for this Repo>
+
+cd ../..
+
+source /opt/ros/<Desired Distro>/setup.bash (this adapter is meant to work with any ROS2 distribution eloquent+)
+```
+`colcon build` OR `colcon build --packages-select formant_ros2_adapter` if you have other ROS2 packages in your workspace that you don't want to build concurrently.
+
+NOTE: If you have custom messages that are not a part of the same workspace as this ros2-adapter, then source them at this point.
+```
+source install/setup.bash
+
+ros2 run formant_ros2_adapter main.py
+```
+NOTE: This is untested with ROS2 Humble
+NOTE: This is untested with fastdds
