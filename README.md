@@ -278,7 +278,7 @@ git clone <URL for this Repo>
 
 cd ../..
 
-source /opt/ros/<Desired Distro>/setup.bash (this adapter is meant to work with any ROS2 distribution eloquent+)
+source /opt/ros/<Desired Distro>/setup.bash # (this adapter is meant to work with any ROS2 distribution eloquent+)
 ```
 `colcon build` OR `colcon build --packages-select formant_ros2_adapter` if you have other ROS2 packages in your workspace that you don't want to build concurrently.
 
