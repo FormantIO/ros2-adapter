@@ -7,18 +7,16 @@
                 "formant_stream": "ip",
                 "tags": {
                     "network": "local"
-                },
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                }
             },
             {
                 "ros2_topic": "/color/image",
-                "formant_stream": "camera.color",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "formant_stream": "camera.color"
             },
             {
                 "ros2_topic": "/battery_state",
                 "formant_stream": "battery.state",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_qos_profile": "SENSOR_DATA"
             },
             {
                 "ros2_topic": "/wheel_vels",
@@ -30,8 +28,7 @@
                             "side": "left"
                         }
                     }
-                ],
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                ]
             },
             {
                 "ros2_topic": "/wheel_vels",
@@ -43,82 +40,71 @@
                             "side": "right"
                         }
                     }
-                ],
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                ]
             }
         ],
         "publishers": [
             {
                 "formant_stream": "joystick",
                 "ros2_topic": "/cmd_vel",
-                "ros2_message_type": "geometry_msgs/msg/Twist",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "geometry_msgs/msg/Twist"
             },
             {
                 "formant_stream": "test_bool1",
                 "ros2_topic": "/test_bool",
                 "ros2_message_type": "std_msgs/msg/Bool",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_qos_profile": "SENSOR_DATA"
             },
             {
                 "formant_stream": "test_bool2",
                 "ros2_topic": "/test_bool",
                 "ros2_message_type": "std_msgs/msg/Bool",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_qos_profile": "SERVICES_DEFAULT"
             },
             {
                 "formant_stream": "test_bool2",
                 "ros2_topic": "/test_string",
-                "ros2_message_type": "std_msgs/msg/String",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "std_msgs/msg/String"
             },
             {
                 "formant_stream": "test_string",
                 "ros2_topic": "/test_string",
-                "ros2_message_type": "std_msgs/msg/String",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "std_msgs/msg/String"
             },
             {
                 "formant_stream": "test_int1",
                 "ros2_topic": "/test_int1",
-                "ros2_message_type": "std_msgs/msg/Int32",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "std_msgs/msg/Int32"
             },
             {
                 "formant_stream": "test_int2",
                 "ros2_topic": "/test_int2",
-                "ros2_message_type": "std_msgs/msg/Int64",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "std_msgs/msg/Int64"
             },
             {
                 "formant_stream": "test_float32",
                 "ros2_topic": "/test_float32",
-                "ros2_message_type": "std_msgs/msg/Float32",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "std_msgs/msg/Float32"
             },
             {
                 "formant_stream": "test_twist",
                 "ros2_topic": "/test_twist",
-                "ros2_message_type": "geometry_msgs/msg/Twist",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "geometry_msgs/msg/Twist"
             },
             {
                 "formant_stream": "test_joy",
                 "ros2_topic": "/test_joy",
-                "ros2_message_type": "sensor_msgs/msg/Joy",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "sensor_msgs/msg/Joy"
             },
             {
                 "formant_stream": "test_point",
                 "ros2_topic": "/test_point",
-                "ros2_message_type": "geometry_msgs/msg/Point",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "geometry_msgs/msg/Point"
             },
             {
                 "formant_stream": "test_pose",
                 "ros2_topic": "/test_pose",
-                "ros2_message_type": "geometry_msgs/msg/Pose",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "geometry_msgs/msg/Pose"
             }  
         ],
         "service_clients": [
