@@ -5,7 +5,7 @@
                 "ros2_topic": "/ip",
                 "ros2_message_type": "std_msgs/msg/String",
                 "formant_stream": "ip",
-                "ros2_qos_profile": "SERVICES",
+                "ros2_qos_profile": ,
                 "tags": {
                     "network": "local"
                 }
@@ -27,13 +27,12 @@
                 "formant_stream": "test_string",
                 "ros2_topic": "/test_string",
                 "ros2_message_type": "std_msgs/msg/String",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_qos_profile": "SERVICES_DEFAULT"
             },
             {
                 "formant_stream": "test_int1",
                 "ros2_topic": "/test_int1",
-                "ros2_message_type": "std_msgs/msg/Int32",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_message_type": "std_msgs/msg/Int32"
             }
         ],
         "service_clients": [
