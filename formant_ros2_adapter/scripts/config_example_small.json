@@ -5,7 +5,6 @@
                 "ros2_topic": "/ip",
                 "ros2_message_type": "std_msgs/msg/String",
                 "formant_stream": "ip",
-                "ros2_qos_profile": ,
                 "tags": {
                     "network": "local"
                 }
