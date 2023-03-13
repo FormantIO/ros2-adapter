@@ -339,7 +339,7 @@ class ROS2Adapter:
         for subscriber_config in self.config.get("subscribers", []):
             subscriber_topic = subscriber_config["ros2_topic"]
             print(f"Subscriber for topic: {subscriber_topic}")
-            subscriber_qos = QOS_PROFILES.get(subscriber_config["ros2_qos_profile"], qos_profile_system_default)
+            subscriber_qos = QOS_PROFILES.get(subscriber_config.get("ros2_qos_profile",""), qos_profile_system_default)
             print(f"QoS: {subscriber_qos}, {type(subscriber_qos)}")
             new_sub = self.ros2_node.create_subscription(
                 msg_type=get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
@@ -377,7 +377,7 @@ class ROS2Adapter:
 
             publisher_topic = publisher["ros2_topic"]
             print(f"Publisher for topic: {publisher_topic}")
-            publisher_qos = QOS_PROFILES.get(publisher["ros2_qos_profile"], qos_profile_system_default)
+            publisher_qos = QOS_PROFILES.get(publisher.get("ros2_qos_profile",""), qos_profile_system_default)
             print(f"QoS: {publisher_qos}, {type(publisher_qos)}")
             new_pub = self.ros2_node.create_publisher(
                 msg_type=get_ros2_type_from_string(publisher["ros2_message_type"]),
