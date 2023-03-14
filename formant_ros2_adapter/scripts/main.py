@@ -139,7 +139,7 @@ class ROS2Adapter:
     def __init__(self):
         # For console output acknowledgement that the script has started running even if it
         # hasn't yet established communication with the Formant agent.
-        print("INFO: ROS2 Adapter has started")
+        print("INFO: ROS 2 Adapter has started")
 
         # Set up ROS2
         rclpy.init()
@@ -204,7 +204,7 @@ class ROS2Adapter:
         )
 
         # Start spinning
-        print("INFO: Starting to spin ROS2 node")
+        print("INFO: Starting to spin ROS 2 node")
         while rclpy.ok():
             rclpy.spin_once(self.ros2_node, timeout_sec=1.0)
 
@@ -215,7 +215,7 @@ class ROS2Adapter:
         rclpy.shutdown()
 
     def update_adapter_configuration(self, config:Dict):
-        print("Received Adapter Configuration")
+        print("INFO: Received adapter configuration")
         
         # Set the config object to the validated configuration
         if "ros2_adapter_configuration" in config:
@@ -223,12 +223,12 @@ class ROS2Adapter:
             self.config = config["ros2_adapter_configuration"]
         else:
             self.config = {}
-            print("Adapter Config invalid")
+            print("WARNING: Adapter configuration is invalid")
             return
 
         # Get information about the existing ROS2 system
         self.update_ros2_information()
-        print("INFO: Updated ROS2 information")
+        print("INFO: Updated ROS 2 system information")
 
         # Fill out the config with default values
         for subscriber_config in self.config.get("subscribers",[]):
@@ -256,11 +256,11 @@ class ROS2Adapter:
             if "tags" not in subscriber_config:
                 subscriber_config["tags"] = []
 
-        print("INFO: Updated config with default values")
+        print("INFO: Set default values in configuration")
         try:
             # Set each of the app config parameters as a ros2 parameter with a "formant" prefix
             self.setup_ros2_params()
-            print("INFO: Finished setting up ROS2 parameters")
+            print("INFO: Finished setting up ROS 2 parameters")
 
             self.setup_subscribers()
             print("INFO: Finished setting up subscribers")
@@ -269,14 +269,14 @@ class ROS2Adapter:
             print("INFO: Finished setting up publishers")
 
             self.setup_service_clients()
-            print(f"INFO: Finished setting up service calls\n{self.ros2_service_clients}")
+            print(f"INFO: Finished setting up service calls")
 
             # TODO: once localization visualization has been shifted to universe, this will be removed
             self.setup_localization()
             print("INFO: Finished setting up localization")
 
             self.setup_tf_ingestion()
-            print("INFO: Finished setting up tf ingestion")
+            print("INFO: Finished setting up TF ingestion")
 
             # TODO: once numeric sets can be built from the client, this will be removed
             self.setup_numeric_set_subscribers()
@@ -290,7 +290,7 @@ class ROS2Adapter:
             )
             print("INFO: Posted update event and config")
         except Exception as e:
-            print("Exception setting up: %s" % str(e))
+            print("ERROR: Exception setting up: %s" % str(e))
 
     def update_ros2_information(self):
         # Update knowledge about topics and services
@@ -324,7 +324,7 @@ class ROS2Adapter:
                 )
             )
 
-        print("INFO: Setting new ROS2 parameters")
+        print("INFO: Setting new ROS 2 parameters")
         self.ros2_node.set_parameters(new_params)
 
     def setup_subscribers(self):
@@ -338,13 +338,13 @@ class ROS2Adapter:
         # Create new subscribers based on the config
         for subscriber_config in self.config.get("subscribers", []):
             subscriber_topic = subscriber_config["ros2_topic"]
-            print(f"Subscriber for topic: {subscriber_topic}")
+            print(f"INFO: Creating subscriber for topic: {subscriber_topic}")
 
             if "ros2_qos_profile" in subscriber_config:
                 subscriber_qos = QOS_PROFILES.get(subscriber_config["ros2_qos_profile"], qos_profile_system_default)
             else:
                 subscriber_qos = qos_profile_system_default
-            print(f"QoS: {subscriber_qos}, {type(subscriber_qos)}")
+            print(f"INFO: Subscriber QoS: {subscriber_qos}")
 
             new_sub = self.ros2_node.create_subscription(
                 msg_type=get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
@@ -381,13 +381,13 @@ class ROS2Adapter:
                     continue
 
             publisher_topic = publisher["ros2_topic"]
-            print(f"Publisher for topic: {publisher_topic}")
+            print(f"INFO: creating publisher for topic: {publisher_topic}")
 
             if "ros2_qos_profile" in publisher:
                 publisher_qos = QOS_PROFILES.get(publisher["ros2_qos_profile"], qos_profile_system_default)
             else:
                 publisher_qos = qos_profile_system_default
-            print(f"QoS: {publisher_qos}, {type(publisher_qos)}")
+            print(f"INFO: Publisher QoS: {publisher_qos}")
 
             new_pub = self.ros2_node.create_publisher(
                 msg_type=get_ros2_type_from_string(publisher["ros2_message_type"]),
@@ -677,9 +677,9 @@ class ROS2Adapter:
                 print(e)
 
     def setup_tf_ingestion(self):
-        print("INFO: Setting up tf ingestion")
+        print("INFO: Setting up TF ingestion")
         if "transform_tree" not in self.config:
-            print("INFO: TF ingestion not setup.")
+            print("INFO: TF ingestion not set up")
             return
         for subscriber in self.tf_subscribers:
             try:
@@ -688,9 +688,9 @@ class ROS2Adapter:
                 pass
         self.tf_subscribers = []
 
-        print("INFO: Destroyed existing tf subscribers")
+        print("INFO: Destroyed existing TF subscribers")
         base_reference_frame = self.config["transform_tree"]["base_reference_frame"]
-        print("INFO: tf base reference frame: %s" % base_reference_frame)
+        print("INFO: TF base reference frame: %s" % base_reference_frame)
 
         self.fclient.set_base_frame_id(base_reference_frame)
 
@@ -701,7 +701,7 @@ class ROS2Adapter:
                 self.tf_callback,
                 qos_profile_sensor_data,
             )
-        print("INFO: Subscribed to tf topics")
+        print("INFO: Subscribed to TF topics")
 
     def setup_numeric_set_subscribers(self):
         print("INFO: Setting up numeric sets")
@@ -737,7 +737,7 @@ class ROS2Adapter:
                             self.ros2_topic_names_and_types[ros2_topic]
                         )
                     else:
-                        print("WARNING: ROS2 topic " + ros2_topic + " does not exist")
+                        print("WARNING: ROS 2 topic " + ros2_topic + " does not exist")
                         continue
 
                     # Create a new subscriber
@@ -782,7 +782,6 @@ class ROS2Adapter:
             )
             self.localization_manager.update_odometry(odometry)
         elif msg_type == PoseWithCovarianceStamped:
-            print("PoseWithCovarianceStamped message type")
 
             # ROS types
             ros_pose = msg.pose.pose
@@ -807,7 +806,6 @@ class ROS2Adapter:
             )
             self.localization_manager.update_map(formant_map)
         elif Costmap is not None and msg_type is Costmap:
-            print("Costmap message type")
 
             # ROS types
             ros_resolution = msg.metadata.resolution
@@ -1150,7 +1148,7 @@ class ROS2Adapter:
                         ros2_msg.data = str(msg_value)
                     else:
                         print(
-                            "WARNING: Unsupported ROS2 message type for bitset: "
+                            "WARNING: Unsupported ROS 2 message type for bitset: "
                             + ros2_msg_type
                         )
                         continue
@@ -1196,7 +1194,7 @@ class ROS2Adapter:
                         ]
                     else:
                         print(
-                            "WARNING: Unsupported ROS2 message type for twist: "
+                            "WARNING: Unsupported ROS 2 message type for twist: "
                             + ros2_msg_type
                         )
                         continue
@@ -1465,7 +1463,7 @@ class ROS2Adapter:
                     self.fclient.send_command_response(msg.id, success=True)
                 else:
                     print(
-                        "WARNING: Unsupported ROS2 message type for command: "
+                        "WARNING: Unsupported ROS 2 message type for command: "
                         f"{ros2_msg_type}"
                     )
                     self.fclient.send_command_response(msg.id, success=False)
@@ -1533,7 +1531,7 @@ class ROS2Adapter:
             ros2_msg.data = str(msg_value)
         else:
             print(
-                "WARNING: Unsupported ROS2 message type for numeric: " + ros2_msg_type
+                "WARNING: Unsupported ROS 2 message type for numeric: " + ros2_msg_type
             )
             return
 
