@@ -1470,7 +1470,7 @@ class ROS2Adapter:
                     )
                     self.fclient.send_command_response(msg.id, success=False)
                     continue
-
+        print("INFO: %s" % str(self.ros2_service_clients))
         # Call a service if a service exists for this command
         if msg.command in self.ros2_service_clients:
             print(f"INFO: Calling service {msg.command}")
