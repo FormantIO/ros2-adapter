@@ -11,6 +11,7 @@ import jsonschema
 import numpy as np
 from errno import EILSEQ
 from typing import List, Dict
+import traceback
 
 from formant.sdk.agent.v1 import Client as FormantAgentClient
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
@@ -411,17 +412,17 @@ class ROS2Adapter:
         # Set up service calls
         for service_client in self.config.get("service_clients",[]):
             try:
-                service_type_string = self.ros2_service_names_and_types[
-                    service_client["ros2_service"]
-                ]
-                service_type = get_ros2_type_from_string(service_client["ros2_service_type"])
+                service_type_string = self.ros2_service_names_and_types.get(
+                    service_client["ros2_service"], service_client["ros2_service_type"]
+                )
+                service_type = get_ros2_type_from_string(service_type_string)
                 print("INFO: Found service of type", service_type_string)
             except Exception as e:
                 print(
                     "WARNING: Could not determine service type for service "
                     + service_client["ros2_service"]
                 )
-                print(e)
+                traceback.print_exc()
                 continue
 
             # If a type has been specified, make sure it matches
