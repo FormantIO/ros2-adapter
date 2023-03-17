@@ -414,7 +414,7 @@ class ROS2Adapter:
                 service_type_string = self.ros2_service_names_and_types[
                     service_client["ros2_service"]
                 ]
-                service_type = get_ros2_type_from_string(service_type_string)
+                service_type = get_ros2_type_from_string(service_client["ros2_service_type"])
                 print("INFO: Found service of type", service_type_string)
             except Exception as e:
                 print(
