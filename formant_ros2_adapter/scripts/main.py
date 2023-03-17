@@ -403,8 +403,9 @@ class ROS2Adapter:
 
     def setup_service_clients(self):
         # Clean up existing service clients before setting up new ones
-        for service_client in self.ros2_service_clients.keys():
-            self.ros2_service_clients[service_client].destroy()
+        for service_clients in self.ros2_service_clients.items():
+            for service_client in service_clients:
+                service_client.destroy()
 
         self.ros2_service_clients = {}
         print("INFO: Cleaned up existing service clients")
