@@ -11,6 +11,7 @@ import jsonschema
 import numpy as np
 from errno import EILSEQ
 from typing import List, Dict
+import traceback
 
 from formant.sdk.agent.v1 import Client as FormantAgentClient
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
@@ -351,7 +352,13 @@ class ROS2Adapter:
         for subscriber_config in self.config.get("subscribers", []):
             subscriber_topic = subscriber_config["ros2_topic"]
             print(f"Subscriber for topic: {subscriber_topic}")
-            subscriber_qos = QOS_PROFILES.get(subscriber_config["ros2_qos_profile"], qos_profile_system_default)
+
+            if "ros2_qos_profile" in subscriber_config:
+                subscriber_qos = QOS_PROFILES.get(subscriber_config["ros2_qos_profile"], qos_profile_system_default)
+            else:
+                subscriber_qos = qos_profile_system_default
+            print(f"QoS: {subscriber_qos}, {type(subscriber_qos)}")
+
             new_sub = self.ros2_node.create_subscription(
                 msg_type=get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
                 topic=subscriber_topic,
@@ -388,7 +395,13 @@ class ROS2Adapter:
 
             publisher_topic = publisher["ros2_topic"]
             print(f"Publisher for topic: {publisher_topic}")
-            publisher_qos = QOS_PROFILES.get(publisher["ros2_qos_profile"], qos_profile_system_default)
+
+            if "ros2_qos_profile" in publisher:
+                publisher_qos = QOS_PROFILES.get(publisher["ros2_qos_profile"], qos_profile_system_default)
+            else:
+                publisher_qos = qos_profile_system_default
+            print(f"QoS: {publisher_qos}, {type(publisher_qos)}")
+
             new_pub = self.ros2_node.create_publisher(
                 msg_type=get_ros2_type_from_string(publisher["ros2_message_type"]),
                 topic=publisher_topic,
@@ -402,8 +415,9 @@ class ROS2Adapter:
 
     def setup_service_clients(self):
         # Clean up existing service clients before setting up new ones
-        for service_client in self.ros2_service_clients.keys():
-            self.ros2_service_clients[service_client].destroy()
+        for keys in self.ros2_service_clients.keys():
+            for service_client in self.ros2_service_clients[keys]:
+                service_client.destroy()
 
         self.ros2_service_clients = {}
         print("INFO: Cleaned up existing service clients")
@@ -411,9 +425,9 @@ class ROS2Adapter:
         # Set up service calls
         for service_client in self.config.get("service_clients",[]):
             try:
-                service_type_string = self.ros2_service_names_and_types[
-                    service_client["ros2_service"]
-                ]
+                service_type_string = self.ros2_service_names_and_types.get(
+                    service_client["ros2_service"], service_client["ros2_service_type"]
+                )
                 service_type = get_ros2_type_from_string(service_type_string)
                 print("INFO: Found service of type", service_type_string)
             except Exception as e:
@@ -421,7 +435,7 @@ class ROS2Adapter:
                     "WARNING: Could not determine service type for service "
                     + service_client["ros2_service"]
                 )
-                print(e)
+                traceback.print_exc()
                 continue
 
             # If a type has been specified, make sure it matches
@@ -1470,7 +1484,7 @@ class ROS2Adapter:
                     )
                     self.fclient.send_command_response(msg.id, success=False)
                     continue
-
+        print("INFO: %s" % str(self.ros2_service_clients))
         # Call a service if a service exists for this command
         if msg.command in self.ros2_service_clients:
             print(f"INFO: Calling service {msg.command}")

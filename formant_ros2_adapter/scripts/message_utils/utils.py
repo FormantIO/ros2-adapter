@@ -5,7 +5,10 @@ import json
 import codecs
 import numpy as np
 
-
+try:
+    bool_type = np.bool
+except Exception:
+    bool_type = np.bool_
 NUMPY_DTYPE_TO_BUILTIN_MAPPING = {
     np.uint8: int,
     np.uint16: int,
@@ -17,7 +20,8 @@ NUMPY_DTYPE_TO_BUILTIN_MAPPING = {
     np.int64: int,
     np.float32: float,
     np.float64: float,
-    np.bool: bool,
+    bool_type: bool,
+    bool:bool,
 }
 
 
@@ -30,10 +34,10 @@ def get_ros2_type_from_string(message_type_string: str):
         module_name = ".".join(path[:-1])
         module = importlib.import_module(module_name)
         return getattr(module, path[-1])
-    except:
+    except Exception as e:
         print(
-            "WARNING: Couldn't import ROS2 message type from string: ",
-            message_type_string,
+            "WARNING: Couldn't import ROS2 message type from string: %s %s" %
+            (message_type_string, str(e)),
         )
         return None
 
