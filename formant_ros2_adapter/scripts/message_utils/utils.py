@@ -6,9 +6,10 @@ import codecs
 import numpy as np
 
 try:
-    bool_type = np.bool
-except Exception:
     bool_type = np.bool_
+except Exception:
+    bool_type = np.bool
+
 NUMPY_DTYPE_TO_BUILTIN_MAPPING = {
     np.uint8: int,
     np.uint16: int,
@@ -21,7 +22,7 @@ NUMPY_DTYPE_TO_BUILTIN_MAPPING = {
     np.float32: float,
     np.float64: float,
     bool_type: bool,
-    bool:bool,
+    bool: bool,
 }
 
 
@@ -36,8 +37,8 @@ def get_ros2_type_from_string(message_type_string: str):
         return getattr(module, path[-1])
     except Exception as e:
         print(
-            "WARNING: Couldn't import ROS2 message type from string: %s %s" %
-            (message_type_string, str(e)),
+            "WARNING: Couldn't import ROS2 message type from string: %s %s"
+            % (message_type_string, str(e)),
         )
         return None
 
