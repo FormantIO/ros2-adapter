@@ -170,7 +170,9 @@ class GenericPublisher:
 
                 publisher.publish(ros2_msg)
 
-    def _publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
+    def _publish_ros2_numeric(
+        self, publisher: Publisher, ros2_msg_type: str, msg_value
+    ):
         if ros2_msg_type == "Float32":
             ros2_msg = Float32()
             ros2_msg.data = np.float32(msg_value).item()
