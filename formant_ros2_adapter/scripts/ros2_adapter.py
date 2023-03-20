@@ -64,24 +64,3 @@ class ROS2Adapter:
             self._formant_control.setup_with_config(self.config)
         except Exception as e:
             self._logger.error(traceback.format_exc())
-
-
-if __name__ == "__main__":
-    rclpy.init()
-    node = rclpy.create_node(
-        "formant_ros2_adapter",
-        allow_undeclared_parameters=True,
-        automatically_declare_parameters_from_overrides=True,
-    )
-    fclient = Client(ignore_throttled=True)
-    ROS2Adapter(fclient, node)
-    try:
-        while rclpy.ok():
-            rclpy.spin_once(node, timeout_sec=1.0)
-    except KeyboardInterrupt:
-        exit()
-        # Clean up before shutting down
-    if node:
-        node.destroy_node()
-
-    rclpy.shutdown()
