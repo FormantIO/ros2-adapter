@@ -1,0 +1,11 @@
+{
+    "ros2_adapter_configuration": {
+        "subscribers": [
+            {
+                "ros2_topic": "/qa_string",
+                "ros2_message_type": "std_msgs/msg/String",
+                "formant_stream": "qa.string"
+            }
+        ]
+    }
+}
