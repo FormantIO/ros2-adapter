@@ -1,0 +1,24 @@
+{
+    "ros2_adapter_configuration": {
+        "subscribers": [
+            {
+                "ros2_topic": "/my_velocity",
+                "formant_stream": "my.velocity.linear",
+                "ros2_message_paths": [
+                    {
+                        "path": "linear"
+                    }
+                ]
+            },
+            {
+                "ros2_topic": "/my_velocity",
+                "formant_stream": "my.velocity.angular",
+                "ros2_message_paths": [
+                    {
+                        "path": "angular"
+                    }
+                ]
+            }
+        ]
+    }
+}
