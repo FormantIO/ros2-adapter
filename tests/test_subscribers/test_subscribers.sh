@@ -2,8 +2,8 @@
 
 
 DEVICE="nicolas-container"
-TOPIC="/nicolas_string"
-STREAM="nicolas.string"
+TOPIC="/my_string"
+STREAM="my.string"
 
 source /opt/ros/*/setup.bash
 
