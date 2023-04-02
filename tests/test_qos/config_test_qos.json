@@ -7,6 +7,14 @@
                 "formant_stream": "nicolas.string",
                 "ros2_qos_profile": "PARAMETERS"
             }
+        ],
+        "publishers": [
+            {
+                "ros2_topic": "/my_command_for_publisher",
+                "ros2_message_type": "std_msgs/msg/String",
+                "formant_stream": "my.command.for.publisher",
+                "ros2_qos_profile": "SENSOR_DATA"
+            }
         ]
     }
 }
