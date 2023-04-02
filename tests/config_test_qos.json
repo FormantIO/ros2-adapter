@@ -1,0 +1,12 @@
+{
+    "ros2_adapter_configuration": {
+        "subscribers": [
+            {
+                "ros2_topic": "/nicolas_string",
+                "ros2_message_type": "std_msgs/msg/String",
+                "formant_stream": "nicolas.string",
+                "ros2_qos_profile": "PARAMETERS"
+            }
+        ]
+    }
+}
