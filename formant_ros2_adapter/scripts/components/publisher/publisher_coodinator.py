@@ -1,13 +1,15 @@
-from configuration.config_schema import ConfigSchema
-from configuration.publisher_config import PublisherConfig
+from typing import List, Optional, Dict
 from rclpy.node import Node
 from rclpy.publisher import Publisher
-from typing import List, Optional, Dict
+
 from formant.sdk.agent.v1 import Client
+
+from configuration.config_schema import ConfigSchema
+from configuration.publisher_config import PublisherConfig
 from ros2_utils.topic_type_provider import TopicTypeProvider
+from ros2_utils.logger import get_logger
 from .localization_publisher import LocalizationPublisher
 from .generic_publisher import GenericPublisher
-from ros2_utils.logger import get_logger
 
 
 class PublisherCoordinator:

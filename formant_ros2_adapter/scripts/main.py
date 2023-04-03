@@ -1,6 +1,9 @@
 import rclpy
+
 from formant.sdk.agent.v1 import Client
+
 from ros2_adapter import ROS2Adapter
+
 
 if __name__ == "__main__":
     rclpy.init()

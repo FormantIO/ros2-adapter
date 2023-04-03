@@ -1,7 +1,8 @@
-from rclpy.node import Node
-from typing import Dict
-from message_utils.utils import get_ros2_type_from_string
 import time
+from typing import Dict
+from rclpy.node import Node
+
+from message_utils.utils import get_ros2_type_from_string
 
 
 class TopicTypeProvider:

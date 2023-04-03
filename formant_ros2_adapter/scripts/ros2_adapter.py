@@ -1,7 +1,11 @@
+import traceback
+import time
 import rclpy
 from rclpy.node import Node
+
 from formant.sdk.agent.v1 import Client
 from formant.sdk.agent.adapter_utils import JsonSchemaValidator
+
 from configuration.config_schema import ConfigSchema
 from components.subscriber.subscriber_coordinator import SubscriberCoordinator
 from components.services.service_coordinator import ServiceCoordinator
@@ -10,8 +14,7 @@ from components.parameters.parameter_coordinator import ParameterCoordinator
 from components.formant_control.formant_control import FormantControl
 from ros2_utils.topic_type_provider import TopicTypeProvider
 from ros2_utils.logger import get_logger
-import traceback
-import time
+
 
 INITIAL_WAIT = 5
 

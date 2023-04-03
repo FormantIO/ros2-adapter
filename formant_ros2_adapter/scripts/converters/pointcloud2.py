@@ -2,11 +2,12 @@ import math
 import time
 import struct
 import array
-
 import lzf
-from sensor_msgs.msg import PointCloud2
-from formant.protos.model.v1.media_pb2 import PointCloud
 import numpy as np
+from sensor_msgs.msg import PointCloud2
+
+from formant.protos.model.v1.media_pb2 import PointCloud
+
 
 FLOAT_DATA_TYPE = 7
 DOUBLE_DATA_TYPE = 8

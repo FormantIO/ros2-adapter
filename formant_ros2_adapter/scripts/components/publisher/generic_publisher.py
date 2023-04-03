@@ -1,19 +1,10 @@
 import numpy as np
-from configuration.config_schema import ConfigSchema
-from configuration.publisher_config import PublisherConfig
+from typing import List, Optional, Dict
 from rclpy.node import Node
 from rclpy.publisher import Publisher
-from typing import List, Optional, Dict
+
 from formant.sdk.agent.v1 import Client
-from ros2_utils.topic_type_provider import TopicTypeProvider
-from geometry_msgs.msg import PoseStamped
-from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
-from std_msgs.msg import Bool
-from ros2_utils.logger import get_logger
-from message_utils.utils import (
-    get_ros2_type_from_string,
-    get_message_path_value,
-)
+
 from std_msgs.msg import (
     Bool,
     Char,
@@ -56,6 +47,16 @@ from geometry_msgs.msg import (
 )
 
 from nav_msgs.msg import Odometry, OccupancyGrid, Path
+
+from configuration.config_schema import ConfigSchema
+from configuration.publisher_config import PublisherConfig
+from ros2_utils.topic_type_provider import TopicTypeProvider
+from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
+from ros2_utils.logger import get_logger
+from message_utils.utils import (
+    get_ros2_type_from_string,
+    get_message_path_value,
+)
 
 ROS2_NUMERIC_TYPES = [
     "Float32",
