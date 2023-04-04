@@ -131,11 +131,11 @@ class GenericPublisher:
                 self._publish_ros2_numeric(publisher, ros2_msg_type, msg_value)
 
             elif msg.HasField("point"):
-                print("WARNING: Point is not yet supported")
+                self._logger.warn("Point is not yet supported")
             elif msg.HasField("pose"):
-                print("WARNING: Pose is not yet supported")
+                self._logger.warn("Pose is not yet supported")
             elif msg.HasField("pose_with_covariance"):
-                print("WARNING: Pose_with_covariance is not yet supported")
+                self._logger.warn("Pose_with_covariance is not yet supported")
             elif msg.HasField("twist"):
                 if ros2_msg_type == "Twist":
                     ros2_msg = Twist()
@@ -208,8 +208,8 @@ class GenericPublisher:
             ros2_msg = String()
             ros2_msg.data = str(msg_value)
         else:
-            print(
-                "WARNING: Unsupported ROS2 message type for numeric: " + ros2_msg_type
+            self._logger.warn(
+                "Unsupported ROS2 message type for numeric: " + ros2_msg_type
             )
             return
 

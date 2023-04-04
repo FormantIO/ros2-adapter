@@ -46,11 +46,14 @@ from message_utils.utils import (
     get_message_path_value,
 )
 
+from ros2_utils.logger import get_logger
+
 
 class Ingester:
     def __init__(self, _fclient: Client):
         self._fclient = _fclient
         self.cv_bridge = CvBridge()
+        self._logger = get_logger()
 
     def ingest(
         self,
@@ -140,7 +143,7 @@ class Ingester:
                 elif "png" in msg.format:
                     content_type = "image/png"
                 else:
-                    print("WARNING: Image format", msg.format, "not supported")
+                    self._logger.warn("Image format", msg.format, "not supported")
                     return
                 self._fclient.post_image(
                     formant_stream,
@@ -175,7 +178,7 @@ class Ingester:
                 except grpc.RpcError as e:
                     return
                 except Exception as e:
-                    print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
+                    self._logger.error("Could not ingest " + formant_stream + ": " + str(e))
                     return
 
             elif msg_type == PointCloud2:
@@ -191,7 +194,7 @@ class Ingester:
                 except grpc.RpcError as e:
                     return
                 except Exception as e:
-                    print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
+                    self._logger.error("Could not ingest " + formant_stream + ": " + str(e))
                     return
 
             else:
@@ -204,4 +207,4 @@ class Ingester:
                 )
 
         except AttributeError as e:
-            print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
+            self._logger.error("Could not ingest " + formant_stream + ": " + str(e))

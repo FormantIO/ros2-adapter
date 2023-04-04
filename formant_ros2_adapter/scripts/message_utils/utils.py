@@ -4,6 +4,7 @@ import array
 import json
 import codecs
 import numpy as np
+import logging
 
 try:
     bool_type = np.bool_
@@ -26,6 +27,10 @@ NUMPY_DTYPE_TO_BUILTIN_MAPPING = {
 }
 
 
+logger = logging.getLogger("formant_ros2_adapter")
+logger.setLevel(logging.DEBUG)
+
+
 def get_ros2_type_from_string(message_type_string: str):
     """
     Returns a ROS2 message type for the provided ROS2 message type string
@@ -36,8 +41,8 @@ def get_ros2_type_from_string(message_type_string: str):
         module = importlib.import_module(module_name)
         return getattr(module, path[-1])
     except Exception as e:
-        print(
-            "WARNING: Couldn't import ROS2 message type from string: %s %s"
+        logger.warn(
+            "Couldn't import ROS2 message type from string: %s %s"
             % (message_type_string, str(e)),
         )
         return None
