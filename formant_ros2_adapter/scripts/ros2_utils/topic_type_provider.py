@@ -14,7 +14,6 @@ class TopicTypeProvider:
     def update_topic_types(self):
         self.ros2_topic_names_and_types = {}
         ros2_topic_names_and_types = self._node.get_topic_names_and_types()
-        print(ros2_topic_names_and_types)
         for topic in ros2_topic_names_and_types:
             # Just use first type
             self.ros2_topic_names_and_types[topic[0]] = topic[1][0]
@@ -25,11 +24,9 @@ class TopicTypeProvider:
             self.ros2_service_names_and_types[service[0]] = service[1][0]
 
     def get_type_for_topic(self, topic):
-        print(self.ros2_topic_names_and_types)
         result = self.ros2_topic_names_and_types.get(topic, None)
         while result is None:
             self.update_topic_types()
-            print(self.ros2_topic_names_and_types)
             result = self.ros2_topic_names_and_types.get(topic, None)
         return result
 
