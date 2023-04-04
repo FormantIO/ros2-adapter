@@ -15,7 +15,12 @@ Set up a colcon workspace if you haven't already, and put the contents of "src" 
 
 Source the packages with source `{workspace}/install/setup.bash`.
 
-Run `ros2 pkg list`, `ros2 pkg executables {package}`, `ros2 interface list`, and `ros2 interface show {interface}` to see the new services and how to use them.
+Run `ros2 pkg list`, `ros2 pkg executables {package}`, `ros2 interface list`, and `ros2 interface show {interface}` to see the new services and how to use them ([this example config](https://github.com/FormantIO/ros2-adapter/blob/qa-adapter/tests/test_service_calls/config_test_service_calls.json) also shows the names of the services and interfaces).
+
+## Testing
+1. Run the ROS 2 adapter with the service calls configured (e.g. [this example config](https://github.com/FormantIO/ros2-adapter/blob/qa-adapter/tests/test_service_calls/config_test_service_calls.json))
+2. Run the service server (e.g. `ros2 run formant_int service`)
+3. Send a command or publish to a topic from Formant whose name matches the `formant_stream` field in the config (e.g. `ros2_service_test_set_int`)
 
 ## Creating more examples
 
