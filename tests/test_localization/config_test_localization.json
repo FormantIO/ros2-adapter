@@ -4,11 +4,8 @@
       "formant_stream": "turtlebot3.localization",
       "base_reference_frame": "map",
       "odometry_subscriber_ros2_topic": "/odom",
-      "map_subscriber_ros2_topic": "/map",
-      "point_cloud_subscriber_ros2_topics": [{"ros2_topic": "/scan"}],
-      "path_subscriber_ros2_topic": "/plan",
-      "goal_subscriber_ros2_topic": "/goal_pose",
-      "goal_publisher_ros2_topic": "/goal_pose"
+      "map_subscriber_ros2_topic": "/local_costmap/costmap_raw",
+      "point_cloud_subscriber_ros2_topics": [{"ros2_topic": "/scan"}]
     }
   }
 }
