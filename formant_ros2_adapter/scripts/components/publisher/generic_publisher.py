@@ -254,6 +254,8 @@ class GenericPublisher:
         self._publishers[formant_stream].append(new_pub)
 
     def _cleanup(self):
+        self._logger.debug("Cleaning up publishers")
         for publisher in self._publishers.items():
             self._node.destroy_publisher(publisher[1])
+            self._logger.debug("Destroyed publisher: %s" % str(publisher[1]))
         self._publishers = {}

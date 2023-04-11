@@ -54,8 +54,10 @@ class LocalizationSubscriberCoordinator:
 
     def _setup_transform_listener(self):
         try:
+            self._logger.info("Setting up tf2_ros transform listener")
             self.tf_buffer = Buffer()
             self.tf_listener = TransformListener(self.tf_buffer, self._node)
+            self._logger.info("Set up tf2_ros transform listener")
 
         except Exception as e:
             self._logger.warn(
@@ -87,6 +89,7 @@ class LocalizationSubscriberCoordinator:
             self._setup_localization(self._config.localization)
 
     def _setup_localization(self, localization_config: LocalizationConfig):
+        self._logger.info("Setting up localization")
         self._localization_manager = self._fclient.get_localization_manager(
             localization_config.formant_stream
         )
@@ -100,6 +103,7 @@ class LocalizationSubscriberCoordinator:
             qos_profile=qos_profile_system_default,
         )
         self._subscriptions.append(odom_sub)
+        self._logger.info("Odometry: %s" % str(odom_sub))
 
         # Setup Map
         map_topic = localization_config.map_subscriber_ros2_topic
@@ -114,6 +118,9 @@ class LocalizationSubscriberCoordinator:
                 qos_profile=qos_profile_system_default,
             )
             self._subscriptions.append(map_sub)
+            self._logger.info("Map: %s" % str(map_sub))
+
+        # Setup Path
         path_topic = localization_config.path_subscriber_ros2_topic
         if path_topic:
             path_type = self._topic_type_provider.get_class_for_topic(path_topic, Path)
@@ -124,6 +131,9 @@ class LocalizationSubscriberCoordinator:
                 qos_profile=qos_profile_system_default,
             )
             self._subscriptions.append(path_sub)
+            self._logger.info("Path: %s" % str(path_sub))
+
+        # Setup Pointcloud
         pointcloud_topics = localization_config.point_cloud_subscriber_ros2_topics
         if pointcloud_topics:
             for topic in pointcloud_topics:
@@ -137,6 +147,9 @@ class LocalizationSubscriberCoordinator:
                     qos_profile=qos_profile_system_default,
                 )
                 self._subscriptions.append(pointcloud_sub)
+                self._logger.info("Point cloud: %s" % str(pointcloud_sub))
+
+        self._logger.info("Set up localization")
 
     def _odom_callback(self, msg):
         msg_type = type(msg)
