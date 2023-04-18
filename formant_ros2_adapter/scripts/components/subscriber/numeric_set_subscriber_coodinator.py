@@ -1,23 +1,9 @@
-from configuration.config_schema import ConfigSchema
-from configuration.numeric_set_config import (
-    NumericSetConfig,
-    NumericSetSubscriberConfig,
-)
-from ros2_utils.topic_type_provider import TopicTypeProvider
-from formant.sdk.agent.v1 import Client
-from rclpy.node import Node
+#import rclpy
 import os
-import time
-from .ingester import Ingester
-import rclpy
+from rclpy.node import Node
 from rclpy.subscription import Subscription
+import time
 from typing import List, Dict, Optional, Any
-from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
-from ros2_utils.logger import get_logger
-from message_utils.utils import (
-    get_ros2_type_from_string,
-    get_message_path_value,
-)
 from std_msgs.msg import (
     Bool,
     Char,
@@ -32,6 +18,22 @@ from std_msgs.msg import (
     UInt16,
     UInt32,
     UInt64,
+)
+
+from formant.sdk.agent.v1 import Client
+
+from configuration.config_schema import ConfigSchema
+from .ingester import Ingester
+from ros2_utils.logger import get_logger
+from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
+from ros2_utils.topic_type_provider import TopicTypeProvider
+from configuration.numeric_set_config import (
+    NumericSetConfig,
+    NumericSetSubscriberConfig,
+)
+from message_utils.utils import (
+    get_ros2_type_from_string,
+    get_message_path_value,
 )
 
 

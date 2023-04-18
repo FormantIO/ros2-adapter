@@ -1,10 +1,10 @@
-import re
-import importlib
 import array
-import json
 import codecs
-import numpy as np
+import importlib
+import json
 import logging
+import numpy as np
+import re
 
 try:
     bool_type = np.bool_

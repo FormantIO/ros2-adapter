@@ -1,11 +1,11 @@
-import math
-import time
-import struct
 import array
-import lzf
 import logging
+import lzf
+import math
 import numpy as np
 from sensor_msgs.msg import PointCloud2
+import struct
+import time
 
 from formant.protos.model.v1.media_pb2 import PointCloud
 

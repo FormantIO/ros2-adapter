@@ -1,12 +1,13 @@
-from configuration.config_schema import ConfigSchema
-from ros2_utils.topic_type_provider import TopicTypeProvider
-from .basic_subscriber_coodinator import BasicSubscriberCoordinator
-from .numeric_set_subscriber_coodinator import NumericSetSubscriberCoordinator
 from formant.sdk.agent.v1 import Client
-from .localization_subscriber_coodinator import LocalizationSubscriberCoordinator
-from rclpy.node import Node
+
+from .basic_subscriber_coodinator import BasicSubscriberCoordinator
+from configuration.config_schema import ConfigSchema
 from .ingester import Ingester
+from .localization_subscriber_coodinator import LocalizationSubscriberCoordinator
+from .numeric_set_subscriber_coodinator import NumericSetSubscriberCoordinator
+from rclpy.node import Node
 from ros2_utils.logger import get_logger
+from ros2_utils.topic_type_provider import TopicTypeProvider
 
 
 class SubscriberCoordinator:

@@ -1,22 +1,24 @@
-from configuration.config_schema import ConfigSchema
-from configuration.subscriber_config import SubscriberConfig, MessagePathConfig
-from ros2_utils.topic_type_provider import TopicTypeProvider
-from formant.sdk.agent.v1 import Client
-from rclpy.node import Node
 import os
-import time
-from .ingester import Ingester
-import rclpy
+#import rclpy
+from rclpy.node import Node
 from rclpy.subscription import Subscription
 from typing import List, Dict, Optional
 from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
 from ros2_utils.logger import get_logger
+import time
+import traceback
 from message_utils.utils import (
     get_ros2_type_from_string,
     get_message_path_value,
 )
 
-import traceback
+from formant.sdk.agent.v1 import Client
+
+from configuration.config_schema import ConfigSchema
+from configuration.subscriber_config import SubscriberConfig, MessagePathConfig
+from .ingester import Ingester
+from ros2_utils.topic_type_provider import TopicTypeProvider
+
 
 FORMANT_OVERRIDE_TIMESTAMP = (
     os.getenv("FORMANT_OVERRIDE_TIMESTAMP", "").lower() == "true"

@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 from .get_value import get_value
 

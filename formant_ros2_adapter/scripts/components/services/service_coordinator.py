@@ -1,8 +1,8 @@
 from enum import Enum
 import os
 import time
-from typing import List, Dict, Optional
-import rclpy
+from typing import Dict, List, Optional
+#import rclpy
 from rclpy.node import Node
 from rclpy.client import Client
 
@@ -10,6 +10,7 @@ from formant.sdk.agent.v1 import Client as FormantClient
 
 from configuration.config_schema import ConfigSchema
 from configuration.service_client_config import ServiceClientConfig
+from .prepare_service_request import prepare_serivce_request
 from ros2_utils.topic_type_provider import TopicTypeProvider
 from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
 from ros2_utils.logger import get_logger
@@ -18,7 +19,6 @@ from message_utils.utils import (
     get_message_path_value,
 )
 from .service_call_result import ServiceCallResult, ResultType
-from .prepare_service_request import prepare_serivce_request
 
 
 FORMANT_OVERRIDE_TIMESTAMP = (
