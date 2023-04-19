@@ -1,8 +1,8 @@
 import json
 from rclpy.client import Client, SrvTypeRequest
 
-from ros2_utils.logger import get_logger
 from .service_call_result import ServiceCallResult, ResultType
+from utils.logger import get_logger
 
 
 logger = get_logger()

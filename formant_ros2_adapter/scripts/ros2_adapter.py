@@ -11,9 +11,8 @@ from components.publisher.publisher_coodinator import PublisherCoordinator
 from components.services.service_coordinator import ServiceCoordinator
 from components.subscriber.subscriber_coordinator import SubscriberCoordinator
 from configuration.config_schema import ConfigSchema
-
-from ros2_utils.logger import get_logger
 from ros2_utils.topic_type_provider import TopicTypeProvider
+from utils.logger import get_logger
 
 
 INITIAL_WAIT = 5

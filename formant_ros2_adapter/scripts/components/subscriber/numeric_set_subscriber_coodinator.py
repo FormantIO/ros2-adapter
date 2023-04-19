@@ -1,4 +1,3 @@
-#import rclpy
 import os
 from rclpy.node import Node
 from rclpy.subscription import Subscription
@@ -24,16 +23,16 @@ from formant.sdk.agent.v1 import Client
 
 from configuration.config_schema import ConfigSchema
 from .ingester import Ingester
-from ros2_utils.logger import get_logger
 from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
 from ros2_utils.topic_type_provider import TopicTypeProvider
+from utils.logger import get_logger
+from ros2_utils.message_utils import (
+    get_ros2_type_from_string,
+    get_message_path_value,
+)
 from configuration.numeric_set_config import (
     NumericSetConfig,
     NumericSetSubscriberConfig,
-)
-from message_utils.utils import (
-    get_ros2_type_from_string,
-    get_message_path_value,
 )
 
 

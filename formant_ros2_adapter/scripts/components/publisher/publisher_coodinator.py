@@ -9,7 +9,7 @@ from configuration.publisher_config import PublisherConfig
 from .generic_publisher import GenericPublisher
 from .localization_publisher import LocalizationPublisher
 from ros2_utils.topic_type_provider import TopicTypeProvider
-from ros2_utils.logger import get_logger
+from utils.logger import get_logger
 
 
 class PublisherCoordinator:

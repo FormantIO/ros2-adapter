@@ -2,7 +2,6 @@ from enum import Enum
 import os
 import time
 from typing import Dict, List, Optional
-#import rclpy
 from rclpy.node import Node
 from rclpy.client import Client
 
@@ -13,8 +12,8 @@ from configuration.service_client_config import ServiceClientConfig
 from .prepare_service_request import prepare_serivce_request
 from ros2_utils.topic_type_provider import TopicTypeProvider
 from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
-from ros2_utils.logger import get_logger
-from message_utils.utils import (
+from utils.logger import get_logger
+from ros2_utils.message_utils import (
     get_ros2_type_from_string,
     get_message_path_value,
 )

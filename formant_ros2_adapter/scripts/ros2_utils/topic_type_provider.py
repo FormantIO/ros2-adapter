@@ -2,7 +2,7 @@ from typing import Dict
 from rclpy.node import Node
 import time
 
-from message_utils.utils import get_ros2_type_from_string
+from ros2_utils.message_utils import get_ros2_type_from_string
 
 
 class TopicTypeProvider:

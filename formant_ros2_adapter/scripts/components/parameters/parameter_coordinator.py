@@ -4,7 +4,7 @@ from rclpy.parameter import Parameter
 from formant.sdk.agent.v1 import Client
 
 from configuration.config_schema import ConfigSchema
-from ros2_utils.logger import get_logger
+from utils.logger import get_logger
 
 
 class ParameterCoordinator:

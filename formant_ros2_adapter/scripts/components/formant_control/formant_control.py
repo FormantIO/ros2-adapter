@@ -9,7 +9,7 @@ from configuration.config_schema import ConfigSchema
 from ..publisher.publisher_coodinator import PublisherCoordinator
 from ..services.service_call_result import ResultType
 from ..services.service_coordinator import ServiceCoordinator
-from ros2_utils.logger import get_logger
+from utils.logger import get_logger
 
 
 class FormantControl:

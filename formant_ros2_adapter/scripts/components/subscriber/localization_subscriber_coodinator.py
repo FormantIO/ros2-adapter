@@ -27,7 +27,7 @@ from configuration.config_schema import ConfigSchema
 from configuration.localization_config import LocalizationConfig
 from configuration.subscriber_config import SubscriberConfig
 from configuration.transform_tree_config import TransformTreeConfig
-from ros2_utils.logger import get_logger
+from utils.logger import get_logger
 from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
 from ros2_utils.topic_type_provider import TopicTypeProvider
 

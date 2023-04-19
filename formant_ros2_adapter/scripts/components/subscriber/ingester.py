@@ -40,8 +40,8 @@ from formant.sdk.agent.v1.localization.types import (
     Quaternion as FQuaternion,
 )
 
-from ros2_utils.logger import get_logger
-from message_utils.utils import (
+from utils.logger import get_logger
+from ros2_utils.message_utils import (
     get_ros2_type_from_string,
     message_to_json,
     get_message_path_value,
