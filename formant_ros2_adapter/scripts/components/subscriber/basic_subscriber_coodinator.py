@@ -38,8 +38,11 @@ class BasicSubscriberCoordinator:
         self._topic_type_provider = topic_type_provider
         self._subscriptions: Dict[str, List[Subscription]] = {}
         self._logger = get_logger()
+        self._config_lock = False
 
     def setup_with_config(self, config: ConfigSchema):
+        self._config_lock = True
+
         self._config = config
         self._cleanup()
         if self._config.subscribers:
@@ -49,6 +52,8 @@ class BasicSubscriberCoordinator:
                 except ValueError as value_error:
                     self._logger.warn(value_error)
                     continue
+
+        self._config_lock = False
 
     def _setup_subscription_for_config(self, subscriber_config: SubscriberConfig):
         topic = subscriber_config.topic
@@ -86,45 +91,46 @@ class BasicSubscriberCoordinator:
         message_path_config: Optional[MessagePathConfig] = None,
         timestamp: Optional[int] = None,
     ):
-        try:
-            message_type = type(msg)
-            formant_stream = subscriber_config.formant_stream
-            topic = subscriber_config.topic
-            tags = {}
-            if (
-                message_path_config
-                and message_path_config.tag_key
-                and message_path_config.tag_value
-            ):
-                tags = {message_path_config.tag_key: message_path_config.tag_value}
-            if timestamp is None:
-                timestamp = int(time.time() * 1000)
-                if hasattr(msg, "header"):
-                    if not FORMANT_OVERRIDE_TIMESTAMP:
-                        header_timestamp = (
-                            msg.header.stamp.sec * 1000
-                            + msg.header.stamp.nanosec / 1000000
-                        )
-                        # sanity check to make sure ros header stamp is in epoch time
-                        if header_timestamp > 1500000000000:
-                            timestamp = int(header_timestamp)
+        if not self._config_lock:
+            try:
+                message_type = type(msg)
+                formant_stream = subscriber_config.formant_stream
+                topic = subscriber_config.topic
+                tags = {}
+                if (
+                    message_path_config
+                    and message_path_config.tag_key
+                    and message_path_config.tag_value
+                ):
+                    tags = {message_path_config.tag_key: message_path_config.tag_value}
+                if timestamp is None:
+                    timestamp = int(time.time() * 1000)
+                    if hasattr(msg, "header"):
+                        if not FORMANT_OVERRIDE_TIMESTAMP:
+                            header_timestamp = (
+                                msg.header.stamp.sec * 1000
+                                + msg.header.stamp.nanosec / 1000000
+                            )
+                            # sanity check to make sure ros header stamp is in epoch time
+                            if header_timestamp > 1500000000000:
+                                timestamp = int(header_timestamp)
 
-            if message_path_config is None:
-                if subscriber_config.message_paths:
-                    for message_path_config in subscriber_config.message_paths:
-                        inner_msg = get_message_path_value(
-                            msg, message_path_config.path
-                        )
-                        # handle the inner message with the path config
-                        self._handle_message(
-                            inner_msg, subscriber_config, message_path_config
-                        )
-                    return
-            self._ingester.ingest(
-                msg, message_type, formant_stream, topic, timestamp, tags
-            )
-        except Exception as e:
-            self._logger.error("Error handling message %s" % traceback.format_exc())
+                if message_path_config is None:
+                    if subscriber_config.message_paths:
+                        for message_path_config in subscriber_config.message_paths:
+                            inner_msg = get_message_path_value(
+                                msg, message_path_config.path
+                            )
+                            # handle the inner message with the path config
+                            self._handle_message(
+                                inner_msg, subscriber_config, message_path_config
+                            )
+                        return
+                self._ingester.ingest(
+                    msg, message_type, formant_stream, topic, timestamp, tags
+                )
+            except Exception as e:
+                self._logger.error("Error handling message %s" % traceback.format_exc())
 
     def _cleanup(self):
         for subscription_item in self._subscriptions.items():

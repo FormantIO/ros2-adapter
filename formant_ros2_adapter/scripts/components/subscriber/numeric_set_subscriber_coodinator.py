@@ -55,8 +55,11 @@ class NumericSetSubscriberCoordinator:
         self._topic_type_provider = topic_type_provider
         self._subscriptions: Dict[str, List[Subscription]] = {}
         self._logger = get_logger()
+        self._config_lock = False
 
     def setup_with_config(self, config: ConfigSchema):
+        self._config_lock = True
+
         self._config = config
         self._cleanup()
         if self._config.numeric_sets:
@@ -66,6 +69,8 @@ class NumericSetSubscriberCoordinator:
                 except ValueError as value_error:
                     self._logger.warn(value_error)
                     continue
+
+        self._config_lock = False
 
     def _setup_subscription_for_config(self, numeric_set_config: NumericSetConfig):
         formant_stream = numeric_set_config.formant_stream
@@ -96,57 +101,58 @@ class NumericSetSubscriberCoordinator:
         numeric_set_config: NumericSetConfig,
         subscriber_config: NumericSetSubscriberConfig,
     ):
-        self._logger.info("Handling message")
-        formant_stream = numeric_set_config.formant_stream
-        path = subscriber_config.message_path
-        if path:
-            path = subscriber_config["ros2_message_path"]
+        if not self._config_lock:
+            self._logger.info("Handling message")
+            formant_stream = numeric_set_config.formant_stream
+            path = subscriber_config.message_path
+            if path:
+                path = subscriber_config["ros2_message_path"]
 
-            try:
-                msg = get_message_path_value(msg, path)
-                msg_type = type(msg)
-            except:
+                try:
+                    msg = get_message_path_value(msg, path)
+                    msg_type = type(msg)
+                except:
+                    self._logger.error(
+                        "Could not find path '%s' in message %s" % (path, str(msg))
+                    )
+                    return
+
+            msg_type = type(msg)
+
+            label = subscriber_config.label
+            unit = subscriber_config.unit if subscriber_config.unit else ""
+
+            # If the message has a data attribute, use that
+            if hasattr(msg, "data"):
+                msg = msg.data
+
+            # If the message is already a number, use that
+            if msg_type in [int, float]:
+                value = msg
+
+            # If the message is a ROS2 integer, cast it to an int and use that
+            elif msg_type in [Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]:
+                value = int(msg)
+
+            # If the message is a ROS2 float, cast it to a float and use that
+            elif msg_type in [Float32, Float64]:
+                value = float(msg)
+
+            else:
                 self._logger.error(
-                    "Could not find path '%s' in message %s" % (path, str(msg))
+                    "Could not ingest %s: %s" % (formant_stream, str(msg_type))
                 )
                 return
 
-        msg_type = type(msg)
+            # Update the current set with the new value
+            if formant_stream not in self.numeric_set_buffer:
+                self._numeric_set_buffer[formant_stream] = {}
 
-        label = subscriber_config.label
-        unit = subscriber_config.unit if subscriber_config.unit else ""
+            self._numeric_set_buffer[formant_stream][label] = (value, unit)
 
-        # If the message has a data attribute, use that
-        if hasattr(msg, "data"):
-            msg = msg.data
-
-        # If the message is already a number, use that
-        if msg_type in [int, float]:
-            value = msg
-
-        # If the message is a ROS2 integer, cast it to an int and use that
-        elif msg_type in [Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]:
-            value = int(msg)
-
-        # If the message is a ROS2 float, cast it to a float and use that
-        elif msg_type in [Float32, Float64]:
-            value = float(msg)
-
-        else:
-            self._logger.error(
-                "Could not ingest %s: %s" % (formant_stream, str(msg_type))
+            self._fclient.post_numericset(
+                formant_stream, self._numeric_set_buffer[formant_stream]
             )
-            return
-
-        # Update the current set with the new value
-        if formant_stream not in self.numeric_set_buffer:
-            self._numeric_set_buffer[formant_stream] = {}
-
-        self._numeric_set_buffer[formant_stream][label] = (value, unit)
-
-        self._fclient.post_numericset(
-            formant_stream, self._numeric_set_buffer[formant_stream]
-        )
 
     def _cleanup(self):
         for subscription_item in self._subscriptions.items():

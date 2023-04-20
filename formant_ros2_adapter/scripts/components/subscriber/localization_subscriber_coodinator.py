@@ -51,6 +51,7 @@ class LocalizationSubscriberCoordinator:
         self._logger = get_logger()
         self._setup_transform_listener()
         self.ros2_topic_names_and_types: Dict[str, str] = {}
+        self._config_lock = False
 
     def _setup_transform_listener(self):
         try:
@@ -81,12 +82,16 @@ class LocalizationSubscriberCoordinator:
         return FTransform()
 
     def setup_with_config(self, config: ConfigSchema):
+        self._config_lock = True
+
         self._config = config
         self._cleanup()
         if self._config.transform_tree:
             self._setup_tf(self._config.transform_tree)
         if self._config.localization:
             self._setup_localization(self._config.localization)
+
+        self._config_lock = False
 
     def _setup_localization(self, localization_config: LocalizationConfig):
         self._logger.info("Setting up localization")
@@ -152,89 +157,94 @@ class LocalizationSubscriberCoordinator:
         self._logger.info("Set up localization")
 
     def _odom_callback(self, msg):
-        msg_type = type(msg)
-        if msg_type == Odometry:
-            odometry = FOdometry.from_ros(msg)
-        elif msg_type == PoseWithCovarianceStamped:
-            odometry = FOdometry(pose=FTransform.from_ros_pose(msg.pose.pose))
-        else:
-            self._logger.warn("Unknown odom type: %s" % msg_type)
-            return
+        if not self._config_lock:
+            msg_type = type(msg)
+            if msg_type == Odometry:
+                odometry = FOdometry.from_ros(msg)
+            elif msg_type == PoseWithCovarianceStamped:
+                odometry = FOdometry(pose=FTransform.from_ros_pose(msg.pose.pose))
+            else:
+                self._logger.warn("Unknown odom type: %s" % msg_type)
+                return
 
-        odometry.transform_to_world = self._lookup_transform(
-            msg, self._config.localization.base_reference_frame
-        )
+            odometry.transform_to_world = self._lookup_transform(
+                msg, self._config.localization.base_reference_frame
+            )
 
-        self._localization_manager.update_odometry(odometry)
+            self._localization_manager.update_odometry(odometry)
 
     def _map_callback(self, msg):
-        msg_type = type(msg)
-        if msg_type is OccupancyGrid:
-            formant_map = FMap.from_ros(msg)
-        elif Costmap is not None and msg_type is Costmap:
-            # ROS types
-            ros_resolution = msg.metadata.resolution
-            ros_width = msg.metadata.size_x
-            ros_height = msg.metadata.size_y
-            ros_origin = msg.metadata.origin
+        if not self._config_lock:
+            msg_type = type(msg)
+            if msg_type is OccupancyGrid:
+                formant_map = FMap.from_ros(msg)
+            elif Costmap is not None and msg_type is Costmap:
+                # ROS types
+                ros_resolution = msg.metadata.resolution
+                ros_width = msg.metadata.size_x
+                ros_height = msg.metadata.size_y
+                ros_origin = msg.metadata.origin
 
-            # Formant types
-            formant_map = FMap(
-                resolution=ros_resolution,
-                width=ros_width,
-                height=ros_height,
-                origin=FTransform.from_ros_pose(ros_origin),
-                occupancy_grid_data=msg.data,
+                # Formant types
+                formant_map = FMap(
+                    resolution=ros_resolution,
+                    width=ros_width,
+                    height=ros_height,
+                    origin=FTransform.from_ros_pose(ros_origin),
+                    occupancy_grid_data=msg.data,
+                )
+            else:
+                self._logger.warn("Unknown map type %s" % msg_type)
+                return
+
+            formant_map.transform_to_world = self._lookup_transform(
+                msg, self._config.localization.base_reference_frame
             )
-        else:
-            self._logger.warn("Unknown map type %s" % msg_type)
-            return
-
-        formant_map.transform_to_world = self._lookup_transform(
-            msg, self._config.localization.base_reference_frame
-        )
-        self._localization_manager.update_map(formant_map)
+            self._localization_manager.update_map(formant_map)
 
     def _path_callback(self, msg):
-        msg_type = type(msg)
-        if msg_type == Path:
-            path = FPath.from_ros(msg)
-        else:
-            self._logger.warn("Unknown path type: %s" % msg_type)
-            return
+        if not self._config_lock:
+            msg_type = type(msg)
+            if msg_type == Path:
+                path = FPath.from_ros(msg)
+            else:
+                self._logger.warn("Unknown path type: %s" % msg_type)
+                return
 
-        path.transform_to_world = self._lookup_transform(
-            msg, self._config.localization.base_reference_frame
-        )
-        self._localization_manager.update_path(path)
+            path.transform_to_world = self._lookup_transform(
+                msg, self._config.localization.base_reference_frame
+            )
+            self._localization_manager.update_path(path)
 
     def _goal_callback(self, msg):
-        msg_type = type(msg)
-        if msg_type == PoseStamped:
-            goal = FGoal.from_ros(msg)
-        else:
-            self._logger.warn("Unknown goal type: %s" % msg_type)
-            return
-        goal.transform_to_world = self._lookup_transform(
-            msg, self._config.localization.base_reference_frame
-        )
-        self._localization_manager.update_goal(goal)
+        if not self._config_lock:
+            msg_type = type(msg)
+            if msg_type == PoseStamped:
+                goal = FGoal.from_ros(msg)
+            else:
+                self._logger.warn("Unknown goal type: %s" % msg_type)
+                return
+            goal.transform_to_world = self._lookup_transform(
+                msg, self._config.localization.base_reference_frame
+            )
+            self._localization_manager.update_goal(goal)
 
     def _point_cloud_callback(self, msg, topic_name):
-        msg_type = type(msg)
-        if msg_type == LaserScan:
-            point_cloud = FPointCloud.from_ros_laserscan(msg)
-        elif msg_type == PointCloud2:
-            point_cloud = FPointCloud.from_ros(msg)
-        else:
-            self._logger.warn("Unknown point cloud type: %s" % msg_type)
-            return
+        if not self._config_lock:
+            msg_type = type(msg)
+            if msg_type == LaserScan:
+                point_cloud = FPointCloud.from_ros_laserscan(msg)
+            elif msg_type == PointCloud2:
+                point_cloud = FPointCloud.from_ros(msg)
+            else:
+                self._logger.warn("Unknown point cloud type: %s" % msg_type)
+                return
 
-        point_cloud.transform_to_world = self._lookup_transform(
-            msg, self._config.localization.base_reference_frame
-        )
+            point_cloud.transform_to_world = self._lookup_transform(
+                msg, self._config.localization.base_reference_frame
+            )
 
-        self._localization_manager.update_point_cloud(point_cloud, topic_name)
+            self._localization_manager.update_point_cloud(point_cloud, topic_name)
 
     def _setup_tf(self, tf_config: TransformTreeConfig):
         self._logger.debug(
@@ -249,20 +259,21 @@ class LocalizationSubscriberCoordinator:
             self._subscriptions.append(new_sub)
 
     def tf_callback(self, msg: TFMessage):
-        tf: TransformStamped
-        for tf in msg.transforms:
-            parent_frame = tf.header.frame_id
-            child_frame = tf.child_frame_id
-            tx = tf.transform.translation.x
-            ty = tf.transform.translation.y
-            tz = tf.transform.translation.z
-            rx = tf.transform.rotation.x
-            ry = tf.transform.rotation.y
-            rz = tf.transform.rotation.z
-            rw = tf.transform.rotation.w
-            self._fclient.post_transform_frame(
-                parent_frame, child_frame, tx, ty, tz, rx, ry, rz, rw
-            )
+        if not self._config_lock:
+            tf: TransformStamped
+            for tf in msg.transforms:
+                parent_frame = tf.header.frame_id
+                child_frame = tf.child_frame_id
+                tx = tf.transform.translation.x
+                ty = tf.transform.translation.y
+                tz = tf.transform.translation.z
+                rx = tf.transform.rotation.x
+                ry = tf.transform.rotation.y
+                rz = tf.transform.rotation.z
+                rw = tf.transform.rotation.w
+                self._fclient.post_transform_frame(
+                    parent_frame, child_frame, tx, ty, tz, rx, ry, rz, rw
+                )
 
     def _setup_subscription_for_config(self, subscriber_config: SubscriberConfig):
         pass
