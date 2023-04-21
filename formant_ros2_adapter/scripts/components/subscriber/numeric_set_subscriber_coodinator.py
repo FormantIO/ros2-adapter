@@ -2,6 +2,7 @@ import os
 from rclpy.node import Node
 from rclpy.subscription import Subscription
 import time
+import threading
 from typing import List, Dict, Optional, Any
 from std_msgs.msg import (
     Bool,
@@ -55,22 +56,19 @@ class NumericSetSubscriberCoordinator:
         self._topic_type_provider = topic_type_provider
         self._subscriptions: Dict[str, List[Subscription]] = {}
         self._logger = get_logger()
-        self._config_lock = False
+        self._config_lock = threading.Lock()
 
     def setup_with_config(self, config: ConfigSchema):
-        self._config_lock = True
-
-        self._config = config
-        self._cleanup()
-        if self._config.numeric_sets:
-            for subscriber_config in self._config.numeric_sets:
-                try:
-                    self._setup_subscription_for_config(subscriber_config)
-                except ValueError as value_error:
-                    self._logger.warn(value_error)
-                    continue
-
-        self._config_lock = False
+        with self._config_lock:
+            self._config = config
+            self._cleanup()
+            if self._config.numeric_sets:
+                for subscriber_config in self._config.numeric_sets:
+                    try:
+                        self._setup_subscription_for_config(subscriber_config)
+                    except ValueError as value_error:
+                        self._logger.warn(value_error)
+                        continue
 
     def _setup_subscription_for_config(self, numeric_set_config: NumericSetConfig):
         formant_stream = numeric_set_config.formant_stream
@@ -101,7 +99,7 @@ class NumericSetSubscriberCoordinator:
         numeric_set_config: NumericSetConfig,
         subscriber_config: NumericSetSubscriberConfig,
     ):
-        if not self._config_lock:
+        with self._config_lock:
             self._logger.info("Handling message")
             formant_stream = numeric_set_config.formant_stream
             path = subscriber_config.message_path

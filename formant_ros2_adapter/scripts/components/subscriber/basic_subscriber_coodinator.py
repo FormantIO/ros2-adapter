@@ -2,6 +2,7 @@ import os
 from rclpy.node import Node
 from rclpy.subscription import Subscription
 from typing import List, Dict, Optional
+import threading
 import time
 import traceback
 
@@ -38,22 +39,19 @@ class BasicSubscriberCoordinator:
         self._topic_type_provider = topic_type_provider
         self._subscriptions: Dict[str, List[Subscription]] = {}
         self._logger = get_logger()
-        self._config_lock = False
+        self._config_lock = threading.Lock()
 
     def setup_with_config(self, config: ConfigSchema):
-        self._config_lock = True
-
-        self._config = config
-        self._cleanup()
-        if self._config.subscribers:
-            for subscriber_config in self._config.subscribers:
-                try:
-                    self._setup_subscription_for_config(subscriber_config)
-                except ValueError as value_error:
-                    self._logger.warn(value_error)
-                    continue
-
-        self._config_lock = False
+        with self._config_lock:
+            self._config = config
+            self._cleanup()
+            if self._config.subscribers:
+                for subscriber_config in self._config.subscribers:
+                    try:
+                        self._setup_subscription_for_config(subscriber_config)
+                    except ValueError as value_error:
+                        self._logger.warn(value_error)
+                        continue
 
     def _setup_subscription_for_config(self, subscriber_config: SubscriberConfig):
         topic = subscriber_config.topic
@@ -91,7 +89,7 @@ class BasicSubscriberCoordinator:
         message_path_config: Optional[MessagePathConfig] = None,
         timestamp: Optional[int] = None,
     ):
-        if not self._config_lock:
+        with self._config_lock:
             try:
                 message_type = type(msg)
                 formant_stream = subscriber_config.formant_stream

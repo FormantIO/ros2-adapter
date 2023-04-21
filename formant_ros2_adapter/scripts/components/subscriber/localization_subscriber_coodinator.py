@@ -6,6 +6,7 @@ from rclpy.subscription import Subscription
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from tf2_msgs.msg import TFMessage
+import threading
 from typing import List, Dict, Optional
 from sensor_msgs.msg import (
     LaserScan,
@@ -51,7 +52,7 @@ class LocalizationSubscriberCoordinator:
         self._logger = get_logger()
         self._setup_transform_listener()
         self.ros2_topic_names_and_types: Dict[str, str] = {}
-        self._config_lock = False
+        self._config_lock = threading.Lock()
 
     def _setup_transform_listener(self):
         try:
@@ -82,16 +83,13 @@ class LocalizationSubscriberCoordinator:
         return FTransform()
 
     def setup_with_config(self, config: ConfigSchema):
-        self._config_lock = True
-
-        self._config = config
-        self._cleanup()
-        if self._config.transform_tree:
-            self._setup_tf(self._config.transform_tree)
-        if self._config.localization:
-            self._setup_localization(self._config.localization)
-
-        self._config_lock = False
+        with self._config_lock:
+            self._config = config
+            self._cleanup()
+            if self._config.transform_tree:
+                self._setup_tf(self._config.transform_tree)
+            if self._config.localization:
+                self._setup_localization(self._config.localization)
 
     def _setup_localization(self, localization_config: LocalizationConfig):
         self._logger.info("Setting up localization")
@@ -157,7 +155,7 @@ class LocalizationSubscriberCoordinator:
         self._logger.info("Set up localization")
 
     def _odom_callback(self, msg):
-        if not self._config_lock:
+        with self._config_lock:
             msg_type = type(msg)
             if msg_type == Odometry:
                 odometry = FOdometry.from_ros(msg)
@@ -174,7 +172,7 @@ class LocalizationSubscriberCoordinator:
             self._localization_manager.update_odometry(odometry)
 
     def _map_callback(self, msg):
-        if not self._config_lock:
+        with self._config_lock:
             msg_type = type(msg)
             if msg_type is OccupancyGrid:
                 formant_map = FMap.from_ros(msg)
@@ -203,7 +201,7 @@ class LocalizationSubscriberCoordinator:
             self._localization_manager.update_map(formant_map)
 
     def _path_callback(self, msg):
-        if not self._config_lock:
+        with self._config_lock:
             msg_type = type(msg)
             if msg_type == Path:
                 path = FPath.from_ros(msg)
@@ -217,7 +215,7 @@ class LocalizationSubscriberCoordinator:
             self._localization_manager.update_path(path)
 
     def _goal_callback(self, msg):
-        if not self._config_lock:
+        with self._config_lock:
             msg_type = type(msg)
             if msg_type == PoseStamped:
                 goal = FGoal.from_ros(msg)
@@ -230,7 +228,7 @@ class LocalizationSubscriberCoordinator:
             self._localization_manager.update_goal(goal)
 
     def _point_cloud_callback(self, msg, topic_name):
-        if not self._config_lock:
+        with self._config_lock:
             msg_type = type(msg)
             if msg_type == LaserScan:
                 point_cloud = FPointCloud.from_ros_laserscan(msg)
@@ -259,7 +257,7 @@ class LocalizationSubscriberCoordinator:
             self._subscriptions.append(new_sub)
 
     def tf_callback(self, msg: TFMessage):
-        if not self._config_lock:
+        with self._config_lock:
             tf: TransformStamped
             for tf in msg.transforms:
                 parent_frame = tf.header.frame_id
