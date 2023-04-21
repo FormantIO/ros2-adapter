@@ -1,6 +1,7 @@
 from enum import Enum
 import os
 import time
+import threading
 from typing import Dict, List, Optional
 from rclpy.node import Node
 from rclpy.client import Client
@@ -38,19 +39,21 @@ class ServiceCoordinator:
         self._topic_type_provider = topic_type_provider
         self._service_clients: Dict[str, List[Client]] = {}
         self._logger = get_logger()
+        self._config_lock = threading.Lock()
 
     def setup_with_config(self, config: ConfigSchema):
-        self._logger.info("Setting up Service Coordinator")
-        self._config = config
-        self._cleanup()
-        if self._config.service_clients:
-            for service_config in self._config.service_clients:
-                try:
-                    self._setup_services_for_config(service_config)
-                except ValueError as value_error:
-                    self._logger.warn(value_error)
-                    continue
-        self._logger.info("Set up Service Coordinator")
+        with self._config_lock:
+            self._logger.info("Setting up Service Coordinator")
+            self._config = config
+            self._cleanup()
+            if self._config.service_clients:
+                for service_config in self._config.service_clients:
+                    try:
+                        self._setup_services_for_config(service_config)
+                    except ValueError as value_error:
+                        self._logger.warn(value_error)
+                        continue
+            self._logger.info("Set up Service Coordinator")
 
     def _setup_services_for_config(self, service_config: ServiceClientConfig):
         service_name = service_config.service
@@ -83,40 +86,41 @@ class ServiceCoordinator:
             self._logger.warn("Failed to set up service client for %s" % service_name)
 
     def call_service(self, formant_stream, parameter: str):
-        service_call_results: List[ServiceCallResult] = []
+        with self._config_lock:
+            service_call_results: List[ServiceCallResult] = []
 
-        for service_client in self._service_clients.get(formant_stream, []):
-            if service_client.wait_for_service(SERVICE_CALL_TIMEOUT) == False:
+            for service_client in self._service_clients.get(formant_stream, []):
+                if service_client.wait_for_service(SERVICE_CALL_TIMEOUT) == False:
+                    service_call_results.append(
+                        ServiceCallResult(
+                            ResultType.TIMEOUT,
+                            "Timeout waiting for service",
+                            service_client.srv_name,
+                        )
+                    )
+                    continue
+                try:
+                    request = prepare_serivce_request(service_client, parameter)
+                except ValueError as val_error:
+                    service_call_results.append(
+                        ServiceCallResult(
+                            ResultType.INVALID_ARGUMENTS,
+                            str(val_error),
+                            service_client.srv_name,
+                        )
+                    )
+                    continue
+
+                service_result = service_client.call(request)
+                self._logger.info("Service call result: %s" % str(service_result))
                 service_call_results.append(
                     ServiceCallResult(
-                        ResultType.TIMEOUT,
-                        "Timeout waiting for service",
+                        ResultType.SUCCESS,
+                        str(service_result),
                         service_client.srv_name,
                     )
                 )
-                continue
-            try:
-                request = prepare_serivce_request(service_client, parameter)
-            except ValueError as val_error:
-                service_call_results.append(
-                    ServiceCallResult(
-                        ResultType.INVALID_ARGUMENTS,
-                        str(val_error),
-                        service_client.srv_name,
-                    )
-                )
-                continue
-
-            service_result = service_client.call(request)
-            self._logger.info("Service call result: %s" % str(service_result))
-            service_call_results.append(
-                ServiceCallResult(
-                    ResultType.SUCCESS,
-                    str(service_result),
-                    service_client.srv_name,
-                )
-            )
-        return service_call_results
+            return service_call_results
 
     def _cleanup(self):
         for service_clients in self._service_clients.items():

@@ -1,4 +1,5 @@
 from nav_msgs.msg import Odometry, OccupancyGrid, Path
+import threading
 from typing import List, Dict, Optional
 from rclpy.node import Node
 from rclpy.publisher import Publisher
@@ -63,40 +64,44 @@ class LocalizationPublisher:
         self._localization_goal_publisher: Optional[Publisher] = None
         self._localization_cancel_publisher: Optional[Publisher] = None
         self._topic_type_provider = topic_type_provider
+        self._config_lock = threading.Lock()
 
     def publish_goal(self, goal: PoseStamped):
-        if self._localization_goal_publisher is None:
-            return False
+        with self._config_lock:
+            if self._localization_goal_publisher is None:
+                return False
 
     def publish_cancel(self, cancel: bool):
-        if self._localization_cancel_publisher is None:
-            return False
+        with self._config_lock:
+            if self._localization_cancel_publisher is None:
+                return False
 
     def setup_with_config(self, config: ConfigSchema):
-        self._config = config
-        self._cleanup()
-        localization_config = config.localization
-        if localization_config:
-            goal_topic = localization_config.goal_publisher_ros2_topic
-            if goal_topic:
-                goal_type = self._topic_type_provider.get_class_for_topic(
-                    goal_topic, PoseStamped
-                )
-                self._localization_goal_publisher = self._node.create_publisher(
-                    goal_type,
-                    goal_topic,
-                    qos_profile=qos_profile_system_default,
-                )
-            cancel_topic = localization_config.cancel_goal_publisher_ros2_topic
-            if cancel_topic:
-                cancel_type = self._topic_type_provider.get_class_for_topic(
-                    cancel_topic, Bool
-                )
-                self._localization_cancel_publisher = self._node.create_publisher(
-                    cancel_type,
-                    cancel_topic,
-                    qos_profile=qos_profile_system_default,
-                )
+        with self._config_lock:
+            self._config = config
+            self._cleanup()
+            localization_config = config.localization
+            if localization_config:
+                goal_topic = localization_config.goal_publisher_ros2_topic
+                if goal_topic:
+                    goal_type = self._topic_type_provider.get_class_for_topic(
+                        goal_topic, PoseStamped
+                    )
+                    self._localization_goal_publisher = self._node.create_publisher(
+                        goal_type,
+                        goal_topic,
+                        qos_profile=qos_profile_system_default,
+                    )
+                cancel_topic = localization_config.cancel_goal_publisher_ros2_topic
+                if cancel_topic:
+                    cancel_type = self._topic_type_provider.get_class_for_topic(
+                        cancel_topic, Bool
+                    )
+                    self._localization_cancel_publisher = self._node.create_publisher(
+                        cancel_type,
+                        cancel_topic,
+                        qos_profile=qos_profile_system_default,
+                    )
 
     def _cleanup(self):
         self._node.destroy_publisher(self._localization_goal_publisher)

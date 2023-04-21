@@ -2,6 +2,7 @@ from nav_msgs.msg import Odometry, OccupancyGrid, Path
 import numpy as np
 from rclpy.node import Node
 from rclpy.publisher import Publisher
+import threading
 from typing import List, Dict, Optional
 from geometry_msgs.msg import (
     Point,
@@ -77,21 +78,23 @@ class GenericPublisher:
         self._node = node
         self._publishers: Dict[str, List[Publisher]] = {}
         self._topic_type_provider = topic_type_provider
+        self._config_lock = threading.Lock()
 
     def publish_command(self, formant_stream, msg: str):
-        for publisher in self._publishers[formant_stream]:
-            ros2_msg_type = publisher.msg_type.__name__
-            if ros2_msg_type == "String":
-                ros2_msg = String()
-                ros2_msg.data = msg
-                publisher.publish(ros2_msg)
-            elif (ros2_msg_type in ROS2_NUMERIC_TYPES) and msg.isnumeric():
-                self._publish_ros2_numeric(publisher, ros2_msg_type, msg)
-            else:
-                self._logger.warn(
-                    "Unsupported ROS2 message type for command: %s" % formant_stream
-                )
-                continue
+        with self._config_lock:
+            for publisher in self._publishers[formant_stream]:
+                ros2_msg_type = publisher.msg_type.__name__
+                if ros2_msg_type == "String":
+                    ros2_msg = String()
+                    ros2_msg.data = msg
+                    publisher.publish(ros2_msg)
+                elif (ros2_msg_type in ROS2_NUMERIC_TYPES) and msg.isnumeric():
+                    self._publish_ros2_numeric(publisher, ros2_msg_type, msg)
+                else:
+                    self._logger.warn(
+                        "Unsupported ROS2 message type for command: %s" % formant_stream
+                    )
+                    continue
 
     def publish(self, formant_stream, msg):
         for publisher in self._publishers[formant_stream]:
@@ -212,16 +215,17 @@ class GenericPublisher:
         publisher.publish(ros2_msg)
 
     def setup_with_config(self, config: ConfigSchema):
-        self._config = config
-        self._cleanup()
-        publisher_configs = config.publishers
-        if publisher_configs:
-            for publisher_config in publisher_configs:
-                try:
-                    self._setup_publisher_for_config(publisher_config)
-                except ValueError as value_error:
-                    self._logger.warn(value_error)
-                    continue
+        with self._config_lock:
+            self._config = config
+            self._cleanup()
+            publisher_configs = config.publishers
+            if publisher_configs:
+                for publisher_config in publisher_configs:
+                    try:
+                        self._setup_publisher_for_config(publisher_config)
+                    except ValueError as value_error:
+                        self._logger.warn(value_error)
+                        continue
 
     def _setup_publisher_for_config(self, publisher_config: PublisherConfig):
         formant_stream = publisher_config.formant_stream
