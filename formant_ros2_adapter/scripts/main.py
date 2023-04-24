@@ -24,7 +24,7 @@ from formant.sdk.agent.v1.localization.types import (
     Goal as FGoal,
     Odometry as FOdometry,
     Vector3 as FVector3,
-    Quaternion as FQuaternion
+    Quaternion as FQuaternion,
 )
 from formant.sdk.agent.adapter_utils.json_schema_validator import JsonSchemaValidator
 
@@ -134,7 +134,7 @@ QOS_PROFILES = {
     "SENSOR_DATA": qos_profile_sensor_data,
     "SERVICES_DEFAULT": qos_profile_services_default,
     "PARAMETERS": qos_profile_parameters,
-    "PARAMETER_EVENTS":qos_profile_parameter_events,
+    "PARAMETER_EVENTS": qos_profile_parameter_events,
     # Profile details: https://github.com/ros2/rcl/blob/rolling/rcl_action/include/rcl_action/default_qos.h
     "ACTION_STATUS_DEFAULT": qos_profile_action_status_default,
     # Example profile created above
@@ -143,6 +143,7 @@ QOS_PROFILES = {
 
 # Seconds
 SERVICE_CALL_TIMEOUT = 5
+
 
 class ROS2Adapter:
     """
@@ -227,9 +228,9 @@ class ROS2Adapter:
 
         rclpy.shutdown()
 
-    def update_adapter_configuration(self, config:Dict):
+    def update_adapter_configuration(self, config: Dict):
         print("Received Adapter Configuration")
-        
+
         # Set the config object to the validated configuration
         if "ros2_adapter_configuration" in config:
             # Check the json blob for a "ros2_adapter_configuration" section and use it first
@@ -244,9 +245,11 @@ class ROS2Adapter:
         print("INFO: Updated ROS2 information")
 
         # Fill out the config with default values
-        for subscriber_config in self.config.get("subscribers",[]):
+        for subscriber_config in self.config.get("subscribers", []):
             if "ros2_topic" not in subscriber_config:
-                print("Skipping, 'ros2_topic' not found in: %s" % str(subscriber_config))
+                print(
+                    "Skipping, 'ros2_topic' not found in: %s" % str(subscriber_config)
+                )
                 continue
             topic = subscriber_config["ros2_topic"]
             if "formant_stream" not in subscriber_config:
@@ -282,7 +285,9 @@ class ROS2Adapter:
             print("INFO: Finished setting up publishers")
 
             self.setup_service_clients()
-            print(f"INFO: Finished setting up service calls\n{self.ros2_service_clients}")
+            print(
+                f"INFO: Finished setting up service calls\n{self.ros2_service_clients}"
+            )
 
             # TODO: once localization visualization has been shifted to universe, this will be removed
             self.setup_localization()
@@ -354,13 +359,17 @@ class ROS2Adapter:
             print(f"Subscriber for topic: {subscriber_topic}")
 
             if "ros2_qos_profile" in subscriber_config:
-                subscriber_qos = QOS_PROFILES.get(subscriber_config["ros2_qos_profile"], qos_profile_system_default)
+                subscriber_qos = QOS_PROFILES.get(
+                    subscriber_config["ros2_qos_profile"], qos_profile_system_default
+                )
             else:
                 subscriber_qos = qos_profile_system_default
             print(f"QoS: {subscriber_qos}, {type(subscriber_qos)}")
 
             new_sub = self.ros2_node.create_subscription(
-                msg_type=get_ros2_type_from_string(subscriber_config["ros2_message_type"]),
+                msg_type=get_ros2_type_from_string(
+                    subscriber_config["ros2_message_type"]
+                ),
                 topic=subscriber_topic,
                 callback=lambda msg, subscriber_config=subscriber_config: self.handle_ros2_message(
                     msg, subscriber_config
@@ -397,7 +406,9 @@ class ROS2Adapter:
             print(f"Publisher for topic: {publisher_topic}")
 
             if "ros2_qos_profile" in publisher:
-                publisher_qos = QOS_PROFILES.get(publisher["ros2_qos_profile"], qos_profile_system_default)
+                publisher_qos = QOS_PROFILES.get(
+                    publisher["ros2_qos_profile"], qos_profile_system_default
+                )
             else:
                 publisher_qos = qos_profile_system_default
             print(f"QoS: {publisher_qos}, {type(publisher_qos)}")
@@ -423,7 +434,7 @@ class ROS2Adapter:
         print("INFO: Cleaned up existing service clients")
 
         # Set up service calls
-        for service_client in self.config.get("service_clients",[]):
+        for service_client in self.config.get("service_clients", []):
             try:
                 service_type_string = self.ros2_service_names_and_types.get(
                     service_client["ros2_service"], service_client["ros2_service_type"]
@@ -461,10 +472,7 @@ class ROS2Adapter:
                     callback_group=None,
                 )
 
-                if (
-                    service_client["formant_stream"]
-                    not in self.ros2_service_clients
-                ):
+                if service_client["formant_stream"] not in self.ros2_service_clients:
                     self.ros2_service_clients[service_client["formant_stream"]] = []
 
                 self.ros2_service_clients[service_client["formant_stream"]].append(
@@ -472,8 +480,7 @@ class ROS2Adapter:
                 )
 
                 print(
-                    "INFO: Set up service client for "
-                    + service_client["ros2_service"]
+                    "INFO: Set up service client for " + service_client["ros2_service"]
                 )
             except Exception as e:
                 print(
@@ -837,7 +844,7 @@ class ROS2Adapter:
                 width=ros_width,
                 height=ros_height,
                 origin=FTransform.from_ros_pose(ros_origin),
-                occupancy_grid_data=msg.data
+                occupancy_grid_data=msg.data,
             )
 
             self.localization_manager.update_map(formant_map)
@@ -891,189 +898,197 @@ class ROS2Adapter:
             print("WARNING: Unknown goal type", msg_type)
 
     def handle_ros2_message(self, msg, subscriber_config):
-        # Get the message type
-        msg_type = type(msg)
-        formant_stream = subscriber_config["formant_stream"]
-        ros2_topic = subscriber_config["ros2_topic"]
-
-        # Select the part of the message based on the path
-        if "ros2_message_paths" in subscriber_config:
-            for path_config in subscriber_config["ros2_message_paths"]:
-                try:
-                    path_msg = get_message_path_value(msg, path_config["path"])
-
-                    # Write subscriber_config for this message
-                    path_subscriber_config = copy.deepcopy(subscriber_config)
-                    del path_subscriber_config["ros2_message_paths"]
-                    path_subscriber_config["is_path"] = True
-
-                    # Pass tags to the path subscriber config
-                    if "tags" in path_config:
-                        path_subscriber_config["tags"] = path_config["tags"]
-
-                    # Recursively call this function with the message in the path
-                    self.handle_ros2_message(path_msg, path_subscriber_config)
-
-                except:
-                    # If this path does not match, ignore it and log the error
-                    print(
-                        f"ERROR: Could not find path '{path_config['path']}' in message {msg_type}"
-                    )
-                    pass
-
-        msg_timestamp = int(time.time() * 1000)
-        if hasattr(msg, "header"):
-            if not FORMANT_OVERRIDE_TIMESTAMP:
-                header_timestamp = (
-                    msg.header.stamp.sec * 1000 + msg.header.stamp.nanosec / 1000000
-                )
-                # sanity check to make sure ros header stamp is in epoch time
-                if header_timestamp > 1500000000000:
-                    msg_timestamp = int(header_timestamp)
-
-        # Handle the message based on its type
         try:
-            if msg_type in [str, String, Char]:
-                if hasattr(msg, "data"):
-                    msg = msg.data
+            # Get the message type
+            msg_type = type(msg)
+            formant_stream = subscriber_config["formant_stream"]
+            ros2_topic = subscriber_config["ros2_topic"]
 
-                self.fclient.post_text(
-                    formant_stream,
-                    str(msg),
-                    tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp,
-                )
+            # Select the part of the message based on the path
+            if "ros2_message_paths" in subscriber_config:
+                for path_config in subscriber_config["ros2_message_paths"]:
+                    try:
+                        path_msg = get_message_path_value(msg, path_config["path"])
 
-            elif msg_type in [Bool, bool]:
-                if hasattr(msg, "data"):
-                    msg = msg.data
+                        # Write subscriber_config for this message
+                        path_subscriber_config = copy.deepcopy(subscriber_config)
+                        del path_subscriber_config["ros2_message_paths"]
+                        path_subscriber_config["is_path"] = True
 
-                self.fclient.post_bitset(
-                    formant_stream,
-                    {ros2_topic: msg},
-                    tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp,
-                )
+                        # Pass tags to the path subscriber config
+                        if "tags" in path_config:
+                            path_subscriber_config["tags"] = path_config["tags"]
 
-            elif msg_type in [
-                int,
-                float,
-                Float32,
-                Float64,
-                Int8,
-                Int16,
-                Int32,
-                Int64,
-                UInt8,
-                UInt16,
-                UInt32,
-                UInt64,
-            ]:
-                if hasattr(msg, "data"):
-                    msg = msg.data
+                        # Recursively call this function with the message in the path
+                        self.handle_ros2_message(path_msg, path_subscriber_config)
 
-                self.fclient.post_numeric(
-                    formant_stream,
-                    msg,
-                    tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp,
-                )
+                    except:
+                        # If this path does not match, ignore it and log the error
+                        print(
+                            f"ERROR: Could not find path '{path_config['path']}' in message {msg_type}"
+                        )
+                        pass
 
-            elif msg_type == NavSatFix:
-                # Convert NavSatFix to a Formant location
-                self.fclient.post_geolocation(
-                    stream=formant_stream,
-                    latitude=msg.latitude,
-                    longitude=msg.longitude,
-                    altitude=msg.altitude,
-                    tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp,
-                )
+            msg_timestamp = int(time.time() * 1000)
+            if hasattr(msg, "header"):
+                if not FORMANT_OVERRIDE_TIMESTAMP:
+                    header_timestamp = (
+                        msg.header.stamp.sec * 1000 + msg.header.stamp.nanosec / 1000000
+                    )
+                    # sanity check to make sure ros header stamp is in epoch time
+                    if header_timestamp > 1500000000000:
+                        msg_timestamp = int(header_timestamp)
 
-            elif msg_type == Image:
-                # Convert Image to a Formant image
-                cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "passthrough")
-                encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
+            # Handle the message based on its type
+            try:
+                if msg_type in [str, String, Char]:
+                    if hasattr(msg, "data"):
+                        msg = msg.data
 
-                self.fclient.post_image(
-                    stream=formant_stream,
-                    value=encoded_image,
-                    tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp,
-                )
+                    self.fclient.post_text(
+                        formant_stream,
+                        str(msg),
+                        tags=subscriber_config["tags"],
+                        timestamp=msg_timestamp,
+                    )
 
-            elif msg_type == CompressedImage:
-                # Post the compressed image
-                if "jpg" in msg.format or "jpeg" in msg.format:
-                    content_type = "image/jpg"
-                elif "png" in msg.format:
-                    content_type = "image/png"
+                elif msg_type in [Bool, bool]:
+                    if hasattr(msg, "data"):
+                        msg = msg.data
+
+                    self.fclient.post_bitset(
+                        formant_stream,
+                        {ros2_topic: msg},
+                        tags=subscriber_config["tags"],
+                        timestamp=msg_timestamp,
+                    )
+
+                elif msg_type in [
+                    int,
+                    float,
+                    Float32,
+                    Float64,
+                    Int8,
+                    Int16,
+                    Int32,
+                    Int64,
+                    UInt8,
+                    UInt16,
+                    UInt32,
+                    UInt64,
+                ]:
+                    if hasattr(msg, "data"):
+                        msg = msg.data
+
+                    self.fclient.post_numeric(
+                        formant_stream,
+                        msg,
+                        tags=subscriber_config["tags"],
+                        timestamp=msg_timestamp,
+                    )
+
+                elif msg_type == NavSatFix:
+                    # Convert NavSatFix to a Formant location
+                    self.fclient.post_geolocation(
+                        stream=formant_stream,
+                        latitude=msg.latitude,
+                        longitude=msg.longitude,
+                        altitude=msg.altitude,
+                        tags=subscriber_config["tags"],
+                        timestamp=msg_timestamp,
+                    )
+
+                elif msg_type == Image:
+                    # Convert Image to a Formant image
+                    cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "passthrough")
+                    encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
+
+                    self.fclient.post_image(
+                        stream=formant_stream,
+                        value=encoded_image,
+                        tags=subscriber_config["tags"],
+                        timestamp=msg_timestamp,
+                    )
+
+                elif msg_type == CompressedImage:
+                    # Post the compressed image
+                    if "jpg" in msg.format or "jpeg" in msg.format:
+                        content_type = "image/jpg"
+                    elif "png" in msg.format:
+                        content_type = "image/png"
+                    else:
+                        print("WARNING: Image format", msg.format, "not supported")
+                        return
+                    self.fclient.post_image(
+                        formant_stream,
+                        value=bytes(msg.data),
+                        content_type=content_type,
+                        tags=subscriber_config["tags"],
+                        timestamp=msg_timestamp,
+                    )
+
+                elif msg_type == BatteryState:
+                    self.fclient.post_battery(
+                        formant_stream,
+                        msg.percentage,
+                        voltage=msg.voltage,
+                        current=msg.current,
+                        charge=msg.charge,
+                        tags=subscriber_config["tags"],
+                        timestamp=msg_timestamp,
+                    )
+
+                elif msg_type == LaserScan:
+                    # Convert LaserScan to a Formant pointcloud
+                    try:
+                        self.fclient.agent_stub.PostData(
+                            Datapoint(
+                                stream=formant_stream,
+                                point_cloud=FPointCloud.from_ros_laserscan(
+                                    msg
+                                ).to_proto(),
+                                tags=subscriber_config["tags"],
+                                timestamp=msg_timestamp,
+                            )
+                        )
+                    except grpc.RpcError as e:
+                        return
+                    except Exception as e:
+                        print(
+                            "ERROR: Could not ingest " + formant_stream + ": " + str(e)
+                        )
+                        return
+
+                elif msg_type == PointCloud2:
+                    try:
+                        self.fclient.agent_stub.PostData(
+                            Datapoint(
+                                stream=formant_stream,
+                                point_cloud=FPointCloud.from_ros(msg).to_proto(),
+                                tags=subscriber_config["tags"],
+                                timestamp=msg_timestamp,
+                            )
+                        )
+                    except grpc.RpcError as e:
+                        return
+                    except Exception as e:
+                        print(
+                            "ERROR: Could not ingest " + formant_stream + ": " + str(e)
+                        )
+                        return
+
                 else:
-                    print("WARNING: Image format", msg.format, "not supported")
-                    return
-                self.fclient.post_image(
-                    formant_stream,
-                    value=bytes(msg.data),
-                    content_type=content_type,
-                    tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp,
-                )
-
-            elif msg_type == BatteryState:
-                self.fclient.post_battery(
-                    formant_stream,
-                    msg.percentage,
-                    voltage=msg.voltage,
-                    current=msg.current,
-                    charge=msg.charge,
-                    tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp,
-                )
-
-            elif msg_type == LaserScan:
-                # Convert LaserScan to a Formant pointcloud
-                try:
-                    self.fclient.agent_stub.PostData(
-                        Datapoint(
-                            stream=formant_stream,
-                            point_cloud=FPointCloud.from_ros_laserscan(msg).to_proto(),
-                            tags=subscriber_config["tags"],
-                            timestamp=msg_timestamp,
-                        )
+                    # Ingest any messages without a direct mapping to a Formant type as JSON
+                    self.fclient.post_json(
+                        formant_stream,
+                        message_to_json(msg),
+                        tags=subscriber_config["tags"],
+                        timestamp=msg_timestamp,
                     )
-                except grpc.RpcError as e:
-                    return
-                except Exception as e:
-                    print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
-                    return
-
-            elif msg_type == PointCloud2:
-                try:
-                    self.fclient.agent_stub.PostData(
-                        Datapoint(
-                            stream=formant_stream,
-                            point_cloud=FPointCloud.from_ros(msg).to_proto(),
-                            tags=subscriber_config["tags"],
-                            timestamp=msg_timestamp,
-                        )
-                    )
-                except grpc.RpcError as e:
-                    return
-                except Exception as e:
-                    print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
-                    return
-
-            else:
-                # Ingest any messages without a direct mapping to a Formant type as JSON
-                self.fclient.post_json(
-                    formant_stream,
-                    message_to_json(msg),
-                    tags=subscriber_config["tags"],
-                    timestamp=msg_timestamp,
-                )
-
-        except AttributeError as e:
-            print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
+            except AttributeError as e:
+                print("ERROR: Could not ingest " + formant_stream + ": " + str(e))
+        except Exception as e:
+            print("Error handling ros2 msg: %s" % str(traceback.format_exc()))
 
     def handle_ros2_numeric_set_message(self, msg, formant_stream, subscriber_config):
         # Get the ROS2 topic name
@@ -1237,9 +1252,7 @@ class ROS2Adapter:
                     )
                     continue
                 success, service_call_result = self.ros2_service_call(
-                    service_client,
-                    stream_name,
-                    command_text
+                    service_client, stream_name, command_text
                 )
 
                 # To do: something here to inform Formant like with commands?
@@ -1256,8 +1269,8 @@ class ROS2Adapter:
         # Check if the specified service if it exists
         if service_command not in self.ros2_service_clients:
             service_result = (
-                "WARNING: Service not configured for formant stream: " +
-                f"{service_request}"
+                "WARNING: Service not configured for formant stream: "
+                + f"{service_request}"
             )
             # Future optimization: streamline code so only have these two lines once
             print(service_result)
@@ -1273,8 +1286,8 @@ class ROS2Adapter:
         print(f"INFO: Service request slots: {service_request_slots}")
         if len(service_request_slots) > 1:
             service_result = (
-                "WARNING: Unsupported service request type for command: " +
-                f"{service_command}"
+                "WARNING: Unsupported service request type for command: "
+                + f"{service_command}"
             )
             print(service_result)
             return success, service_result
@@ -1299,9 +1312,9 @@ class ROS2Adapter:
                 service_request_value = False
             else:
                 service_result = (
-                    "WARNING: Invalid parameter for boolean service " +
-                    f"{service_command}: " +
-                    f"{command_text}"
+                    "WARNING: Invalid parameter for boolean service "
+                    + f"{service_command}: "
+                    + f"{command_text}"
                 )
                 print(service_result)
                 return success, service_result
@@ -1317,8 +1330,8 @@ class ROS2Adapter:
             # If the command text is empty, don't call the service
             if command_text == "":
                 service_result = (
-                    "WARNING: " +
-                    "Command text is empty but service requires a string parameter"
+                    "WARNING: "
+                    + "Command text is empty but service requires a string parameter"
                 )
                 return success, service_result
             service_request_attribute = list(
@@ -1334,15 +1347,15 @@ class ROS2Adapter:
                 command_text_json = json.loads(command_text)
             except json.decoder.JSONDecodeError:
                 service_result = (
-                    "WARNING: Invalid parameter for string sequence service: " +
-                    "not a JSON"
+                    "WARNING: Invalid parameter for string sequence service: "
+                    + "not a JSON"
                 )
                 print(service_result)
                 return success, service_result
             if type(command_text_json) is not list:
                 service_result = (
-                    "WARNING: Invalid parameter for string sequence service: " +
-                    "not a list"
+                    "WARNING: Invalid parameter for string sequence service: "
+                    + "not a list"
                 )
                 print(service_result)
                 return success, service_result
@@ -1370,8 +1383,8 @@ class ROS2Adapter:
             # If the command text is empty, don't call the service
             if command_text == "":
                 service_result = (
-                    "WARNING: " +
-                    "Command text is empty but service requires a numeric parameter"
+                    "WARNING: "
+                    + "Command text is empty but service requires a numeric parameter"
                 )
                 print(service_result)
                 return success, service_result
@@ -1381,8 +1394,8 @@ class ROS2Adapter:
                 number_check = float(command_text)
             except ValueError:
                 service_result = (
-                    "WARNING: " +
-                    "Command text is not numeric but service requires a numeric parameter"
+                    "WARNING: "
+                    + "Command text is not numeric but service requires a numeric parameter"
                 )
                 print(service_result)
                 return success, service_result
@@ -1425,9 +1438,9 @@ class ROS2Adapter:
                 service_request_value = float(command_text)
             else:
                 service_result = (
-                    "WARNING: Unsupported parameter type for numeric service " +
-                    f"{service_command}: " +
-                    f"{slot_type}"
+                    "WARNING: Unsupported parameter type for numeric service "
+                    + f"{service_command}: "
+                    + f"{slot_type}"
                 )
                 print(service_result)
                 return success, service_result
@@ -1440,15 +1453,15 @@ class ROS2Adapter:
 
         else:
             service_result = (
-                "WARNING: Unsupported ROS 2 service parameters for command " +
-                f"{service_command}"
+                "WARNING: Unsupported ROS 2 service parameters for command "
+                + f"{service_command}"
             )
             print(service_result)
             return success, service_result
 
         # Check if the service is available
         if service_client.wait_for_service(SERVICE_CALL_TIMEOUT) == False:
-            service_result = ("WARNING: Timeout waiting for service")
+            service_result = "WARNING: Timeout waiting for service"
             print(service_result)
             return success, service_result
         # Call the service if the paramaters are valid
@@ -1490,9 +1503,7 @@ class ROS2Adapter:
             print(f"INFO: Calling service {msg.command}")
             for service_client in self.ros2_service_clients[msg.command]:
                 success, service_call_result = self.ros2_service_call(
-                    service_client,
-                    msg.command,
-                    msg.text
+                    service_client, msg.command, msg.text
                 )
 
                 if success is True:
@@ -1505,10 +1516,9 @@ class ROS2Adapter:
                     success=success,
                     datapoint=Datapoint(
                         stream="ros2.service_call.response",
-                        text=Text(
-                            value=str(service_call_result)),
-                        timestamp=msg_timestamp
-                    )
+                        text=Text(value=str(service_call_result)),
+                        timestamp=msg_timestamp,
+                    ),
                 )
 
     def publish_ros2_numeric(self, publisher, ros2_msg_type, msg_value):
