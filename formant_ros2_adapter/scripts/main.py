@@ -913,11 +913,12 @@ class ROS2Adapter:
                         # Write subscriber_config for this message
                         path_subscriber_config = copy.deepcopy(subscriber_config)
                         del path_subscriber_config["ros2_message_paths"]
-                        path_subscriber_config["is_path"] = True
 
                         # Pass tags to the path subscriber config
-                        if "tags" in path_config:
-                            path_subscriber_config["tags"] = path_config["tags"]
+                        if "tag_key" in path_config and "tag_value" in path_config:
+                            path_subscriber_config["tags"] = {
+                                path_config["tag_key"]: path_config["tag_value"]
+                            }
 
                         # Recursively call this function with the message in the path
                         self.handle_ros2_message(path_msg, path_subscriber_config)
