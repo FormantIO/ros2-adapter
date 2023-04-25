@@ -21,7 +21,7 @@ NUMPY_DTYPE_TO_BUILTIN_MAPPING = {
     np.float32: float,
     np.float64: float,
     bool_type: bool,
-    bool:bool,
+    bool: bool,
 }
 
 
@@ -36,13 +36,16 @@ def get_ros2_type_from_string(message_type_string: str):
         return getattr(module, path[-1])
     except Exception as e:
         print(
-            "WARNING: Couldn't import ROS2 message type from string: %s %s" %
-            (message_type_string, str(e)),
+            "WARNING: Couldn't import ROS2 message type from string: %s %s"
+            % (message_type_string, str(e)),
         )
         return None
 
 
 def parse(m):
+    if type(m) == float:
+        if float(m) != float(m):
+            return None
     if type(m) in [bool, str, int, float]:
         return m
     elif type(m) == bytes:
