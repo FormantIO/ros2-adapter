@@ -6,6 +6,7 @@ import threading
 from typing import List, Dict, Optional
 from geometry_msgs.msg import (
     Point,
+    PointStamped,
     Point32,
     Polygon,
     Pose,
@@ -41,6 +42,7 @@ from std_msgs.msg import (
     UInt16,
     UInt32,
     UInt64,
+    Header,
 )
 
 from formant.sdk.agent.v1 import Client
@@ -132,7 +134,15 @@ class GenericPublisher:
             elif msg.HasField("point"):
                 self._logger.warn("Point is not yet supported")
             elif msg.HasField("pose"):
-                self._logger.warn("Pose is not yet supported")
+                point = Point(x=msg.point.x, y=msg.point.y, z=0)
+                if ros2_msg_type == "Point":
+                    ros2_msg = point
+                elif ros2_msg == "PointStamped":
+                    ros2_msg = PointStamped(point=point)
+                else:
+                    self._logger.warn("Unsupported Point Type: %s" % ros2_msg_type)
+                publisher.publish(ros2_msg)
+
             elif msg.HasField("pose_with_covariance"):
                 self._logger.warn("Pose_with_covariance is not yet supported")
             elif msg.HasField("twist"):
