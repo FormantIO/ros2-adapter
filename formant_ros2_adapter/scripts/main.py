@@ -1192,7 +1192,15 @@ class ROS2Adapter:
                     self.publish_ros2_numeric(publisher, ros2_msg_type, msg_value)
 
                 elif msg.HasField("point"):
-                    print("WARNING: Point is not yet supported")
+                    point = Point(x=msg.point.x, y=msg.point.y, z=msg.point.z)
+                    if ros2_msg_type == "Point":
+                        ros2_msg = point
+                    elif ros2_msg == "PointStamped":
+                        ros2_msg = PointStamped(point=point)
+                    else:
+                        self._logger.warn("Unsupported Point Type: %s" % ros2_msg_type)
+                    publisher.publish(ros2_msg)
+
                 elif msg.HasField("pose"):
                     print("WARNING: Pose is not yet supported")
                 elif msg.HasField("pose_with_covariance"):
