@@ -137,16 +137,18 @@ class LocalizationSubscriberCoordinator:
             self._logger.info("Path: %s" % str(path_sub))
 
         # Setup Pointcloud
-        pointcloud_topics = localization_config.point_cloud_subscriber_ros2_topics
-        if pointcloud_topics:
-            for topic in pointcloud_topics:
+        pointcloud_configs = localization_config.point_cloud_subscriber_ros2_topics
+        if pointcloud_configs:
+            for pointcloud_config in pointcloud_configs:
                 pointcloud_type = self._topic_type_provider.get_class_for_topic(
-                    topic, Path
+                    pointcloud_config.topic, Path
                 )
                 pointcloud_sub = self._node.create_subscription(
                     pointcloud_type,
-                    topic,
-                    lambda msg, topic=topic: self._point_cloud_callback(msg, topic),
+                    pointcloud_config.topic,
+                    lambda msg, topic=pointcloud_config.topic: self._point_cloud_callback(
+                        msg, topic
+                    ),
                     qos_profile=qos_profile_system_default,
                 )
                 self._subscriptions.append(pointcloud_sub)

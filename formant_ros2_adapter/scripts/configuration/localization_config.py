@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from .get_value import get_value
 
@@ -16,7 +16,7 @@ class LocalizationConfig:
             config, "map_subscriber_ros2_topic"
         )
         self.point_cloud_subscriber_ros2_topics: Optional[
-            PointCloudSubscriberConfig
+            List[PointCloudSubscriberConfig]
         ] = get_value(
             config,
             "point_cloud_subscriber_ros2_topics",
