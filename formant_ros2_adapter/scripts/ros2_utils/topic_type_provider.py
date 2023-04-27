@@ -5,6 +5,10 @@ import time
 from ros2_utils.message_utils import get_ros2_type_from_string
 
 
+# Seconds
+GET_TOPIC_TYPES_TIMEOUT = 5
+
+
 class TopicTypeProvider:
     def __init__(self, node: Node):
         self._node = node
@@ -25,9 +29,12 @@ class TopicTypeProvider:
 
     def get_type_for_topic(self, topic):
         result = self.ros2_topic_names_and_types.get(topic, None)
-        while result is None:
+        for _ in range(0, GET_TOPIC_TYPES_TIMEOUT):
             self.update_topic_types()
             result = self.ros2_topic_names_and_types.get(topic, None)
+            if result is not None:
+                break
+            time.sleep(1)
         return result
 
     def get_class_for_topic(self, topic, default):
