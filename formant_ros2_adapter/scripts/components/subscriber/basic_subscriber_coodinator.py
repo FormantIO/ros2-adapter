@@ -39,7 +39,7 @@ class BasicSubscriberCoordinator:
         self._topic_type_provider = topic_type_provider
         self._subscriptions: Dict[str, List[Subscription]] = {}
         self._logger = get_logger()
-        self._config_lock = threading.Lock()
+        self._config_lock = threading.RLock()
 
     def setup_with_config(self, config: ConfigSchema):
         with self._config_lock:
