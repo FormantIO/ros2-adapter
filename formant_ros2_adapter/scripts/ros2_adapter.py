@@ -45,6 +45,8 @@ class ROS2Adapter:
             validate=False,
         )
 
+        self._logger.info("ROS 2 adapter finished initializing")
+
     def setup_with_config(self, config):
         try:
             self._logger.info("Received Config")
@@ -64,5 +66,7 @@ class ROS2Adapter:
             self._parameter_coordinator.setup_with_config(self.config)
             self._publisher_coordinator.setup_with_config(self.config)
             self._formant_control.setup_with_config(self.config)
+
+            self._logger.info("ROS 2 adapter finished setting up with new config")
         except Exception as e:
             self._logger.error(traceback.format_exc())

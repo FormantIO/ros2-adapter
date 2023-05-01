@@ -92,11 +92,12 @@ class LocalizationSubscriberCoordinator:
                 self._setup_localization(self._config.localization)
 
     def _setup_localization(self, localization_config: LocalizationConfig):
-        self._logger.info("Setting up localization")
+        self._logger.info("Setting up localization subscribers")
         self._localization_manager = self._fclient.get_localization_manager(
             localization_config.formant_stream
         )
         # Setup Odom
+        self._logger.info("Setting up odometry")
         odom_topic = localization_config.odometry_subscriber_ros2_topic
         odom_type = self._topic_type_provider.get_class_for_topic(odom_topic, Odometry)
         odom_sub = self._node.create_subscription(
@@ -106,11 +107,12 @@ class LocalizationSubscriberCoordinator:
             qos_profile=qos_profile_system_default,
         )
         self._subscriptions.append(odom_sub)
-        self._logger.info("Odometry: %s" % str(odom_sub))
+        self._logger.info("Set up odometry")
 
         # Setup Map
         map_topic = localization_config.map_subscriber_ros2_topic
         if map_topic:
+            self._logger.info("Setting up map")
             map_type = self._topic_type_provider.get_class_for_topic(
                 map_topic, OccupancyGrid
             )
@@ -121,11 +123,12 @@ class LocalizationSubscriberCoordinator:
                 qos_profile=qos_profile_system_default,
             )
             self._subscriptions.append(map_sub)
-            self._logger.info("Map: %s" % str(map_sub))
+            self._logger.info("Set up map")
 
         # Setup Path
         path_topic = localization_config.path_subscriber_ros2_topic
         if path_topic:
+            self._logger.info("Setting up path")
             path_type = self._topic_type_provider.get_class_for_topic(path_topic, Path)
             path_sub = self._node.create_subscription(
                 path_type,
@@ -134,11 +137,12 @@ class LocalizationSubscriberCoordinator:
                 qos_profile=qos_profile_system_default,
             )
             self._subscriptions.append(path_sub)
-            self._logger.info("Path: %s" % str(path_sub))
+            self._logger.info("Set up path")
 
         # Setup Pointcloud
         pointcloud_configs = localization_config.point_cloud_subscriber_ros2_topics
         if pointcloud_configs:
+            self._logger.info("Setting up point cloud")
             for pointcloud_config in pointcloud_configs:
                 pointcloud_type = self._topic_type_provider.get_class_for_topic(
                     pointcloud_config.topic, Path
@@ -152,9 +156,9 @@ class LocalizationSubscriberCoordinator:
                     qos_profile=qos_profile_system_default,
                 )
                 self._subscriptions.append(pointcloud_sub)
-                self._logger.info("Point cloud: %s" % str(pointcloud_sub))
+                self._logger.info("Set up point cloud")
 
-        self._logger.info("Set up localization")
+        self._logger.info("Set up localization subscribers")
 
     def _odom_callback(self, msg):
         with self._config_lock:
