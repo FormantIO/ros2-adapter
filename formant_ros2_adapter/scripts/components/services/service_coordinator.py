@@ -59,17 +59,19 @@ class ServiceCoordinator:
         service_name = service_config.service
         formant_stream = service_config.formant_stream
 
-        service_type = service_config.service_type
-        if service_type is None:
-            service_type = self._topic_type_provider.get_service_type_for_name(
+        service_type_string = service_config.service_type
+        if service_type_string is None:
+            service_type_string = self._topic_type_provider.get_service_type_for_name(
                 service_name
             )
-        if service_type is None:
+        if service_type_string is None:
             raise ValueError("No Service type found for %s" % service_name)
+
+        service_type = get_ros2_type_from_string(service_type_string)
 
         self._logger.debug(
             "Setting up service %s, %s, %s"
-            % (service_name, formant_stream, service_type)
+            % (service_name, formant_stream, service_type_string)
         )
         try:
             new_service_client = self._node.create_client(
@@ -82,8 +84,13 @@ class ServiceCoordinator:
                 self._service_clients[formant_stream] = []
 
             self._service_clients[formant_stream].append(new_service_client)
+
+            self._logger.debug("Set up service: %s" %service_name)
         except Exception as e:
-            self._logger.warn("Failed to set up service client for %s" % service_name)
+            self._logger.warn(
+                "Failed to set up service client for %s\n%s"
+                % (service_name, e)
+            )
 
     def call_service(self, formant_stream, parameter: str):
         with self._config_lock:

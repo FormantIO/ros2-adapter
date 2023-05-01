@@ -68,6 +68,8 @@ class FormantControl:
     def _handle_command(self, msg):
         self._logger.info("Command received %s" % str(msg))
         formant_stream = msg.command
+
+        # To do: this shouldn't always happen
         service_call_result = self._service_coordinator.call_service(
             formant_stream, msg.text
         )
@@ -85,6 +87,8 @@ class FormantControl:
                     timestamp=msg_timestamp,
                 ),
             )
+
+        # To do: this shouldn't always happen
         self._publisher_coodinator.generic_publisher.publish_command(
             formant_stream, msg.text
         )

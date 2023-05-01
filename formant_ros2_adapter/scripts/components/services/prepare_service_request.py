@@ -62,6 +62,8 @@ def prepare_serivce_request(service_client: Client, parameter: str) -> SrvTypeRe
         request_value,
     )
 
+    return service_request
+
 
 def get_bool_value(parameter):
     if parameter == "":

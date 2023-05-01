@@ -84,19 +84,23 @@ class GenericPublisher:
 
     def publish_command(self, formant_stream, msg: str):
         with self._config_lock:
-            for publisher in self._publishers[formant_stream]:
-                ros2_msg_type = publisher.msg_type.__name__
-                if ros2_msg_type == "String":
-                    ros2_msg = String()
-                    ros2_msg.data = msg
-                    publisher.publish(ros2_msg)
-                elif (ros2_msg_type in ROS2_NUMERIC_TYPES) and msg.isnumeric():
-                    self._publish_ros2_numeric(publisher, ros2_msg_type, msg)
-                else:
-                    self._logger.warn(
-                        "Unsupported ROS2 message type for command: %s" % formant_stream
-                    )
-                    continue
+            # To do: is this the right place to check for this?
+            if formant_stream in self._publishers:
+                for publisher in self._publishers[formant_stream]:
+                    ros2_msg_type = publisher.msg_type.__name__
+                    if ros2_msg_type == "String":
+                        ros2_msg = String()
+                        ros2_msg.data = msg
+                        publisher.publish(ros2_msg)
+                    elif (ros2_msg_type in ROS2_NUMERIC_TYPES) and msg.isnumeric():
+                        self._publish_ros2_numeric(publisher, ros2_msg_type, msg)
+                    else:
+                        self._logger.warn(
+                            "Unsupported ROS2 message type for command: %s" % formant_stream
+                        )
+                        continue
+            else:
+                self._logger.info(f"No publisher for formant stream {formant_stream}, skipping")
 
     def publish(self, formant_stream, msg):
         for publisher in self._publishers[formant_stream]:
