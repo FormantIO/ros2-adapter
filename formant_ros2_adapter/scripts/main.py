@@ -62,6 +62,7 @@ from std_msgs.msg import (
     UInt16,
     UInt32,
     UInt64,
+    Header,
 )
 
 from sensor_msgs.msg import (
@@ -75,6 +76,7 @@ from sensor_msgs.msg import (
 )
 
 from geometry_msgs.msg import (
+    Quaternion,
     Point,
     PointStamped,
     Point32,
@@ -1157,6 +1159,40 @@ class ROS2Adapter:
             stream_name = msg.bitset.bits[0].key
         else:
             stream_name = msg.stream
+        try:
+            if self.localization_goal_pub is not None:
+                if msg.HasField("pose"):
+                    frame_id = self.config.get("localization", {}).get(
+                        "base_reference_frame", ""
+                    )
+                    ros2_msg_type = self.localization_goal_pub.msg_type.__name__
+                    pose = Pose(
+                        position=Point(
+                            x=msg.pose.translation.x,
+                            y=msg.pose.translation.y,
+                            z=msg.pose.translation.z,
+                        ),
+                        orientation=Quaternion(
+                            x=msg.pose.rotation.x,
+                            y=msg.pose.rotation.y,
+                            z=msg.pose.rotation.z,
+                            w=msg.pose.rotation.w,
+                        ),
+                    )
+                    if ros2_msg_type == "Pose":
+                        ros2_msg = pose
+                    elif ros2_msg == "PoseStamped":
+                        ros2_msg = PoseStamped(
+                            header=Header(frame_id=frame_id), pose=pose
+                        )
+                    else:
+                        print(
+                            "WARNING: Unsupported ROS2 message type for twist: "
+                            + ros2_msg_type
+                        )
+                    publisher.publish(ros2_msg)
+        except Exception as e:
+            print("ERROR: Unable to publish goal: %s" % str(e))
 
         # There can be more than one publisher for a single stream, so loop over them
         if stream_name in self.ros2_publishers:
