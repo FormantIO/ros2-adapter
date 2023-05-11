@@ -930,6 +930,7 @@ class ROS2Adapter:
                             f"ERROR: Could not find path '{path_config['path']}' in message {msg_type}"
                         )
                         pass
+                return
 
             msg_timestamp = int(time.time() * 1000)
             if hasattr(msg, "header"):
