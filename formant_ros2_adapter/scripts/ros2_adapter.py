@@ -50,7 +50,6 @@ class ROS2Adapter:
     def setup_with_config(self, config):
         try:
             self._logger.info("Received Config")
-            self._logger.debug(config)
             if "ros2_adapter_configuration" in config:
                 self.config = ConfigSchema(config["ros2_adapter_configuration"])
                 self._logger.info("Config Parsed")
