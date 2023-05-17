@@ -125,7 +125,7 @@ class Ingester:
 
             elif msg_type == Image:
                 # Convert Image to a Formant image
-                cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "passthrough")
+                cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "bgr8")
                 encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
 
                 self._fclient.post_image(
