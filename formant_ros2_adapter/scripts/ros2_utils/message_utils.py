@@ -60,6 +60,8 @@ def parse(m):
         return NUMPY_DTYPE_TO_BUILTIN_MAPPING[type(m)](m)
     elif type(m) in [list, array.array, np.ndarray]:
         return [parse(o) for o in m]
+    elif m is None:
+        return None
     else:
         return {k: parse(getattr(m, k)) for k in m._fields_and_field_types}
 
