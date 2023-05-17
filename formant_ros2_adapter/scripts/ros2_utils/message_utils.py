@@ -49,6 +49,9 @@ def get_ros2_type_from_string(message_type_string: str):
 
 
 def parse(m):
+    if type(m) == float:
+        if float(m) != float(m):
+            return None
     if type(m) in [bool, str, int, float]:
         return m
     elif type(m) == bytes:
