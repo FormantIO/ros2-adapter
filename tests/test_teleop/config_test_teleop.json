@@ -4,7 +4,19 @@
             {
                 "ros2_topic": "/cmd_vel",
                 "ros2_message_type": "geometry_msgs/msg/Twist",
-                "formant_stream": "move.turtlebot3"
+                "formant_stream": "burger.move"
+            },
+            {
+                "ros2_topic": "/mouse_click",
+                "ros2_message_type": "geometry_msgs/msg/Point",
+                "formant_stream": "burger.click"
+            }
+        ],
+        "subscribers": [
+            {
+                "ros2_topic": "/image",
+                "ros2_message_type": "sensor_msgs/msg/Image",
+                "formant_stream": "burger.image"
             }
         ]
     }
