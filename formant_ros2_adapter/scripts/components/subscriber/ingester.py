@@ -1,5 +1,5 @@
-# from cv_bridge import CvBridge
-# import cv2
+from cv_bridge import CvBridge
+import cv2
 import grpc
 from typing import Dict
 from sensor_msgs.msg import (
@@ -51,7 +51,7 @@ from ros2_utils.message_utils import (
 class Ingester:
     def __init__(self, _fclient: Client):
         self._fclient = _fclient
-        # self.cv_bridge = CvBridge()
+        self.cv_bridge = CvBridge()
         self._logger = get_logger()
 
     def ingest(
@@ -124,17 +124,16 @@ class Ingester:
                 )
 
             elif msg_type == Image:
-                self._logger.info("ROS IMAGE UNSUPPORTED")
                 # Convert Image to a Formant image
-                # cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "bgr8")
-                # encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
+                cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "bgr8")
+                encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
 
-                # self._fclient.post_image(
-                #     stream=formant_stream,
-                #     value=encoded_image,
-                #     tags=tags,
-                #     timestamp=msg_timestamp,
-                # )
+                self._fclient.post_image(
+                    stream=formant_stream,
+                    value=encoded_image,
+                    tags=tags,
+                    timestamp=msg_timestamp,
+                )
 
             elif msg_type == CompressedImage:
                 # Post the compressed image
