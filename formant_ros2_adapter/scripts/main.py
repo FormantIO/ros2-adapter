@@ -12,7 +12,7 @@ if __name__ == "__main__":
         allow_undeclared_parameters=True,
         automatically_declare_parameters_from_overrides=True,
     )
-    fclient = Client(ignore_throttled=True)
+    fclient = Client(ignore_throttled=True, ignore_unavailable=True)
     ROS2Adapter(fclient, node)
     try:
         while rclpy.ok():
