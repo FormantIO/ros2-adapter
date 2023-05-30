@@ -145,7 +145,7 @@ QOS_PROFILES = {
 # Seconds
 SERVICE_CALL_TIMEOUT = 5
 
-BASE_REFERENCE_FRAME = os.getenv("FORMANT_BASE_REFERENCE_FRAME","base_link")
+BASE_REFERENCE_FRAME = os.getenv("FORMANT_BASE_REFERENCE_FRAME", "base_link")
 
 
 class ROS2Adapter:
@@ -1047,15 +1047,15 @@ class ROS2Adapter:
                     try:
                         formant_point_cloud = None
                         if msg_type == LaserScan:
-                            formant_point_cloud = FPointCloud.from_ros_laserscan(
-                                        msg
-                                    )
+                            formant_point_cloud = FPointCloud.from_ros_laserscan(msg)
                         if msg_type == PointCloud2:
                             formant_point_cloud = FPointCloud.from_ros(msg)
 
                         if formant_point_cloud is None:
-                            raise Exception("%s not PointCloud2 or LaserScan" % msg_type)
-                        
+                            raise Exception(
+                                "%s not PointCloud2 or LaserScan" % msg_type
+                            )
+
                         formant_point_cloud.transform_to_world = self.lookup_transform(
                             msg, BASE_REFERENCE_FRAME
                         )
@@ -1067,6 +1067,13 @@ class ROS2Adapter:
                                 timestamp=msg_timestamp,
                             )
                         )
+                    except grpc.RpcError as e:
+                        return
+                    except Exception as e:
+                        print(
+                            "ERROR: Could not ingest " + formant_stream + ": " + str(e)
+                        )
+                        return
                 else:
                     # Ingest any messages without a direct mapping to a Formant type as JSON
                     self.fclient.post_json(
