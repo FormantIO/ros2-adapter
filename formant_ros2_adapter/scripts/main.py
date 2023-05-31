@@ -908,7 +908,10 @@ class ROS2Adapter:
             ros2_topic = subscriber_config["ros2_topic"]
 
             # Select the part of the message based on the path
-            if "ros2_message_paths" in subscriber_config:
+            if (
+                "ros2_message_paths" in subscriber_config
+                and len(subscriber_config["ros2_message_paths"]) > 0
+            ):
                 for path_config in subscriber_config["ros2_message_paths"]:
                     try:
                         path_msg = get_message_path_value(msg, path_config["path"])
