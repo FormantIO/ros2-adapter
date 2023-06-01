@@ -96,14 +96,17 @@ class GenericPublisher:
                         self._publish_ros2_numeric(publisher, ros2_msg_type, msg)
                     else:
                         self._logger.warn(
-                            "Unsupported ROS2 message type for command: %s" % formant_stream
+                            "Unsupported ROS2 message type for command: %s"
+                            % formant_stream
                         )
                         continue
             else:
-                self._logger.info(f"No publisher for formant stream {formant_stream}, skipping")
+                self._logger.info(
+                    f"No publisher for formant stream {formant_stream}, skipping"
+                )
 
     def publish(self, formant_stream, msg):
-        for publisher in self._publishers[formant_stream]:
+        for publisher in self._publishers.get(formant_stream, []):
             # Get the ROS2 message type as a string
             ros2_msg_type = publisher.msg_type.__name__
 
