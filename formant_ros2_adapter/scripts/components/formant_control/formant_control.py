@@ -98,6 +98,7 @@ class FormantControl:
         self._fclient.unregister_teleop_callback(self._handle_teleop)
 
 
+# To do: make logger available outside of class
 def get_all_formant_streams(config: ConfigSchema):
     formant_streams: List[str] = []
     if config.service_clients:
@@ -111,6 +112,7 @@ def get_all_formant_streams(config: ConfigSchema):
         and config.localization.goal_publisher_ros2_topic is not None
     ):
         formant_streams.append(config.localization.formant_stream)
+    return formant_streams
 
 
 def get_localization_stream(config: ConfigSchema):
