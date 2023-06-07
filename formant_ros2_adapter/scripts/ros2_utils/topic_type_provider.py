@@ -6,6 +6,7 @@ from ros2_utils.message_utils import get_ros2_type_from_string
 
 
 # Seconds
+# To do: is this necessary?
 GET_TOPIC_TYPES_TIMEOUT = 5
 
 
@@ -29,6 +30,7 @@ class TopicTypeProvider:
 
     def get_type_for_topic(self, topic):
         result = self.ros2_topic_names_and_types.get(topic, None)
+        # To do: is this necessary?
         for _ in range(0, GET_TOPIC_TYPES_TIMEOUT):
             self.update_topic_types()
             result = self.ros2_topic_names_and_types.get(topic, None)
