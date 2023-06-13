@@ -24,6 +24,7 @@ The `subscribers` section defines a list of ROS 2 topics that the adapter will s
 | `ros2_message_paths`      | The list of paths configurations to ingest data from |
 | `ros2_message_paths/path` | The path within the ROS 2 message                    |
 | `ros2_message_paths/tags` | The tag set to ingest data with                      |
+| `ros2_qos_profile`        | The Quality of Service profile for the messages      |
 
 #### Example
 
@@ -41,7 +42,8 @@ The `subscribers` section defines a list of ROS 2 topics that the adapter will s
                         "example_key": "example_value"
                     }
                 }
-            ]
+            ],
+            "ros2_qos_profile": "SYSTEM_DEFAULT"
         }
     ]
 }
@@ -63,6 +65,7 @@ In either of these cases, the name of the configured Formant control input must 
 | `formant_stream`    | The name of the Formant stream to publish data from |
 | `ros2_topic`        | The name of the ROS 2 topic to publish data to      |
 | `ros2_message_type` | The type of ROS 2 topic to publish data to          |
+| `ros2_qos_profile`  | The Quality of Service profile for the messages     |
 
 #### Example
 
@@ -73,6 +76,7 @@ In either of these cases, the name of the configured Formant control input must 
             "formant_stream": "example.stream",
             "ros2_topic": "/example_topic",
             "ros2_message_type": "example_msgs/msg/ExampleType",
+            "ros2_qos_profile": "SYSTEM_DEFAULT"
         }
     ]
 }
@@ -263,6 +267,28 @@ Topics will automatically be ingested as their corresponding Formant type:
 | CompressedImage                              | image, video           |
 
 Stream name will be automatically configured from the topic if it is not set. (e.g. "/base/cmd_vel" -> "base.cmd_vel") The `"stream"` configuration can be set to change the stream name of ingested datapoints manually.
+
+### Quality of Service profiles
+
+The adapter currently supports selecting from a set of predefined Quality of Service profiles for publishers and subscribers, based on these default profiles: https://docs.ros.org/en/rolling/Concepts/About-Quality-of-Service-Settings.html#qos-profiles
+
+The possible configuration options are:
+
+- SYSTEM_DEFAULT
+
+- SENSOR_DATA
+
+- SERVICES_DEFAULT
+
+- PARAMETERS
+
+- PARAMETER_EVENTS
+
+- ACTION_STATUS_DEFAULT (reliable reliability, transient local durability)
+
+- EXAMPLE_CUSTOM (keep all history)
+
+The EXAMPLE_CUSTOM option shows how additional custom profiles can be created in the code of the adapter.
 
 ## Running the adapter
 

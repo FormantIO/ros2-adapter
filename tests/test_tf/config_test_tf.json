@@ -1,0 +1,7 @@
+{
+  "ros2_adapter_configuration": {
+    "transform_tree": {
+      "base_reference_frame": "base_link"
+    }
+  }
+}

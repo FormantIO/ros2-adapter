@@ -1,0 +1,31 @@
+{
+    "ros2_adapter_configuration": {
+        "service_clients": [
+            {
+                "ros2_service": "/call_no_params",
+                "ros2_service_type": "formant_test_interfaces/srv/NoParameters",
+                "formant_stream": "ros2_service_test_call_no_params"
+            },
+            {
+                "ros2_service": "/set_bool",
+                "ros2_service_type": "example_interfaces/srv/SetBool",
+                "formant_stream": "ros2_service_test_set_bool"
+            },
+            {
+                "ros2_service": "/set_int",
+                "ros2_service_type": "formant_test_interfaces/srv/SingleInt",
+                "formant_stream": "ros2_service_test_set_int"
+            },
+            {
+                "ros2_service": "/set_float",
+                "ros2_service_type": "formant_test_interfaces/srv/SingleFloat",
+                "formant_stream": "ros2_service_test_set_float"
+            },
+            {
+                "ros2_service": "/set_string",
+                "ros2_service_type": "formant_test_interfaces/srv/SingleString",
+                "formant_stream": "ros2_service_test_set_string"
+            }
+        ]
+    }
+}

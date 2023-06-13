@@ -1,0 +1,11 @@
+{
+  "ros2_adapter_configuration": {
+    "localization": {
+      "formant_stream": "turtlebot3.localization",
+      "base_reference_frame": "map",
+      "odometry_subscriber_ros2_topic": "/odom",
+      "map_subscriber_ros2_topic": "/local_costmap/costmap_raw",
+      "point_cloud_subscriber_ros2_topics": [{"ros2_topic": "/scan"}]
+    }
+  }
+}
