@@ -151,7 +151,10 @@ This configuration section also maps incoming navigation controls such as waypoi
       "base_reference_frame": "map",
       "odometry_subscriber_ros2_topic": "/odom",
       "map_subscriber_ros2_topic": "/map",
-      "point_cloud_subscriber_ros2_topics": ["/scan", "/stereo/depth/points"],
+      "point_cloud_subscriber_ros2_topics": [
+        {"ros2_topic": "/scan"},
+        {"ros2_topic": "/stereo/depth/points"}
+      ],
       "path_subscriber_ros2_topic": "/plan",
       "goal_subscriber_ros2_topic": "/goal_pose",
       "goal_publisher_ros2_topic": "/goal_pose",

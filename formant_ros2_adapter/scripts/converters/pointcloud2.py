@@ -1,20 +1,25 @@
-import math
-import time
-import struct
 import array
-
+import logging
 import lzf
-from sensor_msgs.msg import PointCloud2
-from formant.protos.model.v1.media_pb2 import PointCloud
+import math
 import numpy as np
+from sensor_msgs.msg import PointCloud2
+import struct
+import time
+
+from formant.protos.model.v1.media_pb2 import PointCloud
+
 
 FLOAT_DATA_TYPE = 7
 DOUBLE_DATA_TYPE = 8
 
+logger = logging.getLogger("formant_ros2_adapter")
+logger.setLevel(logging.DEBUG)
+
 
 def ros2_pointcloud2_to_formant_pointcloud(message: PointCloud2) -> PointCloud:
     if message.is_bigendian:
-        print("unsupported point cloud endianness")
+        logger.error("Unsupported point cloud endianness")
 
     x_offset = None
     y_offset = None
@@ -41,10 +46,10 @@ def ros2_pointcloud2_to_formant_pointcloud(message: PointCloud2) -> PointCloud:
             intensity_size = 8 if field.datatype == DOUBLE_DATA_TYPE else 4
 
         if field.datatype not in [FLOAT_DATA_TYPE, DOUBLE_DATA_TYPE]:
-            print("error: unsupported pointcloud2 datatype")
+            logger.error("Unsupported pointcloud2 datatype")
 
         if field.count != 1:
-            print("error: unsupported pointcloud2 count")
+            logger.error("Unsupported pointcloud2 count")
 
     if (
         x_offset is None
@@ -54,7 +59,7 @@ def ros2_pointcloud2_to_formant_pointcloud(message: PointCloud2) -> PointCloud:
         or y_size is None
         or z_size is None
     ):
-        print("Error: Missing X, Y, or Z fields")
+        logger.error("Missing X, Y, or Z fields")
         return
 
     count = message.height * message.width
