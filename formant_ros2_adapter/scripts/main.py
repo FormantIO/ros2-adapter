@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-
+import threading
 import os
 import cv2
 import time
@@ -14,6 +14,8 @@ from typing import List, Dict
 import traceback
 
 from formant.sdk.agent.v1 import Client as FormantAgentClient
+
+# from formant.common.logger import get_logger, log_thread_exceptions
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
 from formant.protos.model.v1.text_pb2 import Text
 from formant.sdk.agent.v1.localization.types import (
@@ -172,7 +174,10 @@ class ROS2Adapter:
 
         # Subscribers and publishers are stored as a dictionary of topics containing a list of objects
         self.ros2_subscribers = {}
+        self.topics_to_subscribe = []
         self.ros2_publishers = {}
+        self._subscribe_mutex = threading.Lock()
+
         self.ros2_service_clients = {}
 
         # Set up the localization objects
@@ -281,7 +286,7 @@ class ROS2Adapter:
             self.setup_ros2_params()
             print("INFO: Finished setting up ROS2 parameters")
 
-            self.setup_subscribers()
+            self._setup_subscribers()
             print("INFO: Finished setting up subscribers")
 
             self.setup_publishers()
@@ -348,42 +353,84 @@ class ROS2Adapter:
         print("INFO: Setting new ROS2 parameters")
         self.ros2_node.set_parameters(new_params)
 
-    def setup_subscribers(self):
+    def get_active_topics(self):
+
+        topic_names_and_types = self.ros2_node.get_topic_names_and_types()
+
+        active_topics = []
+        for topic_name, _ in topic_names_and_types:
+            publishers_info = self.ros2_node.get_publishers_info_by_topic(topic_name)
+            if publishers_info:
+                active_topics.append(topic_name)
+
+        return active_topics
+
+    def _setup_subscribers(self):
         # Remove any existing subscribers
         for subscriber_list in self.ros2_subscribers.values():
             for subscriber in subscriber_list:
                 self.ros2_node.destroy_subscription(subscriber)
 
         self.ros2_subscribers = {}
+        self.topics_to_subscribe = [
+            _.get("ros2_topic") for _ in self.config.get("subscribers", [])
+        ]
+        print("Topics from config:")
+        print(self.topics_to_subscribe)
+        self._schedule_subscribe_to_topics()
 
-        # Create new subscribers based on the config
-        for subscriber_config in self.config.get("subscribers", []):
-            subscriber_topic = subscriber_config["ros2_topic"]
-            print(f"Subscriber for topic: {subscriber_topic}")
+    def _schedule_subscribe_to_topics(self):
+        t = threading.Timer(1.0, self.setup_subscribers_inner)
+        t.daemon = True
+        t.start()
 
-            if "ros2_qos_profile" in subscriber_config:
-                subscriber_qos = QOS_PROFILES.get(
-                    subscriber_config["ros2_qos_profile"], qos_profile_system_default
-                )
-            else:
-                subscriber_qos = qos_profile_system_default
-            print(f"QoS: {subscriber_qos}, {type(subscriber_qos)}")
+    def setup_subscribers_inner(self):
+        with self._subscribe_mutex:
+            """Get all active topics in ROS 2 runtime"""
+            print("Topics in runtime")
+            topics_in_runtime = self.get_active_topics()
+            print(topics_in_runtime)
 
-            new_sub = self.ros2_node.create_subscription(
-                msg_type=get_ros2_type_from_string(
-                    subscriber_config["ros2_message_type"]
-                ),
-                topic=subscriber_topic,
-                callback=lambda msg, subscriber_config=subscriber_config: self.handle_ros2_message(
-                    msg, subscriber_config
-                ),
-                qos_profile=subscriber_qos,
-            )
+            for subscriber_config in self.config.get("subscribers", []):
+                subscriber_topic = subscriber_config["ros2_topic"]
+                """For each subscriber, check if it is in the list of topics that don't already have a subscriber created"""
+                if subscriber_topic in self.topics_to_subscribe:
+                    """If the topic is in the active topics, create a subscriber"""
+                    if subscriber_topic in topics_in_runtime:
+                        print(f"Subscriber for topic: {subscriber_topic}")
+                        self.topics_to_subscribe.remove(subscriber_topic)
 
-            if subscriber_config["ros2_topic"] not in self.ros2_subscribers:
-                self.ros2_subscribers[subscriber_config["ros2_topic"]] = []
+                        if "ros2_qos_profile" in subscriber_config:
+                            subscriber_qos = QOS_PROFILES.get(
+                                subscriber_config["ros2_qos_profile"],
+                                qos_profile_system_default,
+                            )
+                        else:
+                            subscriber_qos = qos_profile_system_default
+                        print(f"QoS: {subscriber_qos}, {type(subscriber_qos)}")
 
-            self.ros2_subscribers[subscriber_config["ros2_topic"]].append(new_sub)
+                        new_sub = self.ros2_node.create_subscription(
+                            msg_type=get_ros2_type_from_string(
+                                subscriber_config["ros2_message_type"]
+                            ),
+                            topic=subscriber_topic,
+                            callback=lambda msg, subscriber_config=subscriber_config: self.handle_ros2_message(
+                                msg, subscriber_config
+                            ),
+                            qos_profile=subscriber_qos,
+                        )
+                        if subscriber_config["ros2_topic"] not in self.ros2_subscribers:
+                            self.ros2_subscribers[subscriber_config["ros2_topic"]] = []
+                        self.ros2_subscribers[subscriber_config["ros2_topic"]].append(
+                            new_sub
+                        )
+
+                    else:
+                        """If the topic is not in the active topics and has not had a subscriber created in the past, log the topic"""
+                        print(
+                            f"Not subscribing to {subscriber_topic}; not in ROS runtime."
+                        )
+        self._schedule_subscribe_to_topics()
 
     def setup_publishers(self):
         # Remove any existing publishers
@@ -1197,7 +1244,7 @@ class ROS2Adapter:
                     elif ros2_msg == "PointStamped":
                         ros2_msg = PointStamped(point=point)
                     else:
-                        self._logger.warn("Unsupported Point Type: %s" % ros2_msg_type)
+                        print("Unsupported Point Type: %s" % ros2_msg_type)
                     publisher.publish(ros2_msg)
 
                 elif msg.HasField("pose"):
