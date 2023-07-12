@@ -21,7 +21,7 @@ if __name__ == "__main__":
     logger.info("Creating Formant agent client")
     # To do: a cleaner solution would have ignore_unavailable=True and
     # something implemented in the client to avoid a race condition
-    fclient = Client(ignore_throttled=True)
+    fclient = Client(ignore_throttled=True, ignore_unavailable=True)
     logger.info("Waiting %s seconds for Formant agent client" % FCLIENT_WAIT)
     ROS2Adapter(fclient, node)
     try:
