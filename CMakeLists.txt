@@ -28,7 +28,7 @@ install(DIRECTORY
 install(DIRECTORY scripts/ DESTINATION lib/${PROJECT_NAME} PATTERN "config_examples" EXCLUDE)
 
 
-#Install launch files
+# Install launch files
 install(DIRECTORY ${PROJECT_NAME}/launch
   DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/launch
   FILES_MATCHING
@@ -36,7 +36,7 @@ install(DIRECTORY ${PROJECT_NAME}/launch
   PATTERN "*.launch"
 )
 
-#Install scripts
+# Install scripts
 # Keep existing config location to maintain backwards compatibility
 # Can be removed in the future
 install(PROGRAMS
