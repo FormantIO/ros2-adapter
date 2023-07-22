@@ -6,7 +6,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # Install python dependencies
-execute_process (
+execute_process(
   COMMAND bash -c "python3 -m pip install -r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt"
 )
 
@@ -25,8 +25,7 @@ install(DIRECTORY
 
 # Keep existing install pattern to maintain backwards compatibility
 # Can be removed in the future
-install(DIRECTORY scripts/ DESTINATION lib/${PROJECT_NAME} PATTERN "config_examples" EXCLUDE)
-
+install(DIRECTORY ${PROJECT_NAME}/scripts/ DESTINATION lib/${PROJECT_NAME} PATTERN "config_examples" EXCLUDE)
 
 # Install launch files
 install(DIRECTORY ${PROJECT_NAME}/launch
