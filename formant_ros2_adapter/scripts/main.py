@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
-import os
+#!/usr/bin/python3
 
+import os
 import rclpy
 
 from formant.sdk.agent.v1 import Client
