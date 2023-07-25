@@ -11,13 +11,13 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclpy REQUIRED)
 
 install(DIRECTORY scripts/converters DESTINATION lib/${PROJECT_NAME})
-install(DIRECTORY scripts/message_utils DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY scripts/ros2_utils DESTINATION lib/${PROJECT_NAME})
 
-execute_process (
-    COMMAND bash -c "python3 -m pip install -r ${CMAKE_CURRENT_SOURCE_DIR}/../requirements.txt"
+execute_process(
+  COMMAND bash -c "python3 -m pip install -r ${CMAKE_CURRENT_SOURCE_DIR}/../requirements.txt"
 )
 
-#Install scripts
+# Install scripts
 install(PROGRAMS
   scripts/main.py
   scripts/config.json
