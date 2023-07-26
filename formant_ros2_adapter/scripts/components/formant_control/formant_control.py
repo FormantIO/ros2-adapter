@@ -34,6 +34,8 @@ class FormantControl:
 
         self._cleanup()
         formant_streams = get_all_formant_streams(config)
+        formant_streams.append("Buttons")
+
         self._logger.info(
             "Registering callback for Formant Streams: %s" % formant_streams
         )
