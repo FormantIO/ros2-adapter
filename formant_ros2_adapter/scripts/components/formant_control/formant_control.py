@@ -34,10 +34,14 @@ class FormantControl:
 
         self._cleanup()
         formant_streams = get_all_formant_streams(config)
+        self._logger.info(
+            "Registering callback for Formant Streams: %s" % formant_streams
+        )
         self._localization_stream = get_localization_stream(config)
         self._fclient.register_command_request_callback(
             self._handle_command, command_filter=formant_streams
         )
+
         self._fclient.register_teleop_callback(
             self._handle_teleop, stream_filter=formant_streams
         )
