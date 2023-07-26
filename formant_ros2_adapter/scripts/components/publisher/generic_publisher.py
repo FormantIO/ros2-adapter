@@ -274,7 +274,8 @@ class GenericPublisher:
 
     def _cleanup(self):
         self._logger.debug("Cleaning up publishers")
-        for publisher in self._publishers.items():
-            self._node.destroy_publisher(publisher[1])
-            self._logger.debug("Destroyed publisher: %s" % str(publisher[1]))
+        for publisher_list in self._publishers.values():
+            for publisher in publisher_list:
+                self._node.destroy_publisher(publisher)
+                self._logger.debug("Destroyed publisher: %s" % str(publisher))
         self._publishers = {}
