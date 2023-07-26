@@ -52,7 +52,7 @@ class FormantControl:
     def _handle_teleop(self, msg):
         try:
             stream_name = msg.stream
-            self._logger.info("Teleop message received: %s" % stream_name)
+            self._logger.debug("Teleop message received: %s" % stream_name)
             if stream_name == "Buttons":
                 stream_name = msg.bitset.bits[0].key
             self._publisher_coodinator.generic_publisher.publish(stream_name, msg)
