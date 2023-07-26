@@ -48,26 +48,31 @@ class FormantControl:
         self._logger.info("Set up Formant Control")
 
     def _handle_teleop(self, msg):
-        stream_name = msg.stream
-        self._logger.info("Teleop message received: %s" % stream_name)
-        if stream_name == "Buttons":
-            stream_name = msg.bitset.bits[0].key
-        self._publisher_coodinator.generic_publisher.publish(stream_name, msg)
+        try:
+            stream_name = msg.stream
+            self._logger.info("Teleop message received: %s" % stream_name)
+            if stream_name == "Buttons":
+                stream_name = msg.bitset.bits[0].key
+            self._publisher_coodinator.generic_publisher.publish(stream_name, msg)
 
-        if stream_name == self._localization_stream:
-            try:
-                self._publisher_coodinator.localization_publisher.publish_goal(msg.pose)
-            except Exception as e:
-                self._logger.warn("Error publishing goal: %s" % e)
+            if stream_name == self._localization_stream:
+                try:
+                    self._publisher_coodinator.localization_publisher.publish_goal(
+                        msg.pose
+                    )
+                except Exception as e:
+                    self._logger.warn("Error publishing goal: %s" % e)
 
-        service_param = None
-        if msg.HasField("bitset"):
-            if msg.bitset.bits[0].value is True:
-                service_param = "True"
-        elif msg.HasField("numeric"):
-            service_param = msg.numeric.value
-        if service_param is not None:
-            self._service_coordinator.call_service(stream_name, service_param)
+            service_param = None
+            if msg.HasField("bitset"):
+                if msg.bitset.bits[0].value is True:
+                    service_param = "True"
+            elif msg.HasField("numeric"):
+                service_param = msg.numeric.value
+            if service_param is not None:
+                self._service_coordinator.call_service(stream_name, service_param)
+        except Exception as e:
+            self._logger.warn("Error in teleop callback: %s" % str(e))
 
     def _handle_command(self, msg):
         self._logger.info("Command received %s" % str(msg))
