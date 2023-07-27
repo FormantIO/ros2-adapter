@@ -84,11 +84,11 @@ class NumericSetSubscriberCoordinator:
                 subscriber.qos_profile, qos_profile_system_default
             )
 
-            new_sub = self.ros2_node.create_subscription(
+            new_sub = self._node.create_subscription(
                 get_ros2_type_from_string(ros2_type),
                 topic,
-                lambda msg, stream=formant_stream, config=numeric_set_config, subscriber_config=subscriber: self._handle_message(
-                    msg, stream, config, subscriber_config
+                lambda msg, config=numeric_set_config, subscriber_config=subscriber: self._handle_message(
+                    msg, config, subscriber_config
                 ),
                 qos_profile=qos_profile,
             )
@@ -100,12 +100,9 @@ class NumericSetSubscriberCoordinator:
         subscriber_config: NumericSetSubscriberConfig,
     ):
         with self._config_lock:
-            self._logger.info("Handling message")
             formant_stream = numeric_set_config.formant_stream
             path = subscriber_config.message_path
             if path:
-                path = subscriber_config["ros2_message_path"]
-
                 try:
                     msg = get_message_path_value(msg, path)
                     msg_type = type(msg)

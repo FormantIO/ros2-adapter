@@ -1,18 +1,26 @@
+#!/usr/bin/python3
+
+import os
 import rclpy
-import time
 
 from formant.sdk.agent.v1 import Client
-
 from ros2_adapter import ROS2Adapter
 from utils.logger import get_logger
 
-
 FCLIENT_WAIT = 2
-
 
 if __name__ == "__main__":
     logger = get_logger()
     rclpy.init()
+
+    # Get the config directory from an environment variable
+    config_dir = os.environ.get("CONFIG_DIR")
+
+    # If the config environment variable is set and exists, change the working directory
+    # Workaround for the agent adapter looking for "config.py" in the current working directory only
+    if config_dir and os.path.isdir(config_dir):
+        os.chdir(config_dir)
+
     node = rclpy.create_node(
         "formant_ros2_adapter",
         allow_undeclared_parameters=True,
