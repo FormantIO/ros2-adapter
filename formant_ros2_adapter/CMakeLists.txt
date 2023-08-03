@@ -12,6 +12,9 @@ find_package(rclpy REQUIRED)
 
 install(DIRECTORY scripts/converters DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY scripts/ros2_utils DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY scripts/components DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY scripts/configuration DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY scripts/utils DESTINATION lib/${PROJECT_NAME})
 
 execute_process(
   COMMAND bash -c "python3 -m pip install -r ${CMAKE_CURRENT_SOURCE_DIR}/../requirements.txt"
@@ -20,6 +23,7 @@ execute_process(
 # Install scripts
 install(PROGRAMS
   scripts/main.py
+  scripts/ros2_adapter.py
   scripts/config.json
   DESTINATION lib/${PROJECT_NAME}
 )
