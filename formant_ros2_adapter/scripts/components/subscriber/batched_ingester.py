@@ -18,10 +18,12 @@ class Message:
 
 
 class BatchIngester(Ingester):
-    def __init__(self, _fclient: Client, num_threads: int = 2):
+    def __init__(
+        self, _fclient: Client, ingest_interval: int = 30, num_threads: int = 2
+    ):
         super(BatchIngester, self).__init__(_fclient)
         self._stream_queues: Dict[str, LifoQueue[Message]] = {}
-        self._ingest_interval = 1
+        self._ingest_interval = ingest_interval
         self._num_threads = num_threads
         self._threads: List[threading.Thread] = []
         self._terminate_flag = False
