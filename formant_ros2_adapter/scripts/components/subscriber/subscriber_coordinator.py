@@ -5,6 +5,7 @@ from formant.sdk.agent.v1 import Client
 from .basic_subscriber_coodinator import BasicSubscriberCoordinator
 from configuration.config_schema import ConfigSchema
 from .ingester import Ingester
+from .batched_ingester import BatchIngester
 from .localization_subscriber_coodinator import LocalizationSubscriberCoordinator
 from .numeric_set_subscriber_coodinator import NumericSetSubscriberCoordinator
 from ros2_utils.topic_type_provider import TopicTypeProvider
@@ -17,7 +18,7 @@ class SubscriberCoordinator:
     ):
         self._logger = get_logger()
         self._fclient = fclient
-        self._ingester = Ingester(self._fclient)
+        self._ingester = BatchIngester(self._fclient)
         self._node = node
         self._topic_type_provider = topic_type_provider
         self._basic_subscriber_coodinator = BasicSubscriberCoordinator(
