@@ -3,29 +3,10 @@ import cv2
 import grpc
 from typing import Dict
 from sensor_msgs.msg import (
-    BatteryState,
     CompressedImage,
     Image,
-    Joy,
-    LaserScan,
-    NavSatFix,
-    PointCloud2,
 )
-from std_msgs.msg import (
-    Bool,
-    Char,
-    String,
-    Float32,
-    Float64,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-)
+from .types import STRING_TYPES, BOOL_TYPES, NUMERIC_TYPES, OTHER_DATA_TYPES
 
 from formant.sdk.agent.v1 import Client
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
@@ -51,8 +32,6 @@ from ros2_utils.message_utils import (
 A Handle Exceptions Class would be nice
 """
 
-OTHER_DATA_TYPES = [NavSatFix, BatteryState, LaserScan, PointCloud2]
-
 
 class BaseIngester:
     def __init__(self, _fclient: Client):
@@ -62,24 +41,9 @@ class BaseIngester:
 
     def prepare(self, msg, msg_type: type):
 
-        if msg_type in [str, String, Char]:
+        if msg_type in STRING_TYPES:
             msg = self._prepare_string(msg)
-        elif msg_type in [Bool, bool]:
-            msg = self._prepare_attr_data(msg)
-        elif msg_type in [
-            int,
-            float,
-            Float32,
-            Float64,
-            Int8,
-            Int16,
-            Int32,
-            Int64,
-            UInt8,
-            UInt16,
-            UInt32,
-            UInt64,
-        ]:
+        elif msg_type in BOOL_TYPES or msg_type in NUMERIC_TYPES:
             msg = self._prepare_attr_data(msg)
         elif msg_type == Image:
             msg = self._prepare_image(msg)
