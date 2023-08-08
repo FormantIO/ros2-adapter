@@ -6,27 +6,10 @@ from sensor_msgs.msg import (
     BatteryState,
     CompressedImage,
     Image,
-    Joy,
     LaserScan,
     NavSatFix,
     PointCloud2,
 )
-from std_msgs.msg import (
-    Bool,
-    Char,
-    String,
-    Float32,
-    Float64,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-)
-
 from formant.sdk.agent.v1 import Client
 from formant.protos.model.v1.datapoint_pb2 import Datapoint
 from formant.sdk.agent.v1.localization.types import (
@@ -47,6 +30,7 @@ from ros2_utils.message_utils import (
     get_message_path_value,
 )
 from .base_ingester import BaseIngester
+from .types import STRING_TYPES, BOOL_TYPES, NUMERIC_TYPES
 
 
 class Ingester(BaseIngester):
@@ -62,7 +46,7 @@ class Ingester(BaseIngester):
         msg = self.prepare(msg, msg_type)
         # Handle the message based on its type
         try:
-            if msg_type in [str, String, Char]:
+            if msg_type in STRING_TYPES:
                 self._fclient.post_text(
                     formant_stream,
                     msg,
@@ -70,7 +54,7 @@ class Ingester(BaseIngester):
                     timestamp=msg_timestamp,
                 )
 
-            elif msg_type in [Bool, bool]:
+            elif msg_type in BOOL_TYPES:
                 self._fclient.post_bitset(
                     formant_stream,
                     {topic: msg},
@@ -78,20 +62,7 @@ class Ingester(BaseIngester):
                     timestamp=msg_timestamp,
                 )
 
-            elif msg_type in [
-                int,
-                float,
-                Float32,
-                Float64,
-                Int8,
-                Int16,
-                Int32,
-                Int64,
-                UInt8,
-                UInt16,
-                UInt32,
-                UInt64,
-            ]:
+            elif msg_type in NUMERIC_TYPES:
                 self._fclient.post_numeric(
                     formant_stream,
                     msg,
