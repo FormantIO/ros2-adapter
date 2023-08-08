@@ -46,14 +46,10 @@ from ros2_utils.message_utils import (
     message_to_json,
     get_message_path_value,
 )
+from .base_ingester import BaseIngester
 
 
-class Ingester:
-    def __init__(self, _fclient: Client):
-        self._fclient = _fclient
-        self.cv_bridge = CvBridge()
-        self._logger = get_logger()
-
+class Ingester(BaseIngester):
     def ingest(
         self,
         msg,
@@ -63,24 +59,18 @@ class Ingester:
         msg_timestamp: int,
         tags: Dict,
     ):
-
+        msg = self.prepare(msg, msg_type)
         # Handle the message based on its type
         try:
             if msg_type in [str, String, Char]:
-                if hasattr(msg, "data"):
-                    msg = msg.data
-
                 self._fclient.post_text(
                     formant_stream,
-                    str(msg),
+                    msg,
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
 
             elif msg_type in [Bool, bool]:
-                if hasattr(msg, "data"):
-                    msg = msg.data
-
                 self._fclient.post_bitset(
                     formant_stream,
                     {topic: msg},
@@ -102,9 +92,6 @@ class Ingester:
                 UInt32,
                 UInt64,
             ]:
-                if hasattr(msg, "data"):
-                    msg = msg.data
-
                 self._fclient.post_numeric(
                     formant_stream,
                     msg,
@@ -124,30 +111,18 @@ class Ingester:
                 )
 
             elif msg_type == Image:
-                # Convert Image to a Formant image
-                cv_image = self.cv_bridge.imgmsg_to_cv2(msg, "bgr8")
-                encoded_image = cv2.imencode(".jpg", cv_image)[1].tobytes()
-
                 self._fclient.post_image(
                     stream=formant_stream,
-                    value=encoded_image,
+                    value=msg,
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
 
             elif msg_type == CompressedImage:
-                # Post the compressed image
-                if "jpg" in msg.format or "jpeg" in msg.format:
-                    content_type = "image/jpg"
-                elif "png" in msg.format:
-                    content_type = "image/png"
-                else:
-                    self._logger.warn("Image format", msg.format, "not supported")
-                    return
                 self._fclient.post_image(
                     formant_stream,
-                    value=bytes(msg.data),
-                    content_type=content_type,
+                    value=msg["value"],
+                    content_type=msg["content_type"],
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
@@ -204,7 +179,7 @@ class Ingester:
                 # Ingest any messages without a direct mapping to a Formant type as JSON
                 self._fclient.post_json(
                     formant_stream,
-                    message_to_json(msg),
+                    msg,
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
