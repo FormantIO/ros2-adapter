@@ -39,9 +39,9 @@ install(DIRECTORY ${PROJECT_NAME}/launch
 # Keep existing config location to maintain backwards compatibility
 # Can be removed in the future
 install(PROGRAMS
+  ${PROJECT_NAME}/scripts/config.json
   ${PROJECT_NAME}/scripts/main.py
   ${PROJECT_NAME}/scripts/ros2_adapter.py
-  ${PROJECT_NAME}/scripts/config.json
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
 )
 
