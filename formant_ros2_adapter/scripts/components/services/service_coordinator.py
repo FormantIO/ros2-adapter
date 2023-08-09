@@ -85,11 +85,10 @@ class ServiceCoordinator:
 
             self._service_clients[formant_stream].append(new_service_client)
 
-            self._logger.debug("Set up service: %s" %service_name)
+            self._logger.debug("Set up service: %s" % service_name)
         except Exception as e:
             self._logger.warn(
-                "Failed to set up service client for %s\n%s"
-                % (service_name, e)
+                "Failed to set up service client for %s\n%s" % (service_name, e)
             )
 
     def call_service(self, formant_stream, parameter: str):
@@ -133,4 +132,4 @@ class ServiceCoordinator:
         for service_clients in self._service_clients.items():
             for service_client in service_clients[1]:
                 self._node.destroy_client(service_client)
-        self._subscriptions = {}
+        self._service_clients = {}
