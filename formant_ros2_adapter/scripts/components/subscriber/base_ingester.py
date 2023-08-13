@@ -3,8 +3,12 @@ import cv2
 import grpc
 from typing import Dict
 from sensor_msgs.msg import (
+    BatteryState,
     CompressedImage,
     Image,
+    LaserScan,
+    NavSatFix,
+    PointCloud2,
 )
 from .types import STRING_TYPES, BOOL_TYPES, NUMERIC_TYPES, OTHER_DATA_TYPES
 
@@ -39,7 +43,89 @@ class BaseIngester:
         self.cv_bridge = CvBridge()
         self._logger = get_logger()
 
-    def prepare(self, msg, msg_type: type):
+    def prepare(
+        self,
+        msg,
+        msg_type: type,
+        formant_stream: str,
+        topic: str,
+        msg_timestamp: int,
+        tags: Dict,
+    ):
+        msg = self._preprocess(msg, msg_type)
+
+        if msg_type in STRING_TYPES:
+            msg = self._fclient.prepare_text(formant_stream, msg, tags, msg_timestamp)
+
+        elif msg_type in BOOL_TYPES:
+            self._fclient.prepare_bitset(formant_stream, msg, tags, msg_timestamp)
+        elif msg_type in NUMERIC_TYPES:
+            self._fclient.prepare_numeric(formant_stream, msg, tags, msg_timestamp)
+
+        elif msg_type == NavSatFix:
+
+            self._fclient.prepare_geolocation(
+                formant_stream,
+                msg.latitude,
+                msg.longitude,
+                altitude=msg.altitude,
+                tags=tags,
+                timestamp=msg_timestamp,
+            )
+
+        elif msg_type == Image:
+            self._fclient.prepare_image(
+                formant_stream,
+                value=msg,
+                tags=tags,
+                timestamp=msg_timestamp,
+            )
+        elif msg_type == CompressedImage:
+            self._fclient.prepare_image(
+                formant_stream,
+                value=msg["value"],
+                content_type=msg["content_type"],
+                tags=tags,
+                timestamp=msg_timestamp,
+            )
+
+        elif msg_type == BatteryState:
+            self._fclient.prepare_battery(
+                formant_stream,
+                msg.percentage,
+                voltage=msg.voltage,
+                current=msg.current,
+                charge=msg.charge,
+                tags=tags,
+                timestamp=msg_timestamp,
+            )
+
+        elif msg_type == LaserScan:
+            msg = Datapoint(
+                stream=formant_stream,
+                point_cloud=FPointCloud.from_ros_laserscan(msg).to_proto(),
+                tags=tags,
+                timestamp=msg_timestamp,
+            )
+
+        elif msg_type == PointCloud2:
+            Datapoint(
+                stream=formant_stream,
+                point_cloud=FPointCloud.from_ros(msg).to_proto(),
+                tags=tags,
+                timestamp=msg_timestamp,
+            )
+
+        else:
+            self._fclient.prepare_json(
+                formant_stream,
+                msg,
+                tags=tags,
+                timestamp=msg_timestamp,
+            )
+        return msg
+
+    def _preprocess(self, msg, msg_type: type):
 
         if msg_type in STRING_TYPES:
             msg = self._prepare_string(msg)
@@ -52,7 +138,6 @@ class BaseIngester:
             msg = self._prepare_compressed_image(msg)
 
         elif msg_type not in OTHER_DATA_TYPES:
-            # Ingest any messages without a direct mapping to a Formant type as JSON
             msg = message_to_json(msg)
 
         return msg

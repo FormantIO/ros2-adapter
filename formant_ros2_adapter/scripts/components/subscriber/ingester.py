@@ -43,117 +43,12 @@ class Ingester(BaseIngester):
         msg_timestamp: int,
         tags: Dict,
     ):
-        msg = self.prepare(msg, msg_type)
-        # Handle the message based on its type
+        msg = self.prepare(msg, msg_type, formant_stream, topic, msg_timestamp, tags)
+
         try:
-            if msg_type in STRING_TYPES:
-                self._fclient.post_text(
-                    formant_stream,
-                    msg,
-                    tags=tags,
-                    timestamp=msg_timestamp,
-                )
-
-            elif msg_type in BOOL_TYPES:
-                self._fclient.post_bitset(
-                    formant_stream,
-                    {topic: msg},
-                    tags=tags,
-                    timestamp=msg_timestamp,
-                )
-
-            elif msg_type in NUMERIC_TYPES:
-                self._fclient.post_numeric(
-                    formant_stream,
-                    msg,
-                    tags=tags,
-                    timestamp=msg_timestamp,
-                )
-
-            elif msg_type == NavSatFix:
-                # Convert NavSatFix to a Formant location
-                self._fclient.post_geolocation(
-                    stream=formant_stream,
-                    latitude=msg.latitude,
-                    longitude=msg.longitude,
-                    altitude=msg.altitude,
-                    tags=tags,
-                    timestamp=msg_timestamp,
-                )
-
-            elif msg_type == Image:
-                self._fclient.post_image(
-                    stream=formant_stream,
-                    value=msg,
-                    tags=tags,
-                    timestamp=msg_timestamp,
-                )
-
-            elif msg_type == CompressedImage:
-                self._fclient.post_image(
-                    formant_stream,
-                    value=msg["value"],
-                    content_type=msg["content_type"],
-                    tags=tags,
-                    timestamp=msg_timestamp,
-                )
-
-            elif msg_type == BatteryState:
-                self._fclient.post_battery(
-                    formant_stream,
-                    msg.percentage,
-                    voltage=msg.voltage,
-                    current=msg.current,
-                    charge=msg.charge,
-                    tags=tags,
-                    timestamp=msg_timestamp,
-                )
-
-            elif msg_type == LaserScan:
-                # Convert LaserScan to a Formant pointcloud
-                try:
-                    self._fclient.agent_stub.PostData(
-                        Datapoint(
-                            stream=formant_stream,
-                            point_cloud=FPointCloud.from_ros_laserscan(msg).to_proto(),
-                            tags=tags,
-                            timestamp=msg_timestamp,
-                        )
-                    )
-                except grpc.RpcError as e:
-                    return
-                except Exception as e:
-                    self._logger.error(
-                        "Could not ingest " + formant_stream + ": " + str(e)
-                    )
-                    return
-
-            elif msg_type == PointCloud2:
-                try:
-                    self._fclient.agent_stub.PostData(
-                        Datapoint(
-                            stream=formant_stream,
-                            point_cloud=FPointCloud.from_ros(msg).to_proto(),
-                            tags=tags,
-                            timestamp=msg_timestamp,
-                        )
-                    )
-                except grpc.RpcError as e:
-                    return
-                except Exception as e:
-                    self._logger.error(
-                        "Could not ingest " + formant_stream + ": " + str(e)
-                    )
-                    return
-
-            else:
-                # Ingest any messages without a direct mapping to a Formant type as JSON
-                self._fclient.post_json(
-                    formant_stream,
-                    msg,
-                    tags=tags,
-                    timestamp=msg_timestamp,
-                )
-
-        except AttributeError as e:
+            self._fclient.post_data(msg)
+        except grpc.RpcError as e:
+            return
+        except Exception as e:
             self._logger.error("Could not ingest " + formant_stream + ": " + str(e))
+            return
