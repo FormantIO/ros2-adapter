@@ -1,4 +1,6 @@
-from .ingester import Ingester
+from .base_ingester import BaseIngester
+from formant.protos.agent.v1 import agent_pb2
+from formant.protos.model.v1 import datapoint_pb2
 from formant.sdk.agent.v1 import Client
 from queue import LifoQueue
 from typing import Dict, List
@@ -8,21 +10,12 @@ import time
 MAX_INGEST_SIZE = 10
 
 
-class Message:
-    def __init__(self, msg, msg_type: type, topic: str, msg_timestamp: int, tags: Dict):
-        self.msg = msg
-        self.msg_type = msg_type
-        self.topic = topic
-        self.msg_timestamp = msg_timestamp
-        self.tags = tags
-
-
-class BatchIngester(Ingester):
+class BatchIngester(BaseIngester):
     def __init__(
         self, _fclient: Client, ingest_interval: int = 30, num_threads: int = 2
     ):
         super(BatchIngester, self).__init__(_fclient)
-        self._stream_queues: Dict[str, LifoQueue[Message]] = {}
+        self._stream_queues: Dict[str, LifoQueue] = {}
         self._ingest_interval = ingest_interval
         self._num_threads = num_threads
         self._threads: List[threading.Thread] = []
@@ -30,7 +23,7 @@ class BatchIngester(Ingester):
 
         self._start()
 
-    def batch_ingest(
+    def ingest(
         self,
         msg,
         msg_type: type,
@@ -39,27 +32,26 @@ class BatchIngester(Ingester):
         msg_timestamp: int,
         tags: Dict,
     ):
-        message = Message(msg, msg_type, topic, msg_timestamp, tags)
+        message = self.prepare(
+            msg, msg_type, formant_stream, topic, msg_timestamp, tags
+        )
+        has_stream = formant_stream in self._stream_queues
+        if not has_stream:
+            self._stream_queues[formant_stream] = LifoQueue()
+
         self._stream_queues[formant_stream].put(message)
 
     def _ingest_once(self):
 
-        for stream, queue in self._stream_queues.items():
-            ingest_size = min(len(queue), MAX_INGEST_SIZE)
-            for _ in range(ingest_size):
-                top_message = queue.get()
-                self.ingest(
-                    top_message.msg,
-                    top_message.msg_type,
-                    stream,
-                    top_message.topic,
-                    top_message.msg_timestamp,
-                    top_message.tags,
-                )
+        for _, queue in self._stream_queues.items():
+            ingest_size = min(queue.qsize(), MAX_INGEST_SIZE)
+            datapoints = [queue.get() for _ in range(ingest_size)]
+
+            self._fclient.post_data_multi(datapoints)
 
     def _ingest_continually(self):
         while not self._terminate_flag:
-            self._ingest_once(self)
+            self._ingest_once()
             time.sleep(self._ingest_interval)
 
     def _start(self):

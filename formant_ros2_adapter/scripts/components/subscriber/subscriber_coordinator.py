@@ -18,7 +18,7 @@ class SubscriberCoordinator:
     ):
         self._logger = get_logger()
         self._fclient = fclient
-        self._ingester = Ingester(self._fclient)
+        self._ingester = BatchIngester(self._fclient)
         self._node = node
         self._topic_type_provider = topic_type_provider
         self._basic_subscriber_coodinator = BasicSubscriberCoordinator(

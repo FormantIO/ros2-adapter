@@ -31,7 +31,7 @@ class BasicSubscriberCoordinator:
         self,
         fclient: Client,
         node: Node,
-        ingester: Ingester,
+        ingester: BatchIngester,
         topic_type_provider: TopicTypeProvider,
     ):
         self._fclient = fclient
