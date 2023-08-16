@@ -12,7 +12,7 @@ MAX_INGEST_SIZE = 10
 
 class BatchIngester(BaseIngester):
     def __init__(
-        self, _fclient: Client, ingest_interval: int = 30, num_threads: int = 2
+        self, _fclient: Client, ingest_interval: int = 0.04, num_threads: int = 2
     ):
         super(BatchIngester, self).__init__(_fclient)
         self._stream_queues: Dict[str, LifoQueue] = {}

@@ -55,19 +55,25 @@ class BaseIngester:
         msg = self._preprocess(msg, msg_type)
 
         if msg_type in STRING_TYPES:
-            msg = self._fclient.prepare_text(formant_stream, msg, tags, msg_timestamp)
+            msg = self._fclient.prepare_text(
+                stream=formant_stream, value=msg, tags=tags, timestamp=msg_timestamp
+            )
 
         elif msg_type in BOOL_TYPES:
-            self._fclient.prepare_bitset(formant_stream, msg, tags, msg_timestamp)
+            self._fclient.prepare_bitset(
+                stream=formant_stream, value=msg, tags=tags, timestamp=msg_timestamp
+            )
         elif msg_type in NUMERIC_TYPES:
-            self._fclient.prepare_numeric(formant_stream, msg, tags, msg_timestamp)
+            self._fclient.prepare_numeric(
+                stream=formant_stream, value=msg, tags=tags, timestamp=msg_timestamp
+            )
 
         elif msg_type == NavSatFix:
 
             self._fclient.prepare_geolocation(
-                formant_stream,
-                msg.latitude,
-                msg.longitude,
+                stream=formant_stream,
+                latitude=msg.latitude,
+                longitude=msg.longitude,
                 altitude=msg.altitude,
                 tags=tags,
                 timestamp=msg_timestamp,
@@ -75,14 +81,14 @@ class BaseIngester:
 
         elif msg_type == Image:
             self._fclient.prepare_image(
-                formant_stream,
+                stream=formant_stream,
                 value=msg,
                 tags=tags,
                 timestamp=msg_timestamp,
             )
         elif msg_type == CompressedImage:
             self._fclient.prepare_image(
-                formant_stream,
+                stream=formant_stream,
                 value=msg["value"],
                 content_type=msg["content_type"],
                 tags=tags,
@@ -91,8 +97,8 @@ class BaseIngester:
 
         elif msg_type == BatteryState:
             self._fclient.prepare_battery(
-                formant_stream,
-                msg.percentage,
+                stream=formant_stream,
+                percentage=msg.percentage,
                 voltage=msg.voltage,
                 current=msg.current,
                 charge=msg.charge,
@@ -118,8 +124,8 @@ class BaseIngester:
 
         else:
             self._fclient.prepare_json(
-                formant_stream,
-                msg,
+                stream=formant_stream,
+                value=msg,
                 tags=tags,
                 timestamp=msg_timestamp,
             )
