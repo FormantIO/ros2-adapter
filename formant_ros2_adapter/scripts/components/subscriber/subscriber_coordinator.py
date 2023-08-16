@@ -18,7 +18,7 @@ class SubscriberCoordinator:
     ):
         self._logger = get_logger()
         self._fclient = fclient
-        self._ingester = BatchIngester(self._fclient)
+        self._ingester = self._choose_ingester()
         self._node = node
         self._topic_type_provider = topic_type_provider
         self._basic_subscriber_coodinator = BasicSubscriberCoordinator(
@@ -37,3 +37,11 @@ class SubscriberCoordinator:
         self._localization_subscriber_coordinator.setup_with_config(config)
         self._numeric_set_subscriber_coodinator.setup_with_config(config)
         self._logger.info("Set up Subscriber Coordinator")
+
+    def _choose_ingester(self):
+        has_batch_ingester = hasattr(self._fclient, "post_data_multi") and callable(
+            self._fclient.post_data_multi
+        )
+        if has_batch_ingester:
+            return BatchIngester(self._fclient)
+        return Ingester(self._fclient)
