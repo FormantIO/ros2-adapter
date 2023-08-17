@@ -70,25 +70,36 @@ class NumericSetSubscriberCoordinator:
                         self._logger.warn(value_error)
                         continue
 
+    # every topic should get a single subscription,
+    # and when a topic receives a message, it should do all the updates in the
+    # message handler
     def _setup_subscription_for_config(self, numeric_set_config: NumericSetConfig):
         formant_stream = numeric_set_config.formant_stream
         self._subscriptions[formant_stream] = []
+
+        subscription_configs: Dict[String, List[Subscription]] = {}
         for subscriber in numeric_set_config.subscribers:
             topic = subscriber.topic
-            ros2_type = subscriber.message_type
+            if topic not in subscription_configs:
+                subscription_configs[topic] = []
+            subscription_configs[topic].append(subscriber)
+        
+        for _, subscribers in subscription_configs.items():
+            topic = subscribers[0].topic
+            ros2_type = subscribers[0].message_type
             if ros2_type is None:
                 ros2_type = self._topic_type_provider.get_type_for_topic(topic)
             if ros2_type is None:
                 raise ValueError("No ROS2 type found for %s" % topic)
             qos_profile = QOS_PROFILES.get(
-                subscriber.qos_profile, qos_profile_system_default
+                subscribers[0].qos_profile, qos_profile_system_default
             )
 
-            new_sub = self._node.create_subscription(
+            self._node.create_subscription(
                 get_ros2_type_from_string(ros2_type),
                 topic,
-                lambda msg, config=numeric_set_config, subscriber_config=subscriber: self._handle_message(
-                    msg, config, subscriber_config
+                lambda msg, config=numeric_set_config, subscription_configs=subscription_configs[topic]: self._handle_message(
+                    msg, config, subscription_configs
                 ),
                 qos_profile=qos_profile,
             )
@@ -97,53 +108,53 @@ class NumericSetSubscriberCoordinator:
         self,
         msg,
         numeric_set_config: NumericSetConfig,
-        subscriber_config: NumericSetSubscriberConfig,
+        subscription_configs: List[NumericSetSubscriberConfig],
     ):
+        msg_original = msg
+        formant_stream = numeric_set_config.formant_stream
         with self._config_lock:
-            formant_stream = numeric_set_config.formant_stream
-            path = subscriber_config.message_path
-            if path:
-                try:
-                    msg = get_message_path_value(msg, path)
-                    msg_type = type(msg)
-                except:
+            for subscriber_config in subscription_configs:
+                msg = msg_original
+                path = subscriber_config.message_path
+                if path:
+                    try:
+                        msg = get_message_path_value(msg, path)
+                        msg_type = type(msg)
+                    except:
+                        self._logger.error(
+                            "Could not find path '%s' in message %s" % (path, str(msg))
+                        )
+                        continue
+                
+                msg_type = type(msg)
+                label = subscriber_config.label
+                unit = subscriber_config.unit if subscriber_config.unit else ""
+                
+                # If the message has a data attribute, use that
+                if hasattr(msg, "data"):
+                    msg = msg.data
+
+                # If the message is already a number, use that
+                if msg_type in [int, float]:
+                    value = msg
+
+                # If the message is a ROS2 integer, cast it to an int and use that
+                elif msg_type in [Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]:
+                    value = int(msg)
+
+                # If the message is a ROS2 float, cast it to a float and use that
+                elif msg_type in [Float32, Float64]:
+                    value = float(msg)
+                
+                else:
                     self._logger.error(
-                        "Could not find path '%s' in message %s" % (path, str(msg))
-                    )
-                    return
-
-            msg_type = type(msg)
-
-            label = subscriber_config.label
-            unit = subscriber_config.unit if subscriber_config.unit else ""
-
-            # If the message has a data attribute, use that
-            if hasattr(msg, "data"):
-                msg = msg.data
-
-            # If the message is already a number, use that
-            if msg_type in [int, float]:
-                value = msg
-
-            # If the message is a ROS2 integer, cast it to an int and use that
-            elif msg_type in [Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]:
-                value = int(msg)
-
-            # If the message is a ROS2 float, cast it to a float and use that
-            elif msg_type in [Float32, Float64]:
-                value = float(msg)
-
-            else:
-                self._logger.error(
                     "Could not ingest %s: %s" % (formant_stream, str(msg_type))
-                )
-                return
-
-            # Update the current set with the new value
-            if formant_stream not in self.numeric_set_buffer:
-                self._numeric_set_buffer[formant_stream] = {}
-
-            self._numeric_set_buffer[formant_stream][label] = (value, unit)
+                    )
+                    continue
+                
+                if formant_stream not in self._numeric_set_buffer:
+                    self._numeric_set_buffer[formant_stream] = {}
+                self._numeric_set_buffer[formant_stream][label] = (value, unit)
 
             self._fclient.post_numericset(
                 formant_stream, self._numeric_set_buffer[formant_stream]
