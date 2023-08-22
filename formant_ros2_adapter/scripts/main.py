@@ -7,14 +7,16 @@ from formant.sdk.agent.v1 import Client
 
 from ros2_adapter import ROS2Adapter
 from utils.logger import get_logger
+import os
 
+ROS2_DOMAIN_ID = os.environ.get("ROS_DOMAIN_ID", None)
 
 FCLIENT_WAIT = 2
 
 
 if __name__ == "__main__":
     logger = get_logger()
-    rclpy.init()
+    rclpy.init(domain_id=ROS2_DOMAIN_ID)
     node = rclpy.create_node(
         "formant_ros2_adapter",
         allow_undeclared_parameters=True,
