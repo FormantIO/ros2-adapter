@@ -6,12 +6,16 @@ import rclpy
 from formant.sdk.agent.v1 import Client
 from ros2_adapter import ROS2Adapter
 from utils.logger import get_logger
+import os
+
+ROS2_DOMAIN_ID = os.environ.get("ROS_DOMAIN_ID", None)
 
 FCLIENT_WAIT = 2
 
 if __name__ == "__main__":
     logger = get_logger()
-    rclpy.init()
+    rclpy.init(domain_id=ROS2_DOMAIN_ID)
+
 
     # Get the config directory from an environment variable
     config_dir = os.environ.get("CONFIG_DIR")
