@@ -202,6 +202,7 @@ class Ingester:
 
             else:
                 # Ingest any messages without a direct mapping to a Formant type as JSON
+                self._logger.info("Posting Json")
                 self._fclient.post_json(
                     formant_stream,
                     message_to_json(msg),

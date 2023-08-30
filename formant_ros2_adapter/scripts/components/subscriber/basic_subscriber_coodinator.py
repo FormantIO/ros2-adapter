@@ -89,7 +89,9 @@ class BasicSubscriberCoordinator:
         message_path_config: Optional[MessagePathConfig] = None,
         timestamp: Optional[int] = None,
     ):
+        self._logger.info("Recieved message")
         with self._config_lock:
+            self._logger.info("Inside message lock")
             try:
                 message_type = type(msg)
                 formant_stream = subscriber_config.formant_stream
@@ -105,6 +107,7 @@ class BasicSubscriberCoordinator:
                     timestamp = int(time.time() * 1000)
                     if hasattr(msg, "header"):
                         if not FORMANT_OVERRIDE_TIMESTAMP:
+                            self._logger.info("Overriding timestamp")
                             header_timestamp = (
                                 msg.header.stamp.sec * 1000
                                 + msg.header.stamp.nanosec / 1000000
