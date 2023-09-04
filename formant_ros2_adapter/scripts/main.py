@@ -32,7 +32,7 @@ if __name__ == "__main__":
         callback=handle_message,
         qos_profile=qos_profile_system_default,
     )
-    logger.ino("subscriber setup")
+    logger.info("subscriber setup")
     try:
         while rclpy.ok():
             rclpy.spin_once(node, timeout_sec=1.0)
