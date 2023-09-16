@@ -39,4 +39,7 @@ class LocalizationConfig:
 
 class PointCloudSubscriberConfig:
     def __init__(self, config: Dict):
-        self.topic: str = get_value(config, "ros2_topic", required=True)
+        if isinstance(config, dict):
+            self.topic: str = get_value(config, "ros2_topic", required=True)
+        elif isinstance(config, str):
+            self.topic: str = config
