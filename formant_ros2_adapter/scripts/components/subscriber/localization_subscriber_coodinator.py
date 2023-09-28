@@ -166,7 +166,7 @@ class LocalizationSubscriberCoordinator:
             if msg_type == Odometry:
                 odometry = FOdometry.from_ros(msg)
             elif msg_type == PoseWithCovarianceStamped:
-                odometry = FOdometry(pose=FTransform.from_ros_pose(msg.pose.pose))
+                odometry = FOdometry.from_pose_with_covariance_stamped(msg)
             else:
                 self._logger.warn("Unknown odom type: %s" % msg_type)
                 return
@@ -183,20 +183,7 @@ class LocalizationSubscriberCoordinator:
             if msg_type is OccupancyGrid:
                 formant_map = FMap.from_ros(msg)
             elif Costmap is not None and msg_type is Costmap:
-                # ROS types
-                ros_resolution = msg.metadata.resolution
-                ros_width = msg.metadata.size_x
-                ros_height = msg.metadata.size_y
-                ros_origin = msg.metadata.origin
-
-                # Formant types
-                formant_map = FMap(
-                    resolution=ros_resolution,
-                    width=ros_width,
-                    height=ros_height,
-                    origin=FTransform.from_ros_pose(ros_origin),
-                    occupancy_grid_data=msg.data,
-                )
+                formant_map = FMap.from_costmap(msg)
             else:
                 self._logger.warn("Unknown map type %s" % msg_type)
                 return
