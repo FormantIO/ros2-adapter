@@ -9,6 +9,8 @@ from utils.logger import get_logger
 import os
 
 ROS2_DOMAIN_ID = os.environ.get("ROS_DOMAIN_ID", None)
+if ROS2_DOMAIN_ID:
+    ROS2_DOMAIN_ID = int(ROS2_DOMAIN_ID)
 
 FCLIENT_WAIT = 2
 
