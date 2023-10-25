@@ -23,33 +23,28 @@ class Interceptor(grpc.ServerInterceptor):
         servicer = AgentMockServicer()
         method = getattr(servicer, method_name, None)
         print(method, method_name)
-        if method:
-            method()  # Call the method. You might need to pass in the required arguments if any.
 
-        # Continue the processing of the request
-        return continuation(handler_call_details)
+        def custom_handler(request, context):
+            try:
+                if method:
+                    return method(request, context)
+                return continuation(handler_call_details)(request, context)
+            except Exception as e:
+                context.abort(grpc.StatusCode.INTERNAL, str(e))
+
+        # Replace the original handler with the custom handler
+        new_details = handler_call_details._replace(invocation_metadata=custom_handler)
+        return continuation(new_details)
 
 
 class AgentMockServicer:
     def GetAgentConfiguration(self, request, context):
         print("Received GetAgentConfiguration request:", request)
-        # Mock the response. You can adjust the mock data as needed.
-        return GetAgentConfigurationResponse(
-            configuration={
-                # Mocked configuration data
-                "key": "value"
-            }
-        )
+        return GetAgentConfigurationResponse(configuration={"key": "value"})
 
     def GetConfigBlobData(self, request, context):
         print("Received GetConfigBlobData request:", request)
-        # Mock the response. You can adjust the mock data as needed.
-        return GetConfigBlobDataResponse(
-            blob_data={
-                # Mocked blob data
-                "blob_key": "blob_value"
-            }
-        )
+        return GetConfigBlobDataResponse(blob_data={"blob_key": "blob_value"})
 
     def GetApplicationConfiguration(self, request, context):
         print(request, context)
@@ -76,7 +71,6 @@ def serve():
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10), interceptors=[Interceptor()]
     )
-
     server.add_insecure_port("[::]:50051")
     server.start()
     print("AgentMock Server started on port 50051")
