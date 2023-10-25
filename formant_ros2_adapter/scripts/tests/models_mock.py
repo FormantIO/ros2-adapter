@@ -1,3 +1,23 @@
+class ApplicationConfiguration:
+    def __init__(self, configuration_map=None):
+        self.configuration_map = configuration_map or {}
+
+
+class GetApplicationConfigurationResponse:
+    def __init__(self, configuration):
+        self.configuration = configuration
+
+
+class GetAgentConfigurationResponse:
+    def __init__(self, configuration):
+        self.configuration = configuration
+
+
+class GetConfigBlobDataResponse:
+    def __init__(self, blob_data):
+        self.blob_data = blob_data
+
+
 class CommandRequest:
     def __init__(self, command):
         self.command = command
@@ -15,3 +35,18 @@ class SendCommandResponseRequest:
 
 class SendCommandResponseResponse:
     pass
+
+
+class ControlDatapoint:
+    def __init__(self, data="mock_data"):
+        self.data = data
+
+
+class GetTeleopControlDataStreamRequest:
+    def __init__(self, stream_filter=None):
+        self.stream_filter = stream_filter or []
+
+
+class GetTeleopControlDataStreamResponse:
+    def __init__(self, control_datapoint=None):
+        self.control_datapoint = control_datapoint or ControlDatapoint()
