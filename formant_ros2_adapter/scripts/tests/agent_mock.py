@@ -10,61 +10,64 @@ from models_mock import (
     GetAgentConfigurationResponse,
     GetConfigBlobDataResponse,
 )
+from util import (
+    default_stream_stream_handler,
+    default_stream_unary_handler,
+    default_unary_stream_handler,
+    default_unary_unary_handler,
+)
+
+
+def ok_method(*args, **kwargs):
+    context = args[-1]  # context is always the last argument
+    context.set_code(grpc.StatusCode.OK)
+    return None
 
 
 class Interceptor(grpc.ServerInterceptor):
     def intercept_service(self, continuation, handler_call_details):
-        method_name = handler_call_details.method.split("/")[
-            -1
-        ]  # Extract the method name
+        method_name = handler_call_details.method.split("/")[-1]
         print(f"Received request for method: {handler_call_details.method}")
 
-        # Get the method from the AgentMockServicer and call it
         servicer = AgentMockServicer()
         method = getattr(servicer, method_name, None)
-        print(method, method_name)
 
-        def custom_handler(request, context):
-            try:
-                if method:
-                    return method(request, context)
-                return continuation(handler_call_details)(request, context)
-            except Exception as e:
-                context.abort(grpc.StatusCode.INTERNAL, str(e))
+        if not method:
 
-        # Replace the original handler with the custom handler
-        new_details = handler_call_details._replace(invocation_metadata=custom_handler)
-        return continuation(new_details)
+            def unimplemented_method(*args, **kwargs):
+                context = args[-1]  # context is always the last argument
+                context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+                context.set_details(f"Method {method_name} not implemented.")
+                return None
+
+            return grpc.unary_unary_rpc_method_handler(unimplemented_method)
+
+        # Directly return the RpcMethodHandler from the servicer method
+        return method(
+            None, None
+        )  # Passing None for request and context as they are not usede
 
 
 class AgentMockServicer:
     def GetAgentConfiguration(self, request, context):
         print("Received GetAgentConfiguration request:", request)
-        return GetAgentConfigurationResponse(configuration={"key": "value"})
+        return grpc.unary_unary_rpc_method_handler(ok_method)
 
     def GetConfigBlobData(self, request, context):
         print("Received GetConfigBlobData request:", request)
-        return GetConfigBlobDataResponse(blob_data={"blob_key": "blob_value"})
+        return grpc.unary_unary_rpc_method_handler(ok_method)
 
     def GetApplicationConfiguration(self, request, context):
-        print(request, context)
-        mock_config = ApplicationConfiguration(configuration_map={"key": "value"})
-        return GetApplicationConfigurationResponse(configuration=mock_config)
+        return grpc.unary_unary_rpc_method_handler(ok_method)
 
     def GetCommandRequestStream(self, request, context):
-        print(request, context)
-        yield GetCommandRequestStreamResponse(
-            request=CommandRequest(command="mock_command")
-        )
+        return grpc.unary_unary_rpc_method_handler(ok_method)
 
     def SendCommandResponse(self, request, context):
-        print(request, context)
-        print("Received command response:", request.response.command)
-        return SendCommandResponseResponse()
+        return grpc.unary_unary_rpc_method_handler(ok_method)
 
     def GetTeleopControlDataStream(self, request, context):
-        print(request, context)
-        yield GetTeleopControlDataStreamResponse()
+        return grpc.unary_unary_rpc_method_handler(ok_method)
 
 
 def serve():
