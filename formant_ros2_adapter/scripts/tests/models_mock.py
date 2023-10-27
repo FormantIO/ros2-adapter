@@ -50,3 +50,16 @@ class GetTeleopControlDataStreamRequest:
 class GetTeleopControlDataStreamResponse:
     def __init__(self, control_datapoint=None):
         self.control_datapoint = control_datapoint or ControlDatapoint()
+
+
+class PostDataMultiResponse:
+    def __init__(self, errors=None):
+        self.errors = errors or []
+
+
+class PostDataError:
+    def __init__(self, index, code, retryable, message):
+        self.index = index
+        self.code = code
+        self.retryable = retryable
+        self.message = message
