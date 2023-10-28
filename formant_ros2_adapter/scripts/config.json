@@ -1,1 +1,39 @@
-{}
+{
+    "ros2_adapter_configuration": {
+        "publishers": [
+            {
+                "formant_stream": "Buttons",
+                "ros2_topic": "/example_topic",
+                "ros2_message_type": "example_msgs/msg/ExampleType",
+                "ros2_qos_profile": "SYSTEM_DEFAULT"
+            }
+        ],
+        "subscribers": [
+            {
+                "ros2_topic": "/my_string",
+                "ros2_message_type": "std_msgs/msg/String",
+                "formant_stream": "my.string"
+            },
+            {
+                "ros2_topic": "/my_velocity",
+                "ros2_message_type": "geometry_msgs/msg/Twist",
+                "formant_stream": "my.velocity.linear",
+                "ros2_message_paths": [
+                    {
+                        "path": "linear"
+                    }
+                ]
+            },
+            {
+                "ros2_topic": "/my_velocity",
+                "formant_stream": "my.velocity.angular",
+                "ros2_message_type": "geometry_msgs/msg/Twist",
+                "ros2_message_paths": [
+                    {
+                        "path": "angular"
+                    }
+                ]
+            }
+        ]
+    }
+}
