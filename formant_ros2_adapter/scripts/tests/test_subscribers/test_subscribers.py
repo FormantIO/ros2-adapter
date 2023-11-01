@@ -11,38 +11,46 @@ import time
 
 class TestAgentMockServicer(unittest.TestCase):
     def setUp(self):
-        rclpy.init()
 
         self.servicer = AgentMockServicer()
         self.server = serve(self.servicer)
 
-        terminal_command = "gnome-terminal"
-        script_to_run = "source /opt/ros/*/setup.bash && python3 ../main.py --test"
+        command = "source /opt/ros/*/setup.bash && python3 ../main.py --test"
         self.f = open("output.txt", "w")
+
         self.adapter_process = subprocess.Popen(
-            script_to_run,
+            command,
             shell=True,
             executable="/bin/bash",
-            cwd="./",
             stdout=self.f,
             stderr=self.f,
         )
+
         time.sleep(10)
 
     def test_post_string(self):
-        topic = "/my_string"
-        message_data = String()
-        message_data.data = "key: value"
-        """
-        start_time = datetime.datetime.utcnow().isoformat()
-        print(f"Start Time: {start_time}")
+        print("l")
+        message = String()
+        message.data = "test_string"
+        context = rclpy.Context()
+        rclpy.init(context=context)
 
-        _ = GeneralPublisher(topic, String, message_data)
+        publisher = GeneralPublisher("/my_string", String, message, context)
+        executor = rclpy.executors.SingleThreadedExecutor(context=context)
+        executor.add_node(publisher)
+        try:
+            executor.spin()
+        except Exception as e:
+            print(f"Error while spinning: {e}")
 
-        end_time = datetime.datetime.utcnow().isoformat()
-        print(f"End Time: {end_time}")
-        """
-        print(self.servicer.post_datapoints)
+        time.sleep(1)
+        count_test_string = sum(
+            1
+            for item in self.servicer.post_datapoints
+            if item.text.value == "test_string"
+        )
+
+        self.assertEqual(count_test_string, 2)
 
     def tearDown(self):
         # Kill the terminal process
@@ -52,7 +60,8 @@ class TestAgentMockServicer(unittest.TestCase):
         self.server.stop(0)
         self.f.close()
 
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

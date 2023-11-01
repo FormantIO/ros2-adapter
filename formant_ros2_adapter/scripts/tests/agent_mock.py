@@ -2,12 +2,17 @@ import grpc
 from formant.protos.agent.v1 import agent_pb2, agent_pb2_grpc
 from formant.protos.model.v1 import commands_pb2, datapoint_pb2, math_pb2
 from concurrent import futures
+from google.protobuf import text_format
+import time
+
+MAX_AMOUNT = 1000000000
 
 
 class AgentMockServicer(agent_pb2_grpc.AgentServicer):
     def __init__(self):
         super().__init__()
         self.post_datapoints = []
+        self.i = 0
 
     def GetAgentConfiguration(self, request, context):
         return agent_pb2.GetAgentConfigurationResponse(
@@ -38,6 +43,7 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
                         ),
                     )
                 )  # Mock data for the "Buttons" stream
+                time.sleep(MAX_AMOUNT)
 
         else:
             # Handle other stream filters or return an error
@@ -55,6 +61,7 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
                         id="ButtonsId", command="Buttons", text="ButtonsText"
                     )
                 )
+                time.sleep(MAX_AMOUNT)
         else:
             # Handle other command filters or return an error
             pass
@@ -65,12 +72,19 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
     def PostDataMulti(self, request: agent_pb2.PostDataMultiRequest, context):
         # Add the datapoints from the request to the list
         self.post_datapoints.extend(request.datapoints)
-        print(request, self.post_datapoints)
         context.set_code(grpc.StatusCode.OK)
         context.set_details("Request processed successfully")
 
-        # Return a simple response to the client
         return agent_pb2.PostDataMultiResponse()
+
+    def PostData(self, request, context):
+        # Add the datapoint from the request to the list
+        self.post_datapoints.append(request)
+        context.set_code(grpc.StatusCode.OK)
+        context.set_details("Data point processed successfully")
+
+        # Return a simple response to the client
+        return agent_pb2.PostDataResponse()
 
 
 class RequestInterceptor(grpc.ServerInterceptor):
@@ -82,17 +96,22 @@ class RequestInterceptor(grpc.ServerInterceptor):
         return continuation(handler_call_details)
 
 
-def serve():
+def serve(servicer: AgentMockServicer):
     interceptor = RequestInterceptor()
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10), interceptors=[interceptor]
     )
-    agent_pb2_grpc.add_AgentServicer_to_server(AgentMockServicer(), server)
+    agent_pb2_grpc.add_AgentServicer_to_server(servicer, server)
     server.add_insecure_port("[::]:50051")
     print("Server started at [::]:50051")
     server.start()
-    server.wait_for_termination()
+    return server
 
+
+"""
 
 if __name__ == "__main__":
-    serve()
+    servicer = AgentMockServicer()
+    server = serve(servicer)
+    server.wait_for_termination()
+"""
