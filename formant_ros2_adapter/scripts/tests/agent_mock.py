@@ -35,10 +35,7 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
                     control_datapoint=datapoint_pb2.ControlDatapoint(
                         stream="Buttons",
                         timestamp=1234567890,  # Mock timestamp
-                        numeric=math_pb2.Numeric(value=42.0),  # Mock timestamp
-                        bitset=datapoint_pb2.Bitset(
-                            bits=[datapoint_pb2.Bit(key="SomeButtonKey", value=True)]
-                        ),
+                        numeric=math_pb2.Numeric(value=42.0),
                     )
                 )  # Mock data for the "Buttons" stream
                 time.sleep(MAX_AMOUNT)
@@ -88,7 +85,7 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
 class RequestInterceptor(grpc.ServerInterceptor):
     def intercept_service(self, continuation, handler_call_details):
         # Print the handler call details
-        # print("Handler Call Details:", handler_call_details)
+        print("Handler Call Details:", handler_call_details)
 
         # Continue with the given service handler
         return continuation(handler_call_details)
