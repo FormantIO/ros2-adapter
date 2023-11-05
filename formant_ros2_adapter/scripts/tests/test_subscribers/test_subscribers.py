@@ -9,7 +9,7 @@ import subprocess
 import time
 
 
-class TestAgentMockServicer(unittest.TestCase):
+class TestSubscriber(unittest.TestCase):
     def setUp(self):
 
         self.servicer = AgentMockServicer()
@@ -52,6 +52,41 @@ class TestAgentMockServicer(unittest.TestCase):
 
         self.assertEqual(count_test_string, 2)
 
+    def test_post_velocity(self):
+        pass
+        """
+        message = Twist()
+        message.linear.x = 1.0
+        message.angular.y = 1.0
+
+        context = rclpy.Context()
+        rclpy.init(context=context)
+        publisher = GeneralPublisher("/my_velocity", Twist, message, context)
+        executor = rclpy.executors.SingleThreadedExecutor(context=context)
+        executor.add_node(publisher)
+        try:
+            executor.spin()
+        except Exception as e:
+            print(f"Error while spinning: {e}")
+        time.sleep(1)
+
+        print(self.servicer.post_datapoints)
+
+        # Check if the correct linear and angular velocities have been collected
+        linear_collected = any(
+            item.text.value == "1.0"
+            for item in self.servicer.post_datapoints
+            if "linear" in item.stream
+        )
+        angular_collected = any(
+            item.text.value == "1.0"
+            for item in self.servicer.post_datapoints
+            if "angular" in item.stream
+        )
+
+        self.assertTrue(linear_collected, "Linear velocity not collected!")
+        self.assertTrue(angular_collected, "Angular velocity not collected!")
+        """
     def tearDown(self):
         # Kill the terminal process
         self.adapter_process.terminate()

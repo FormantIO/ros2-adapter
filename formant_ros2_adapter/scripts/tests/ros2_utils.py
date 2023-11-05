@@ -18,7 +18,6 @@ class GeneralPublisher(Node):
         self.publisher_.publish(msg)
         self.get_logger().info(f'Publishing: "{msg}"')
         self.i += 1
-        print("hello", self.i)
         if self.i > 1:  # Publish twice and then shut down
             self.timer.cancel()  # Cancel the timer
             self.destroy_node()  # Destroy the node

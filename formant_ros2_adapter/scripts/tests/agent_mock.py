@@ -71,7 +71,8 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
 
     def PostDataMulti(self, request: agent_pb2.PostDataMultiRequest, context):
         # Add the datapoints from the request to the list
-        self.post_datapoints.extend(request.datapoints)
+
+        self.post_datapoints.append(request)
         context.set_code(grpc.StatusCode.OK)
         context.set_details("Request processed successfully")
 
