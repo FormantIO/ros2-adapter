@@ -4,7 +4,7 @@
             {
                 "formant_stream": "Buttons",
                 "ros2_topic": "/example_topic",
-                "ros2_message_type": "example_msgs/msg/ExampleType",
+                "ros2_message_type": "std_msgs/msg/String",
                 "ros2_qos_profile": "SYSTEM_DEFAULT"
             }
         ],
