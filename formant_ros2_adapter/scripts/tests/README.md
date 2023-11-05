@@ -1,13 +1,10 @@
 ## README (Tests)
 
 ### Todo
-#### Components
-- [ ] formant_control
-- [ ] parameter_coordinator
-- [ ] base_ingester
-- [ ] batched_ingester
-- [ ] localization_subscriber
-- [ ] numeric_set_subscriber
-- [ ] subscriber_coordinator
-- [ ] ingester
-
+- [x] test_subscribers (partially)
+- [x] test_qos
+- [ ] test_localization
+- [ ] test_service_calls
+- [ ] test_teleop
+- [ ] test_tf
+- [ ] test_data_source
