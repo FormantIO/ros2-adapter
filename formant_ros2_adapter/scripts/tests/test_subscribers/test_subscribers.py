@@ -11,7 +11,6 @@ import time
 
 class TestSubscriber(unittest.TestCase):
     def setUp(self):
-
         self.servicer = AgentMockServicer()
         self.server = serve(self.servicer)
 
@@ -44,17 +43,20 @@ class TestSubscriber(unittest.TestCase):
             print(f"Error while spinning: {e}")
 
         time.sleep(1)
+
         count_test_string = sum(
             1
             for item in self.servicer.post_datapoints
-            if item.text.value == "test_string"
+            if hasattr(item, "datapoints")
+            and any(
+                dp.HasField("text") and dp.text.value == "test_string"
+                for dp in item.datapoints
+            )
         )
 
         self.assertEqual(count_test_string, 2)
 
     def test_post_velocity(self):
-        pass
-        """
         message = Twist()
         message.linear.x = 1.0
         message.angular.y = 1.0
@@ -86,7 +88,7 @@ class TestSubscriber(unittest.TestCase):
 
         self.assertTrue(linear_collected, "Linear velocity not collected!")
         self.assertTrue(angular_collected, "Angular velocity not collected!")
-        """
+
     def tearDown(self):
         # Kill the terminal process
         self.adapter_process.terminate()

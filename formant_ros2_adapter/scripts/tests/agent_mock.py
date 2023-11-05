@@ -1,6 +1,6 @@
 import grpc
 from formant.protos.agent.v1 import agent_pb2, agent_pb2_grpc
-from formant.protos.model.v1 import commands_pb2, datapoint_pb2, math_pb2
+from formant.protos.model.v1 import commands_pb2, datapoint_pb2, math_pb2, config_pb2
 from concurrent import futures
 from google.protobuf import text_format
 import time
@@ -16,17 +16,15 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
 
     def GetAgentConfiguration(self, request, context):
         return agent_pb2.GetAgentConfigurationResponse(
-            configuration=agent_pb2.AgentConfiguration(request)
+            configuration=config_pb2.AgentConfiguration()
         )
 
     def GetConfigBlobData(self, request, context):
-        return agent_pb2.GetConfigBlobDataResponse(
-            blob_data=agent_pb2.BlobData(request)
-        )
+        return agent_pb2.GetConfigBlobDataResponse(blob_data=config_pb2.BlobData())
 
     def GetApplicationConfiguration(self, request, context):
         return agent_pb2.GetApplicationConfigurationResponse(
-            configuration=agent_pb2.ApplicationConfiguration(request)
+            configuration=config_pb2.ApplicationConfiguration()
         )
 
     def GetTeleopControlDataStream(self, request, context):
@@ -50,7 +48,6 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
             pass
 
     def GetCommandRequestStream(self, request, context):
-
         # Check if the client is interested in the "Buttons" stream
         if "Buttons" in request.command_filter:
             while True:
