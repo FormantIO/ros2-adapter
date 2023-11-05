@@ -85,7 +85,7 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
 class RequestInterceptor(grpc.ServerInterceptor):
     def intercept_service(self, continuation, handler_call_details):
         # Print the handler call details
-        print("Handler Call Details:", handler_call_details)
+        # print("Handler Call Details:", handler_call_details)
 
         # Continue with the given service handler
         return continuation(handler_call_details)
