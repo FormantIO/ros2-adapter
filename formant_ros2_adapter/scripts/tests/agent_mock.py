@@ -12,6 +12,8 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
     def __init__(self):
         super().__init__()
         self.post_datapoints = []
+        self.base_frame_id = ""
+        self.transform_frames = []
         self.i = 0
 
     def GetAgentConfiguration(self, request, context):
@@ -81,11 +83,28 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
         # Return a simple response to the client
         return agent_pb2.PostDataResponse()
 
+    def SetBaseFrameID(self, request, context):
+        # Here we simulate setting the base frame ID by simply storing it
+        self.base_frame_id = request.id
+        context.set_code(grpc.StatusCode.OK)
+        context.set_details("Base frame ID set successfully")
+        # Return an empty response (as per the protobuf definition)
+        return agent_pb2.SetBaseFrameIDResponse()
+
+    def PostTransformFrame(self, request, context):
+        # Add the transform frame from the request to the list
+        self.transform_frames.append(request)
+        context.set_code(grpc.StatusCode.OK)
+        context.set_details("Transform frame processed successfully")
+
+        # Return a simple response to the client
+        return agent_pb2.PostTransformFrameResponse()
+
 
 class RequestInterceptor(grpc.ServerInterceptor):
     def intercept_service(self, continuation, handler_call_details):
         # Print the handler call details
-        # print("Handler Call Details:", handler_call_details)
+        print("Handler Call Details:", handler_call_details)
 
         # Continue with the given service handler
         return continuation(handler_call_details)
@@ -101,12 +120,3 @@ def serve(servicer: AgentMockServicer):
     print("Server started at [::]:50051")
     server.start()
     return server
-
-
-"""
-
-if __name__ == "__main__":
-    servicer = AgentMockServicer()
-    server = serve(servicer)
-    server.wait_for_termination()
-"""

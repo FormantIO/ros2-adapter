@@ -3,8 +3,13 @@
 ### Todo
 - [x] test_subscribers (partially)
 - [x] test_qos
-- [ ] test_localization
+- [x] test_localization
 - [ ] test_service_calls
 - [ ] test_teleop
-- [ ] test_tf
+- [x] test_tf
 - [ ] test_data_source
+
+
+### Ideas
+- [ ] Handler Details based test proceedings
+- [ ] Close all subprocesses efficiently
