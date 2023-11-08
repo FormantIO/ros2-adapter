@@ -11,6 +11,7 @@ from formant.sdk.agent.v1 import Client
 from configuration.config_schema import ConfigSchema
 from configuration.subscriber_config import SubscriberConfig, MessagePathConfig
 from .ingester import Ingester
+from .batched_ingester import BatchIngester
 from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
 from ros2_utils.topic_type_provider import TopicTypeProvider
 from utils.logger import get_logger
@@ -30,7 +31,7 @@ class BasicSubscriberCoordinator:
         self,
         fclient: Client,
         node: Node,
-        ingester: Ingester,
+        ingester: BatchIngester,
         topic_type_provider: TopicTypeProvider,
     ):
         self._fclient = fclient
