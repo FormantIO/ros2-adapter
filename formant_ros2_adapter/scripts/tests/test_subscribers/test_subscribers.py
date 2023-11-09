@@ -7,6 +7,7 @@ from agent_mock import AgentMockServicer, serve
 from ros2_utils import GeneralPublisher
 import subprocess
 import time
+import json
 
 
 class TestSubscriber(unittest.TestCase):
@@ -57,8 +58,6 @@ class TestSubscriber(unittest.TestCase):
         self.assertEqual(count_test_string, 2)
 
     def test_post_velocity(self):
-        pass
-        """
         message = Twist()
         message.linear.x = 1.0
         message.angular.y = 1.0
@@ -74,23 +73,31 @@ class TestSubscriber(unittest.TestCase):
             print(f"Error while spinning: {e}")
         time.sleep(1)
 
-        print(self.servicer.post_datapoints)
+        nested_json_load = lambda x: json.loads(json.loads(x))
+        linear_collected = False
+        angular_collected = False
 
-        # Check if the correct linear and angular velocities have been collected
-        linear_collected = any(
-            item.text.value == "1.0"
-            for item in self.servicer.post_datapoints
-            if "linear" in item.stream
-        )
-        angular_collected = any(
-            item.text.value == "1.0"
-            for item in self.servicer.post_datapoints
-            if "angular" in item.stream
-        )
+        for request_datapoint in self.servicer.post_datapoints:
+            linear_collected = (
+                any(
+                    nested_json_load(dp.json.value)["x"] == 1.0
+                    for dp in request_datapoint.datapoints
+                    if dp.stream == "my.velocity.linear"
+                )
+                or linear_collected
+            )
+
+            angular_collected = (
+                any(
+                    nested_json_load(dp.json.value)["y"] == 1.0
+                    for dp in request_datapoint.datapoints
+                    if dp.stream == "my.velocity.angular"
+                )
+                or angular_collected
+            )
 
         self.assertTrue(linear_collected, "Linear velocity not collected!")
         self.assertTrue(angular_collected, "Angular velocity not collected!")
-        """
 
     def tearDown(self):
         # Kill the terminal process

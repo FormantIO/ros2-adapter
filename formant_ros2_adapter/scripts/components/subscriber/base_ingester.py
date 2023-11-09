@@ -60,17 +60,16 @@ class BaseIngester:
             )
 
         elif msg_type in BOOL_TYPES:
-            self._fclient.prepare_bitset(
+            msg = self._fclient.prepare_bitset(
                 stream=formant_stream, value=msg, tags=tags, timestamp=msg_timestamp
             )
         elif msg_type in NUMERIC_TYPES:
-            self._fclient.prepare_numeric(
+            msg = self._fclient.prepare_numeric(
                 stream=formant_stream, value=msg, tags=tags, timestamp=msg_timestamp
             )
 
         elif msg_type == NavSatFix:
-
-            self._fclient.prepare_geolocation(
+            msg = self._fclient.prepare_geolocation(
                 stream=formant_stream,
                 latitude=msg.latitude,
                 longitude=msg.longitude,
@@ -80,14 +79,14 @@ class BaseIngester:
             )
 
         elif msg_type == Image:
-            self._fclient.prepare_image(
+            msg = self._fclient.prepare_image(
                 stream=formant_stream,
                 value=msg,
                 tags=tags,
                 timestamp=msg_timestamp,
             )
         elif msg_type == CompressedImage:
-            self._fclient.prepare_image(
+            msg = self._fclient.prepare_image(
                 stream=formant_stream,
                 value=msg["value"],
                 content_type=msg["content_type"],
@@ -96,7 +95,7 @@ class BaseIngester:
             )
 
         elif msg_type == BatteryState:
-            self._fclient.prepare_battery(
+            msg = self._fclient.prepare_battery(
                 stream=formant_stream,
                 percentage=msg.percentage,
                 voltage=msg.voltage,
@@ -107,7 +106,7 @@ class BaseIngester:
             )
 
         elif msg_type == LaserScan:
-            msg = Datapoint(
+            msg = msg = Datapoint(
                 stream=formant_stream,
                 point_cloud=FPointCloud.from_ros_laserscan(msg).to_proto(),
                 tags=tags,
@@ -115,7 +114,7 @@ class BaseIngester:
             )
 
         elif msg_type == PointCloud2:
-            Datapoint(
+            msg = Datapoint(
                 stream=formant_stream,
                 point_cloud=FPointCloud.from_ros(msg).to_proto(),
                 tags=tags,
@@ -123,16 +122,16 @@ class BaseIngester:
             )
 
         else:
-            self._fclient.prepare_json(
+            print("json", msg)
+            msg = self._fclient.prepare_json(
                 stream=formant_stream,
-                value=msg,
+                value=message_to_json(msg),
                 tags=tags,
                 timestamp=msg_timestamp,
             )
         return msg
 
     def _preprocess(self, msg, msg_type: type):
-
         if msg_type in STRING_TYPES:
             msg = self._prepare_string(msg)
         elif msg_type in BOOL_TYPES or msg_type in NUMERIC_TYPES:

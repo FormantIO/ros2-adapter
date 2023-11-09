@@ -1,0 +1,28 @@
+{
+    "ros2_adapter_configuration": {
+        "publishers": [
+            {
+                "ros2_topic": "/cmd_vel",
+                "ros2_message_type": "geometry_msgs/msg/Twist",
+                "formant_stream": "burger.move"
+            },
+            {
+                "ros2_topic": "/mouse_click",
+                "ros2_message_type": "geometry_msgs/msg/Point",
+                "formant_stream": "burger.click"
+            },
+            {
+                "ros2_topic": "/teleop_button",
+                "ros2_message_type": "std_msgs/msg/Bool",
+                "formant_stream": "burger.button"
+            }
+        ],
+        "subscribers": [
+            {
+                "ros2_topic": "/image",
+                "ros2_message_type": "sensor_msgs/msg/Image",
+                "formant_stream": "burger.image"
+            }
+        ]
+    }
+}
