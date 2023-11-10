@@ -5,9 +5,9 @@
 - [x] test_qos
 - [x] test_localization
 - [x] test_tf
-- [ ] test_service_calls
-- [ ] test_teleop (PostDataMuliti)
+- [x] test_teleop (PostDataMuliti)
 - [x] test_subscribers (PostDataMuliti)
+- [ ] test_service_calls
 - [ ] test_data_source
 
 
