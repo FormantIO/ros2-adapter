@@ -2,8 +2,9 @@ import grpc
 from formant.protos.agent.v1 import agent_pb2, agent_pb2_grpc
 from formant.protos.model.v1 import commands_pb2, datapoint_pb2, math_pb2, config_pb2
 from concurrent import futures
-from google.protobuf import text_format
+from models_mock import Command
 import time
+import threading
 
 MAX_AMOUNT = 1000000000
 
@@ -12,8 +13,8 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
     def __init__(self):
         super().__init__()
         self.post_datapoints = []
-        self.base_frame_id = ""
         self.transform_frames = []
+        self.command_requests = []
         self.i = 0
 
     def GetAgentConfiguration(self, request, context):
@@ -47,20 +48,22 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
             pass
 
     def GetCommandRequestStream(self, request, context):
-        # Check if the client is interested in the "Buttons" stream
         if "Buttons" in request.command_filter:
-            while True:
-                # Generate and yield appropriate responses based on the "Buttons" filter
-                # For example:
-                yield agent_pb2.GetCommandRequestStreamResponse(
-                    request=commands_pb2.CommandRequest(
-                        id="ButtonsId", command="Buttons", text="ButtonsText"
-                    )
+            # Start a separate thread for "Buttons" stream
+            buttons_thread = threading.Thread(
+                target=self._handle_buttons_stream, args=(context,)
+            )
+            buttons_thread.daemon = True
+            buttons_thread.start()
+
+            # Join the thread to ensure it runs as long as the context is alive
+            buttons_thread.join()
+        for command in self.command_requests:
+            yield agent_pb2.GetCommandRequestStreamResponse(
+                request=commands_pb2.CommandRequest(
+                    id=command.id, command=command.name, text=command.value
                 )
-                time.sleep(MAX_AMOUNT)
-        else:
-            # Handle other command filters or return an error
-            pass
+            )
 
     def SendCommandResponse(self, request, context):
         return agent_pb2.SendCommandResponseResponse(request)
@@ -85,7 +88,6 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
 
     def SetBaseFrameID(self, request, context):
         # Here we simulate setting the base frame ID by simply storing it
-        self.base_frame_id = request.id
         context.set_code(grpc.StatusCode.OK)
         context.set_details("Base frame ID set successfully")
         # Return an empty response (as per the protobuf definition)
@@ -99,6 +101,15 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
 
         # Return a simple response to the client
         return agent_pb2.PostTransformFrameResponse()
+
+    def _handle_buttons_stream(self, context):
+        while True:
+            yield agent_pb2.GetCommandRequestStreamResponse(
+                request=commands_pb2.CommandRequest(
+                    id="ButtonsId", command="Buttons", text="ButtonsText"
+                )
+            )
+            time.sleep(MAX_AMOUNT)
 
 
 class RequestInterceptor(grpc.ServerInterceptor):

@@ -2,37 +2,31 @@
     "ros2_adapter_configuration": {
         "publishers": [
             {
-                "formant_stream": "Buttons",
-                "ros2_topic": "/example_topic",
-                "ros2_message_type": "example_msgs/msg/ExampleType",
-                "ros2_qos_profile": "SYSTEM_DEFAULT"
+                "ros2_topic": "/cmd_vel",
+                "ros2_message_type": "geometry_msgs/msg/Twist",
+                "formant_stream": "burger.move"
+            },
+            {
+                "ros2_topic": "/mouse_click",
+                "ros2_message_type": "geometry_msgs/msg/Point",
+                "formant_stream": "burger.click"
+            },
+            {
+                "ros2_topic": "/teleop_button",
+                "ros2_message_type": "std_msgs/msg/Bool",
+                "formant_stream": "burger.button"
+            },
+            {
+                "ros2_topic": "/teleop_text",
+                "ros2_message_type": "std_msgs/msg/String",
+                "formant_stream": "burger.text"
             }
         ],
         "subscribers": [
             {
-                "ros2_topic": "/my_string",
-                "ros2_message_type": "std_msgs/msg/String",
-                "formant_stream": "my.string"
-            },
-            {
-                "ros2_topic": "/my_velocity",
-                "ros2_message_type": "geometry_msgs/msg/Twist",
-                "formant_stream": "my.velocity.linear",
-                "ros2_message_paths": [
-                    {
-                        "path": "linear"
-                    }
-                ]
-            },
-            {
-                "ros2_topic": "/my_velocity",
-                "formant_stream": "my.velocity.angular",
-                "ros2_message_type": "geometry_msgs/msg/Twist",
-                "ros2_message_paths": [
-                    {
-                        "path": "angular"
-                    }
-                ]
+                "ros2_topic": "/image",
+                "ros2_message_type": "sensor_msgs/msg/Image",
+                "formant_stream": "burger.image"
             }
         ]
     }

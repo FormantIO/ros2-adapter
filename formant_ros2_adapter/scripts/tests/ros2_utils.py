@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import String
 
 
 class GeneralPublisher(Node):
@@ -20,3 +21,20 @@ class GeneralPublisher(Node):
             self.timer.cancel()  # Cancel the timer
             self.destroy_node()  # Destroy the node
             self.context.shutdown()  # Shutdown the context
+
+
+class TeleopTextListener(Node):
+    def __init__(self, ros2_topic, message, context):
+        super().__init__("teleop_text_listener", context=context)
+        self.subscription = self.create_subscription(
+            String, ros2_topic, self.listener_callback, 10
+        )
+        self.ros2_topic = ros2_topic
+        self.message = message
+        self.text_received = False
+
+    def listener_callback(self, message):
+        if message.data == self.message:
+            self.text_received = True
+            self.destroy_node()
+            self.context.shutdown()
