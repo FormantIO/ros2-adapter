@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from formant_test_interfaces.srv import SingleInt
 
 
 class GeneralPublisher(Node):
@@ -36,5 +37,20 @@ class TeleopTextListener(Node):
     def listener_callback(self, message):
         if message.data == self.message:
             self.text_received = True
+            self.destroy_node()
+            self.context.shutdown()
+
+
+class SingleIntServiceListener(Node):
+    def __init__(self, ros2_topic, value, context):
+        super().__init__("single_int_service_listener", context=context)
+        self.value = value
+        self.value_recv = True
+        self.service = self.create_service(SingleInt, ros2_topic, self.service_callback)
+        print("ASdf")
+
+    def service_callback(self, request, response):
+        if str(request.input) == self.value:
+            self.value_recv = True
             self.destroy_node()
             self.context.shutdown()

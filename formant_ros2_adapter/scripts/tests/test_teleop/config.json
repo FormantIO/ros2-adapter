@@ -2,19 +2,29 @@
     "ros2_adapter_configuration": {
         "publishers": [
             {
-                "ros2_topic": "/cmd_vel",
-                "ros2_message_type": "geometry_msgs/msg/Twist",
-                "formant_stream": "burger.move"
+                "ros2_topic": "/topic_for_call_no_params",
+                "ros2_message_type": "example_msgs/msg/ExampleType",
+                "formant_stream": "ros2_service_test_call_no_params"
             },
             {
-                "ros2_topic": "/mouse_click",
-                "ros2_message_type": "geometry_msgs/msg/Point",
-                "formant_stream": "burger.click"
-            },
-            {
-                "ros2_topic": "/teleop_button",
+                "ros2_topic": "/topic_for_set_bool",
                 "ros2_message_type": "std_msgs/msg/Bool",
-                "formant_stream": "burger.button"
+                "formant_stream": "ros2_service_test_set_bool"
+            },
+            {
+                "ros2_topic": "/topic_for_set_int",
+                "ros2_message_type": "std_msgs/msg/Int32",
+                "formant_stream": "ros2_service_test_set_int"
+            },
+            {
+                "ros2_topic": "/topic_for_set_float",
+                "ros2_message_type": "std_msgs/msg/Float32",
+                "formant_stream": "ros2_service_test_set_float"
+            },
+            {
+                "ros2_topic": "/topic_for_set_string",
+                "ros2_message_type": "std_msgs/msg/String",
+                "formant_stream": "ros2_service_test_set_string"
             }
         ],
         "subscribers": [

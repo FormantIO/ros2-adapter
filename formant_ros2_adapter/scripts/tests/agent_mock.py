@@ -5,8 +5,11 @@ from concurrent import futures
 from models_mock import Command
 import time
 import threading
+import json
 
 MAX_AMOUNT = 1000000000
+ADAPTER_NAME = "ros2_adapter_configuration"
+DEFAULT_STREAM = "Buttons"
 
 
 class AgentMockServicer(agent_pb2_grpc.AgentServicer):
@@ -16,6 +19,8 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
         self.transform_frames = []
         self.command_requests = []
         self.i = 0
+
+        self.config = self._get_config_from_json()
 
     def GetAgentConfiguration(self, request, context):
         return agent_pb2.GetAgentConfigurationResponse(
@@ -32,11 +37,11 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
 
     def GetTeleopControlDataStream(self, request, context):
         # Check if the client is interested in the "Buttons" stream
-        if "Buttons" in request.stream_filter:
+        if DEFAULT_STREAM in request.stream_filter:
             while True:
                 yield agent_pb2.GetTeleopControlDataStreamResponse(
                     control_datapoint=datapoint_pb2.ControlDatapoint(
-                        stream="Buttons",
+                        stream=DEFAULT_STREAM,
                         timestamp=1234567890,  # Mock timestamp
                         numeric=math_pb2.Numeric(value=42.0),
                     )
@@ -48,25 +53,12 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
             pass
 
     def GetCommandRequestStream(self, request, context):
-        if "Buttons" in request.command_filter:
-            # Start a separate thread for "Buttons" stream
-            buttons_thread = threading.Thread(
-                target=self._handle_buttons_stream, args=(context,)
-            )
-            buttons_thread.daemon = True
-            buttons_thread.start()
-
-            # Join the thread to ensure it runs as long as the context is alive
-            buttons_thread.join()
-        for command in self.command_requests:
-            yield agent_pb2.GetCommandRequestStreamResponse(
-                request=commands_pb2.CommandRequest(
-                    id=command.id, command=command.name, text=command.value
-                )
-            )
+        self._mock_buttons(request, context)
+        yield from self._mock_command_request()
+        yield from self._mock_service_clients(request)
 
     def SendCommandResponse(self, request, context):
-        return agent_pb2.SendCommandResponseResponse(request)
+        return agent_pb2.SendCommandResponseResponse()
 
     def PostDataMulti(self, request: agent_pb2.PostDataMultiRequest, context):
         # Add the datapoints from the request to the list
@@ -101,6 +93,59 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
 
         # Return a simple response to the client
         return agent_pb2.PostTransformFrameResponse()
+
+    def _get_config_from_json(self):
+        # Try to get config from config.json
+        print("Trying to get config from config.json file")
+        try:
+            with open("config.json") as f:
+                config = json.loads(f.read())
+                if "ros2_adapter_configuration" in config:
+                    print("Got config from config.json file")
+                    return config
+        except Exception as e:
+            print("Error getting config from config.json: %s" % str(e))
+        return None
+
+    def _mock_buttons(self, request, context):
+        if DEFAULT_STREAM not in request.command_filter:
+            return
+        buttons_thread = threading.Thread(
+            target=self._handle_buttons_stream, args=(context,)
+        )
+        buttons_thread.daemon = True
+        buttons_thread.start()
+
+        # Join the thread to ensure it runs as long as the context is alive
+        buttons_thread.join()
+
+    def _mock_command_request(self):
+        for command in self.command_requests:
+            yield agent_pb2.GetCommandRequestStreamResponse(
+                request=commands_pb2.CommandRequest(
+                    id=command.id, command=command.name, text=command.value
+                )
+            )
+
+    def _mock_service_clients(self, request):
+        ros2_service_types_response = {
+            "formant_test_interfaces/srv/NoParameters": "",
+            "example_interfaces/srv/SetBool": "True",
+            "formant_test_interfaces/srv/SingleInt": "1",
+            "formant_test_interfaces/srv/SingleFloat": "1.0",
+            "formant_test_interfaces/srv/SingleString": "exampleString",
+        }
+        service_clients = self.config[ADAPTER_NAME]["service_clients"]
+        for service_client in service_clients:
+            yield agent_pb2.GetCommandRequestStreamResponse(
+                request=commands_pb2.CommandRequest(
+                    id="_",
+                    command=service_client["formant_stream"],
+                    text=ros2_service_types_response[
+                        service_client["ros2_service_type"]
+                    ],
+                )
+            )
 
     def _handle_buttons_stream(self, context):
         while True:

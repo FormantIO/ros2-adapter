@@ -1,17 +1,15 @@
 import unittest
-import datetime
+import time
 import rclpy
-from geometry_msgs.msg import Twist
-from std_msgs.msg import String
 from agent_mock import AgentMockServicer, serve
-from ros2_utils import TeleopTextListener
 import subprocess
 import time
-import json
+import os
+from ros2_utils import SingleIntServiceListener
 from models_mock import Command
 
 
-class TestTeleop(unittest.TestCase):
+class TestServiceCall(unittest.TestCase):
     def setUp(self):
         self.servicer = AgentMockServicer()
         self.server = serve(self.servicer)
@@ -29,27 +27,23 @@ class TestTeleop(unittest.TestCase):
 
         time.sleep(10)
 
-    def test_publish(self):
-        stream_name = "burger.text"
-        value = "sample_text"
-        ros2_topic = "/teleop_text"
-
+    def test_formant_int(self):
         self.servicer.command_requests.append(
-            Command(id="_", name=stream_name, value=value)
+            Command(id="_", name="ros2_service_test_set_int", value="21")
         )
 
         context = rclpy.Context()
         rclpy.init(context=context)
 
-        publisher = TeleopTextListener(ros2_topic, value, context)
-        executor = rclpy.executors.SingleThreadedExecutor(context=context)
+        publisher = SingleIntServiceListener("set_int", "21", context)
+        executor = rclpy.executors.MultiThreadedExecutor(context=context)
         executor.add_node(publisher)
         try:
             executor.spin()
         except Exception as e:
             print(f"Error while spinning: {e}")
 
-        self.assertTrue(publisher.text_received)
+        self.assertTrue(publisher.value_recv)
 
     def tearDown(self):
         # Kill the terminal process
