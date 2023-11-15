@@ -1,7 +1,13 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from formant_test_interfaces.srv import SingleInt
+from formant_test_interfaces.srv import (
+    NoParameters,
+    SingleInt,
+    SingleFloat,
+    SingleString,
+)
+from example_interfaces.srv import SetBool
 
 
 class GeneralPublisher(Node):
@@ -54,3 +60,36 @@ class SingleIntServiceListener(Node):
             self.value_recv = True
             self.destroy_node()
             self.context.shutdown()
+
+
+class GeneralServiceListener(Node):
+    def __init__(self, test_vals, context):
+        super().__init__("general_service_listener", context=context)
+        self.test_vals = test_vals
+        self.completed = {key: False for key in self.test_vals}
+        self.running_services = []
+        for key in self.test_vals:
+            callback_type = self._get_callback_type(key)
+            print(callback_type, key, self.test_vals)
+            service = self.create_service(callback_type, key, self.service_callback)
+            self.running_services.append(service)
+        print("ASdf")
+
+    def _get_callback_type(self, ros2_service):
+        ros2_service_type_mapping = {
+            "call_no_params": NoParameters,
+            "set_bool": SetBool,
+            "set_int": SingleInt,
+            "set_float": SingleFloat,
+            "set_string": SingleString,
+        }
+        return ros2_service_type_mapping.get(ros2_service, None)
+
+    def service_callback(self, request, response):
+        print(type(request), type(response))
+        """
+        if str(request.input) == self.value:
+            self.value_recv = True
+            self.destroy_node()
+            self.context.shutdown()
+        """

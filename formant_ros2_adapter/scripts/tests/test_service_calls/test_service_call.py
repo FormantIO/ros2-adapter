@@ -5,8 +5,18 @@ from agent_mock import AgentMockServicer, serve
 import subprocess
 import time
 import os
-from ros2_utils import SingleIntServiceListener
+from ros2_utils import SingleIntServiceListener, GeneralServiceListener
 from models_mock import Command
+
+ADAPTER_NAME = "ros2_adapter_configuration"
+
+TEST_VALUES = {
+    "call_no_params": "",
+    "set_bool": "True",
+    "set_int": "1",
+    "set_float": "1.0",
+    "set_string": "exampleString",
+}
 
 
 class TestServiceCall(unittest.TestCase):
@@ -27,15 +37,23 @@ class TestServiceCall(unittest.TestCase):
 
         time.sleep(10)
 
-    def test_formant_int(self):
-        self.servicer.command_requests.append(
-            Command(id="_", name="ros2_service_test_set_int", value="21")
-        )
+    def test_all(self):
+        service_clients = self.servicer.config[ADAPTER_NAME]["service_clients"]
+        for service_client in service_clients:
+            formant_stream = service_client["formant_stream"]
+            test_value = TEST_VALUES[service_client["ros2_service"].replace("/", "")]
+            self.servicer.command_requests.append(
+                Command(
+                    id="_",
+                    name=formant_stream,
+                    value=test_value,
+                )
+            )
 
         context = rclpy.Context()
         rclpy.init(context=context)
 
-        publisher = SingleIntServiceListener("set_int", "21", context)
+        publisher = GeneralServiceListener(TEST_VALUES, context)
         executor = rclpy.executors.MultiThreadedExecutor(context=context)
         executor.add_node(publisher)
         try:
