@@ -135,7 +135,10 @@ class AgentMockServicer(agent_pb2_grpc.AgentServicer):
             "formant_test_interfaces/srv/SingleFloat": "1.0",
             "formant_test_interfaces/srv/SingleString": "exampleString",
         }
-        service_clients = self.config[ADAPTER_NAME]["service_clients"]
+        service_clients = self.config[ADAPTER_NAME].get("service_clients", None)
+        if not service_clients:
+            yield None
+        
         for service_client in service_clients:
             yield agent_pb2.GetCommandRequestStreamResponse(
                 request=commands_pb2.CommandRequest(

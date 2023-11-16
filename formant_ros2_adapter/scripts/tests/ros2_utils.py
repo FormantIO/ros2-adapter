@@ -73,7 +73,6 @@ class GeneralServiceListener(Node):
             print(callback_type, key, self.test_vals)
             service = self.create_service(callback_type, key, self.service_callback)
             self.running_services.append(service)
-        print("ASdf")
 
     def _get_callback_type(self, ros2_service):
         ros2_service_type_mapping = {

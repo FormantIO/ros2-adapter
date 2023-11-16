@@ -37,7 +37,6 @@ class TestTeleop(unittest.TestCase):
         self.servicer.command_requests.append(
             Command(id="_", name=stream_name, value=value)
         )
-
         context = rclpy.Context()
         rclpy.init(context=context)
 
