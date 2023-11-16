@@ -12,7 +12,7 @@ ADAPTER_NAME = "ros2_adapter_configuration"
 
 TEST_VALUES = {
     "call_no_params": "",
-    "set_bool": "True",
+    "set_bool": True,
     "set_int": "1",
     "set_float": "1.0",
     "set_string": "exampleString",
@@ -61,7 +61,7 @@ class TestServiceCall(unittest.TestCase):
         except Exception as e:
             print(f"Error while spinning: {e}")
 
-        self.assertTrue(publisher.value_recv)
+        self.assertTrue(publisher.is_completed)
 
     def tearDown(self):
         # Kill the terminal process
