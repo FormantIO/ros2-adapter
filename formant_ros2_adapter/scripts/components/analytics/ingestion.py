@@ -29,10 +29,6 @@ class IngestionAnalytics:
             self.sent_messages_count[stream] = 0
         self.sent_messages_count[stream] += 1
 
-    def remove_sent_message(self, stream):
-        if stream in self.sent_messages_count and self.sent_messages_count[stream] > 0:
-            self.sent_messages_count[stream] -= 1
-
     def report(self):
         logging.info("Ingestion Analytics Report")
         logging.info("Received Messages:")
@@ -41,6 +37,10 @@ class IngestionAnalytics:
         logging.info("Sent Messages:")
         for stream, count in self.sent_messages_count.items():
             logging.info(f"  Stream: {stream}, Count: {count}")
+
+        # Clearing out message counts after printing the report
+        self.received_messages_count.clear()
+        self.sent_messages_count.clear()
 
     def start_reporting_thread(self):
         self.reporting_thread = threading.Thread(target=self.reporting_loop)

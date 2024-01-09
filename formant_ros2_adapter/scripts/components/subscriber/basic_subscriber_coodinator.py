@@ -113,6 +113,7 @@ class BasicSubscriberCoordinator:
                             if header_timestamp > 1500000000000:
                                 timestamp = int(header_timestamp)
 
+                self._ingester.ingestion_analytics.log_received_message(topic)
                 if message_path_config is None:
                     if subscriber_config.message_paths:
                         for message_path_config in subscriber_config.message_paths:
