@@ -41,6 +41,7 @@ from formant.sdk.agent.v1.localization.types import (
 )
 
 from utils.logger import get_logger
+from components.analytics.ingestion import IngestionAnalytics
 from ros2_utils.message_utils import (
     get_ros2_type_from_string,
     message_to_json,
@@ -53,6 +54,7 @@ class Ingester:
         self._fclient = _fclient
         self.cv_bridge = CvBridge()
         self._logger = get_logger()
+        self.ingestion_analytics = IngestionAnalytics()
 
     def ingest(
         self,
@@ -63,7 +65,8 @@ class Ingester:
         msg_timestamp: int,
         tags: Dict,
     ):
-
+        self.ingestion_analytics.log_received_message(topic)
+        self.ingestion_analytics.log_sent_message(formant_stream)
         # Handle the message based on its type
         try:
             if msg_type in [str, String, Char]:
@@ -175,8 +178,10 @@ class Ingester:
                         )
                     )
                 except grpc.RpcError as e:
+                    self.ingestion_analytics.remove_sent_message(formant_stream)
                     return
                 except Exception as e:
+                    self.ingestion_analytics.remove_sent_message(formant_stream)
                     self._logger.error(
                         "Could not ingest " + formant_stream + ": " + str(e)
                     )
@@ -193,8 +198,10 @@ class Ingester:
                         )
                     )
                 except grpc.RpcError as e:
+                    self.ingestion_analytics.remove_sent_message(formant_stream)
                     return
                 except Exception as e:
+                    self.ingestion_analytics.remove_sent_message(formant_stream)
                     self._logger.error(
                         "Could not ingest " + formant_stream + ": " + str(e)
                     )
@@ -210,4 +217,5 @@ class Ingester:
                 )
 
         except AttributeError as e:
+            self.ingestion_analytics.remove_sent_message(formant_stream)
             self._logger.error("Could not ingest " + formant_stream + ": " + str(e))
