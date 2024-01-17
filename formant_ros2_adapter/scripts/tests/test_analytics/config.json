@@ -1,0 +1,26 @@
+{
+    "ros2_adapter_configuration": {
+        "subscribers": [
+            {
+                "ros2_topic": "/my_string",
+                "ros2_message_type": "std_msgs/msg/String",
+                "formant_stream": "my.string"
+            },
+            {
+                "ros2_topic": "/my_int",
+                "ros2_message_type": "std_msgs/msg/Int32",
+                "formant_stream": "my.int"
+            },
+            {
+                "ros2_topic": "/my_twist",
+                "ros2_message_type": "geometry_msgs/msg/Twist",
+                "formant_stream": "my.twist",
+                "ros2_message_paths": [
+                    {
+                        "path": "linear"
+                    }
+                ]
+            }
+        ]
+    }
+}

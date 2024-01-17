@@ -41,6 +41,7 @@ from formant.sdk.agent.v1.localization.types import (
 )
 
 from utils.logger import get_logger
+from components.analytics.ingestion import IngestionAnalytics
 from ros2_utils.message_utils import (
     get_ros2_type_from_string,
     message_to_json,
@@ -53,6 +54,7 @@ class Ingester:
         self._fclient = _fclient
         self.cv_bridge = CvBridge()
         self._logger = get_logger()
+        self.ingestion_analytics = IngestionAnalytics()
 
     def ingest(
         self,
@@ -63,7 +65,6 @@ class Ingester:
         msg_timestamp: int,
         tags: Dict,
     ):
-
         # Handle the message based on its type
         try:
             if msg_type in [str, String, Char]:
@@ -76,6 +77,7 @@ class Ingester:
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
+                self.ingestion_analytics.log_sent_message(formant_stream)
 
             elif msg_type in [Bool, bool]:
                 if hasattr(msg, "data"):
@@ -87,6 +89,7 @@ class Ingester:
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
+                self.ingestion_analytics.log_sent_message(formant_stream)
 
             elif msg_type in [
                 int,
@@ -111,6 +114,7 @@ class Ingester:
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
+                self.ingestion_analytics.log_sent_message(formant_stream)
 
             elif msg_type == NavSatFix:
                 # Convert NavSatFix to a Formant location
@@ -122,6 +126,7 @@ class Ingester:
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
+                self.ingestion_analytics.log_sent_message(formant_stream)
 
             elif msg_type == Image:
                 # Convert Image to a Formant image
@@ -134,6 +139,7 @@ class Ingester:
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
+                self.ingestion_analytics.log_sent_message(formant_stream)
 
             elif msg_type == CompressedImage:
                 # Post the compressed image
@@ -151,6 +157,7 @@ class Ingester:
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
+                self.ingestion_analytics.log_sent_message(formant_stream)
 
             elif msg_type == BatteryState:
                 self._fclient.post_battery(
@@ -162,6 +169,7 @@ class Ingester:
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
+                self.ingestion_analytics.log_sent_message(formant_stream)
 
             elif msg_type == LaserScan:
                 # Convert LaserScan to a Formant pointcloud
@@ -174,6 +182,7 @@ class Ingester:
                             timestamp=msg_timestamp,
                         )
                     )
+                    self.ingestion_analytics.log_sent_message(formant_stream)
                 except grpc.RpcError as e:
                     return
                 except Exception as e:
@@ -192,6 +201,7 @@ class Ingester:
                             timestamp=msg_timestamp,
                         )
                     )
+                    self.ingestion_analytics.log_sent_message(formant_stream)
                 except grpc.RpcError as e:
                     return
                 except Exception as e:
@@ -208,6 +218,7 @@ class Ingester:
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
+                self.ingestion_analytics.log_sent_message(formant_stream)
 
         except AttributeError as e:
             self._logger.error("Could not ingest " + formant_stream + ": " + str(e))
