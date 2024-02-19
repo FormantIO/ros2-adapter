@@ -5,6 +5,8 @@ from rclpy.node import Node
 from rclpy.subscription import Subscription
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
+from tf2_ros import LookupTransformGoal
+from tf2_ros.buffer_client import BufferClient
 from tf2_msgs.msg import TFMessage
 import threading
 from typing import List, Dict, Optional
@@ -57,8 +59,10 @@ class LocalizationSubscriberCoordinator:
     def _setup_transform_listener(self):
         try:
             self._logger.info("Setting up tf2_ros transform listener")
-            self.tf_buffer = Buffer()
-            self.tf_listener = TransformListener(self.tf_buffer, self._node)
+            tf_buffer = BufferClient(self._node, '/tf_action', check_frequency=10.0, timeout_padding=0.0)
+            self._logger.info('Waiting for tf2 buffer server...')
+            tf_buffer.action_client.wait_for_server()
+            self.tf_buffer = tf_buffer
             self._logger.info("Set up tf2_ros transform listener")
 
         except Exception as e:
@@ -66,20 +70,33 @@ class LocalizationSubscriberCoordinator:
                 "Could not set up tf2_ros transform listener: %s" % str(e)
             )
 
-    def _lookup_transform(self, msg, base_reference_frame: str):
-        if self.tf_buffer is None or self.tf_listener is None:
+    async def _lookup_transform(self, msg, base_reference_frame: str):
+        if self.tf_buffer is None:
             return FTransform()
+
+        goal = LookupTransformGoal()
+        goal.target_frame = base_reference_frame
+        goal.source_frame = msg.header.frame_id
+        goal.source_time = rclpy.time.Time()
+        goal.timeout.sec = 1
+
         try:
-            transform = self.tf_buffer.lookup_transform(
-                base_reference_frame, msg.header.frame_id, rclpy.time.Time()
-            )
-            return FTransform.from_ros_transform_stamped(transform)
-        except Exception as e:
-            pass
+            future = self.tf_buffer.call_async(goal)
+            await rclpy.spin_until_future_complete(self._node, future)
+            if future.result() is not None:
+                transform = future.result().transform
+                return FTransform.from_ros_transform_stamped(transform)
+            else:
+                self._logger.warn(f"Future returned None for transform between {base_reference_frame} and {msg.header.frame_id}")
+        except TransformException as e:
             self._logger.warn(
-                "Could not look up transform between %s and %s: %s, using identity"
-                % (base_reference_frame, msg.header.frame_id, str(e))
+                f"Could not look up transform between {base_reference_frame} and {msg.header.frame_id}: {str(e)}, using identity"
             )
+        except Exception as e:
+            self._logger.warn(
+                f"Unexpected error during transform lookup between {base_reference_frame} and {msg.header.frame_id}: {str(e)}, using identity"
+            )
+        
         return FTransform()
 
     def setup_with_config(self, config: ConfigSchema):
@@ -160,7 +177,7 @@ class LocalizationSubscriberCoordinator:
 
         self._logger.info("Set up localization subscribers")
 
-    def _odom_callback(self, msg):
+    async def _odom_callback(self, msg):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type == Odometry:
@@ -171,13 +188,13 @@ class LocalizationSubscriberCoordinator:
                 self._logger.warn("Unknown odom type: %s" % msg_type)
                 return
 
-            odometry.transform_to_world = self._lookup_transform(
+            odometry.transform_to_world = await self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
 
             self._localization_manager.update_odometry(odometry)
 
-    def _map_callback(self, msg):
+    async def _map_callback(self, msg):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type is OccupancyGrid:
@@ -201,12 +218,12 @@ class LocalizationSubscriberCoordinator:
                 self._logger.warn("Unknown map type %s" % msg_type)
                 return
 
-            formant_map.transform_to_world = self._lookup_transform(
+            formant_map.transform_to_world = await self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
             self._localization_manager.update_map(formant_map)
 
-    def _path_callback(self, msg):
+    async def _path_callback(self, msg):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type == Path:
@@ -215,12 +232,12 @@ class LocalizationSubscriberCoordinator:
                 self._logger.warn("Unknown path type: %s" % msg_type)
                 return
 
-            path.transform_to_world = self._lookup_transform(
+            path.transform_to_world = await self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
             self._localization_manager.update_path(path)
 
-    def _goal_callback(self, msg):
+    async def _goal_callback(self, msg):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type == PoseStamped:
@@ -228,12 +245,12 @@ class LocalizationSubscriberCoordinator:
             else:
                 self._logger.warn("Unknown goal type: %s" % msg_type)
                 return
-            goal.transform_to_world = self._lookup_transform(
+            goal.transform_to_world = await self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
             self._localization_manager.update_goal(goal)
 
-    def _point_cloud_callback(self, msg, topic_name):
+    async def _point_cloud_callback(self, msg, topic_name):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type == LaserScan:
@@ -244,7 +261,7 @@ class LocalizationSubscriberCoordinator:
                 self._logger.warn("Unknown point cloud type: %s" % msg_type)
                 return
 
-            point_cloud.transform_to_world = self._lookup_transform(
+            point_cloud.transform_to_world = await self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
 
