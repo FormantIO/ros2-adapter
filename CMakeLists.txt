@@ -14,6 +14,11 @@ execute_process(
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclpy REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(rclcpp REQUIRED)
+
+add_executable(buffer_server src/buffer_server.cpp)
+ament_target_dependencies(buffer_server rclcpp tf2_ros)
 
 # Install python modules
 include(GNUInstallDirs)
@@ -42,6 +47,7 @@ install(PROGRAMS
   ${PROJECT_NAME}/scripts/config.json
   ${PROJECT_NAME}/scripts/main.py
   ${PROJECT_NAME}/scripts/ros2_adapter.py
+  buffer_server
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
 )
 
