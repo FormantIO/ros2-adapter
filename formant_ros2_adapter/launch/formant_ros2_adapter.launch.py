@@ -10,6 +10,14 @@ def generate_launch_description():
     package_name = "formant_ros2_adapter"
     config_dir = os.path.join(get_package_share_directory(package_name), "config")
 
+    # Create the buffer_server node
+    buffer_server_node = Node(
+        package=package_name, 
+        executable="buffer_server",
+        name="buffer_server",
+        output="both"
+    )
+
     # Create the node, setting the config_dir environment variable
     # Merge the current environment variables with the new one
     env = os.environ.copy()
@@ -17,4 +25,4 @@ def generate_launch_description():
 
     node = Node(package=package_name, executable="main.py", name="formant_ros2_adapter", output="both", env=env)
 
-    return LaunchDescription([node])
+    return LaunchDescription([buffer_server_node, node])
