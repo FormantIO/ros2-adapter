@@ -6,6 +6,7 @@ from rclpy.subscription import Subscription
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from tf2_ros import LookupTransformGoal
+from tf2_ros import TransformException
 from tf2_ros.buffer_client import BufferClient
 from tf2_msgs.msg import TFMessage
 import threading
@@ -74,30 +75,19 @@ class LocalizationSubscriberCoordinator:
         if self.tf_buffer is None:
             return FTransform()
 
-        goal = LookupTransformGoal()
-        goal.target_frame = base_reference_frame
-        goal.source_frame = msg.header.frame_id
-        goal.source_time = rclpy.time.Time()
-        goal.timeout.sec = 1
-
         try:
-            future = self.tf_buffer.call_async(goal)
-            await rclpy.spin_until_future_complete(self._node, future)
-            if future.result() is not None:
-                transform = future.result().transform
-                return FTransform.from_ros_transform_stamped(transform)
-            else:
-                self._logger.warn(f"Future returned None for transform between {base_reference_frame} and {msg.header.frame_id}")
+            transform = await self.tf_buffer.lookup_transform(
+                target_frame=base_reference_frame,
+                source_frame=msg.header.frame_id,
+                time=rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=1)
+            )
+            return FTransform.from_ros_transform_stamped(transform)
         except TransformException as e:
             self._logger.warn(
-                f"Could not look up transform between {base_reference_frame} and {msg.header.frame_id}: {str(e)}, using identity"
+                f"Could not look up transform between {base_reference_frame} and {msg.header.frame_id}: {e}, using identity"
             )
-        except Exception as e:
-            self._logger.warn(
-                f"Unexpected error during transform lookup between {base_reference_frame} and {msg.header.frame_id}: {str(e)}, using identity"
-            )
-        
-        return FTransform()
+            return FTransform()
 
     def setup_with_config(self, config: ConfigSchema):
         with self._config_lock:
