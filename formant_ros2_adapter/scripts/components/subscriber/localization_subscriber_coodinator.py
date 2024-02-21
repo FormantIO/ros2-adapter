@@ -84,7 +84,7 @@ class LocalizationSubscriberCoordinator:
             return FTransform.from_ros_transform_stamped(transform)
         except TransformException as e:
             self._logger.warn(
-                f"Could not look up transform between {base_reference_frame} and {msg.header.frame_id}: {e}, using identity"
+                f"Could not look up transform between {base_reference_frame} and {msg.header.frame_id}: {e}"
             )
             return FTransform()
 
