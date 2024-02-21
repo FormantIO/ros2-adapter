@@ -5,7 +5,6 @@ from rclpy.node import Node
 from rclpy.subscription import Subscription
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from tf2_ros import LookupTransformGoal
 from tf2_ros import TransformException
 from tf2_ros.buffer_client import BufferClient
 from tf2_msgs.msg import TFMessage
