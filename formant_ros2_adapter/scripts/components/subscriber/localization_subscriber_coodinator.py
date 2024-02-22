@@ -61,6 +61,7 @@ class LocalizationSubscriberCoordinator:
     def _setup_transform_listener(self):
         try:
             self._logger.info("Setting up tf2_ros transform listener")
+            # a new ReentrantCallbackGroup must be used to prevent deadlocks
             action_client = ActionClient(self._node, LookupTransform, '/tf_action', callback_group=ReentrantCallbackGroup())
             self._logger.info('Waiting for tf2 buffer server...')
             action_client.wait_for_server()
@@ -85,7 +86,6 @@ class LocalizationSubscriberCoordinator:
 
         try:
             goal_res = self.action_client.send_goal(goal)
-            # self._logger.info(goal_res)
 
             if not goal_res.result:
                 return FTransform()
