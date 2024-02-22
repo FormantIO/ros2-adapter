@@ -6,7 +6,8 @@ from rclpy.subscription import Subscription
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from tf2_ros import TransformException
-from tf2_ros.buffer_client import BufferClient
+from tf2_msgs.action import LookupTransform
+from rclpy.action import ActionClient
 from tf2_msgs.msg import TFMessage
 import threading
 from typing import List, Dict, Optional
@@ -33,6 +34,7 @@ from configuration.transform_tree_config import TransformTreeConfig
 from utils.logger import get_logger
 from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
 from ros2_utils.topic_type_provider import TopicTypeProvider
+from rclpy.callback_groups import ReentrantCallbackGroup
 
 
 Costmap = None
@@ -40,7 +42,6 @@ try:
     from nav2_msgs.msg import Costmap
 except ModuleNotFoundError:
     pass
-
 
 class LocalizationSubscriberCoordinator:
     def __init__(
@@ -52,6 +53,7 @@ class LocalizationSubscriberCoordinator:
         self._topic_type_provider = topic_type_provider
         self._subscriptions: List[Subscription] = []
         self._logger = get_logger()
+        self.action_client = None
         self._setup_transform_listener()
         self.ros2_topic_names_and_types: Dict[str, str] = {}
         self._config_lock = threading.Lock()
@@ -59,10 +61,11 @@ class LocalizationSubscriberCoordinator:
     def _setup_transform_listener(self):
         try:
             self._logger.info("Setting up tf2_ros transform listener")
-            tf_buffer = BufferClient(self._node, '/tf_action', check_frequency=10.0, timeout_padding=0.0)
+            # tf_buffer = BufferClient(self._node, '/tf_action', check_frequency=10.0, timeout_padding=0.0)
+            action_client = ActionClient(self._node, LookupTransform, '/tf_action', callback_group=ReentrantCallbackGroup())
             self._logger.info('Waiting for tf2 buffer server...')
-            tf_buffer.action_client.wait_for_server()
-            self.tf_buffer = tf_buffer
+            action_client.wait_for_server()
+            self.action_client = action_client
             self._logger.info("Set up tf2_ros transform listener")
 
         except Exception as e:
@@ -70,22 +73,26 @@ class LocalizationSubscriberCoordinator:
                 "Could not set up tf2_ros transform listener: %s" % str(e)
             )
 
-    async def _lookup_transform(self, msg, base_reference_frame: str):
-        if self.tf_buffer is None:
+    def _lookup_transform(self, msg, base_reference_frame: str):
+        if self.action_client is None:
             return FTransform()
 
+        goal = LookupTransform.Goal()
+        goal.target_frame = base_reference_frame
+        goal.source_frame = msg.header.frame_id
+        goal.source_time = rclpy.time.Time().to_msg()
+        goal.timeout = rclpy.duration.Duration(seconds=1).to_msg()
+        goal.advanced = False
+
         try:
-            transform = await self.tf_buffer.lookup_transform(
-                target_frame=base_reference_frame,
-                source_frame=msg.header.frame_id,
-                time=rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=1)
-            )
-            return FTransform.from_ros_transform_stamped(transform)
-        except TransformException as e:
-            self._logger.warn(
-                f"Could not look up transform between {base_reference_frame} and {msg.header.frame_id}: {e}"
-            )
+            goal_res = self.action_client.send_goal(goal)
+            # self._logger.info(goal_res)
+
+            if not goal_res.result:
+                return FTransform()
+
+            return FTransform.from_ros_transform_stamped(result.transform)
+        except:
             return FTransform()
 
     def setup_with_config(self, config: ConfigSchema):
@@ -166,7 +173,7 @@ class LocalizationSubscriberCoordinator:
 
         self._logger.info("Set up localization subscribers")
 
-    async def _odom_callback(self, msg):
+    def _odom_callback(self, msg):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type == Odometry:
@@ -177,13 +184,13 @@ class LocalizationSubscriberCoordinator:
                 self._logger.warn("Unknown odom type: %s" % msg_type)
                 return
 
-            odometry.transform_to_world = await self._lookup_transform(
+            odometry.transform_to_world = self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
 
             self._localization_manager.update_odometry(odometry)
 
-    async def _map_callback(self, msg):
+    def _map_callback(self, msg):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type is OccupancyGrid:
@@ -207,12 +214,12 @@ class LocalizationSubscriberCoordinator:
                 self._logger.warn("Unknown map type %s" % msg_type)
                 return
 
-            formant_map.transform_to_world = await self._lookup_transform(
+            formant_map.transform_to_world = self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
             self._localization_manager.update_map(formant_map)
 
-    async def _path_callback(self, msg):
+    def _path_callback(self, msg):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type == Path:
@@ -221,12 +228,12 @@ class LocalizationSubscriberCoordinator:
                 self._logger.warn("Unknown path type: %s" % msg_type)
                 return
 
-            path.transform_to_world = await self._lookup_transform(
+            path.transform_to_world = self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
             self._localization_manager.update_path(path)
 
-    async def _goal_callback(self, msg):
+    def _goal_callback(self, msg):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type == PoseStamped:
@@ -234,12 +241,12 @@ class LocalizationSubscriberCoordinator:
             else:
                 self._logger.warn("Unknown goal type: %s" % msg_type)
                 return
-            goal.transform_to_world = await self._lookup_transform(
+            goal.transform_to_world = self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
             self._localization_manager.update_goal(goal)
 
-    async def _point_cloud_callback(self, msg, topic_name):
+    def _point_cloud_callback(self, msg, topic_name):
         with self._config_lock:
             msg_type = type(msg)
             if msg_type == LaserScan:
@@ -250,7 +257,7 @@ class LocalizationSubscriberCoordinator:
                 self._logger.warn("Unknown point cloud type: %s" % msg_type)
                 return
 
-            point_cloud.transform_to_world = await self._lookup_transform(
+            point_cloud.transform_to_world = self._lookup_transform(
                 msg, self._config.localization.base_reference_frame
             )
 
