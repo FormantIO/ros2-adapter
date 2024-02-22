@@ -5,9 +5,9 @@ from rclpy.node import Node
 from rclpy.subscription import Subscription
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from tf2_ros import TransformException
 from tf2_msgs.action import LookupTransform
 from rclpy.action import ActionClient
+from rclpy.callback_groups import ReentrantCallbackGroup
 from tf2_msgs.msg import TFMessage
 import threading
 from typing import List, Dict, Optional
@@ -34,7 +34,6 @@ from configuration.transform_tree_config import TransformTreeConfig
 from utils.logger import get_logger
 from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
 from ros2_utils.topic_type_provider import TopicTypeProvider
-from rclpy.callback_groups import ReentrantCallbackGroup
 
 
 Costmap = None
@@ -42,6 +41,7 @@ try:
     from nav2_msgs.msg import Costmap
 except ModuleNotFoundError:
     pass
+
 
 class LocalizationSubscriberCoordinator:
     def __init__(
@@ -61,7 +61,6 @@ class LocalizationSubscriberCoordinator:
     def _setup_transform_listener(self):
         try:
             self._logger.info("Setting up tf2_ros transform listener")
-            # tf_buffer = BufferClient(self._node, '/tf_action', check_frequency=10.0, timeout_padding=0.0)
             action_client = ActionClient(self._node, LookupTransform, '/tf_action', callback_group=ReentrantCallbackGroup())
             self._logger.info('Waiting for tf2 buffer server...')
             action_client.wait_for_server()
