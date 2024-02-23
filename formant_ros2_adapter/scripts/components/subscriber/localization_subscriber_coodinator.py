@@ -81,7 +81,7 @@ class LocalizationSubscriberCoordinator:
         goal.target_frame = base_reference_frame
         goal.source_frame = msg.header.frame_id
         goal.source_time = rclpy.time.Time().to_msg()
-        goal.timeout = rclpy.duration.Duration(seconds=2).to_msg()
+        goal.timeout = rclpy.duration.Duration(seconds=1).to_msg()
         goal.advanced = False
 
         try:
