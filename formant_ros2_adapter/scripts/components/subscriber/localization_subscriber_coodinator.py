@@ -81,16 +81,22 @@ class LocalizationSubscriberCoordinator:
         goal.target_frame = base_reference_frame
         goal.source_frame = msg.header.frame_id
         goal.source_time = rclpy.time.Time().to_msg()
-        goal.timeout = rclpy.duration.Duration(seconds=1).to_msg()
+        goal.timeout = rclpy.duration.Duration(seconds=2).to_msg()
         goal.advanced = False
 
         try:
-            goal_res = self.action_client.send_goal(goal)
+            send_goal_future = self.action_client.send_goal_async(goal)
+            rclpy.spin_until_future_complete(self._node, send_goal_future)
+            goal_handle = send_goal_future.result()
 
-            if not goal_res.result:
+            if not goal_handle.accepted:
                 return FTransform()
 
-            return FTransform.from_ros_transform_stamped(result.transform)
+            get_result_future = goal_handle.get_result_async()
+            rclpy.spin_until_future_complete(self._node, get_result_future)
+            transform_stamped = get_result_future.result().result.transform
+
+            return FTransform.from_ros_transform_stamped(transform_stamped)
         except:
             return FTransform()
 
