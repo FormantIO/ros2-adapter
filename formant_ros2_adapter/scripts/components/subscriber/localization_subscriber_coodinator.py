@@ -81,20 +81,38 @@ class LocalizationSubscriberCoordinator:
         goal.target_frame = base_reference_frame
         goal.source_frame = msg.header.frame_id
         goal.source_time = rclpy.time.Time().to_msg()
-        goal.timeout = rclpy.duration.Duration(seconds=3).to_msg()
+        goal.timeout = rclpy.duration.Duration(seconds=2).to_msg()
         goal.advanced = False
 
+        self._logger.info("req")
+
         try:
+            send_goal_future_event = threading.Event()
+
+            def is_send_goal_future_done(future):
+                nonlocal send_goal_future_event
+                send_goal_future_event.set()
+
             send_goal_future = self.action_client.send_goal_async(goal)
-            rclpy.spin_until_future_complete(self._node, send_goal_future)
+            send_goal_future.add_done_callback(is_send_goal_future_done)
+            send_goal_future_event.wait()
             goal_handle = send_goal_future.result()
 
             if not goal_handle.accepted:
                 return FTransform()
 
+            get_result_future_event = threading.Event()
+
+            def is_get_result_future_done(future):
+                nonlocal get_result_future_event
+                get_result_future_event.set()
+
             get_result_future = goal_handle.get_result_async()
-            rclpy.spin_until_future_complete(self._node, get_result_future)
+            get_result_future.add_done_callback(is_get_result_future_done)
+            get_result_future_event.wait()
+
             transform_stamped = get_result_future.result().result.transform
+            # self._logger.info(transform_stamped)
 
             return FTransform.from_ros_transform_stamped(transform_stamped)
         except:
