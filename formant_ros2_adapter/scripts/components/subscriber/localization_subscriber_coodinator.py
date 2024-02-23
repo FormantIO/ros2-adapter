@@ -61,7 +61,7 @@ class LocalizationSubscriberCoordinator:
     def _setup_transform_listener(self):
         try:
             self._logger.info("Setting up tf2_ros transform listener")
-            # a new ReentrantCallbackGroup must be used to prevent deadlocks
+            # a separate CallbackGroup should be used with a MultiThreadedExecutor
             action_client = ActionClient(self._node, LookupTransform, '/tf_action', callback_group=ReentrantCallbackGroup())
             self._logger.info('Waiting for tf2 buffer server...')
             action_client.wait_for_server()
@@ -81,10 +81,8 @@ class LocalizationSubscriberCoordinator:
         goal.target_frame = base_reference_frame
         goal.source_frame = msg.header.frame_id
         goal.source_time = rclpy.time.Time().to_msg()
-        goal.timeout = rclpy.duration.Duration(seconds=2).to_msg()
+        goal.timeout = rclpy.duration.Duration(seconds=1).to_msg()
         goal.advanced = False
-
-        self._logger.info("req")
 
         try:
             send_goal_future_event = threading.Event()
