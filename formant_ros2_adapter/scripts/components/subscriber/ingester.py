@@ -1,5 +1,5 @@
-from cv_bridge import CvBridge
 import cv2
+from cv_bridge import CvBridge
 import grpc
 from typing import Dict
 from sensor_msgs.msg import (
