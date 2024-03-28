@@ -15,6 +15,6 @@ def generate_launch_description():
     env = os.environ.copy()
     env["CONFIG_DIR"] = config_dir
 
-    node = Node(package=package_name, executable="main.py", name="formant_ros2_adapter", output="both", env=env)
+    node = Node(package=package_name, executable="main.py", name="formant_ros2_adapter", output="both", respawn=True, env=env)
 
     return LaunchDescription([node])
