@@ -118,12 +118,12 @@ class BasicSubscriberCoordinator:
                     if subscriber_config.message_paths:
                         for message_path_config in subscriber_config.message_paths:
                             if message_path_config.path != "*":
-                                inner_msg = get_message_path_value(
+                                msg = get_message_path_value(
                                     msg, message_path_config.path
                                 )
                             # handle the inner message with the path config
                             self._handle_message(
-                                inner_msg, subscriber_config, message_path_config
+                                msg, subscriber_config, message_path_config
                             )
                         return
                 self._ingester.ingest(
