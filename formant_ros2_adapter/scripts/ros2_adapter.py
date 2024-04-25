@@ -48,7 +48,7 @@ class ROS2Adapter:
         self._logger.info("ROS 2 adapter finished initializing")
 
     def setup_with_config(self, config):
-        if not self.waiting_for_config:
+        if not self._waiting_for_config:
             self._waiting_for_config = True
             return
         try:
