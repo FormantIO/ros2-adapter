@@ -31,6 +31,7 @@ from configuration.transform_tree_config import TransformTreeConfig
 from utils.logger import get_logger
 from ros2_utils.qos import QOS_PROFILES, qos_profile_system_default
 from ros2_utils.topic_type_provider import TopicTypeProvider
+from rclpy.callback_groups import ReentrantCallbackGroup
 
 
 Costmap = None
@@ -53,6 +54,7 @@ class LocalizationSubscriberCoordinator:
         self._setup_transform_listener()
         self.ros2_topic_names_and_types: Dict[str, str] = {}
         self._config_lock = threading.Lock()
+        self._callback_group = ReentrantCallbackGroup()
 
     def _setup_transform_listener(self):
         try:
@@ -104,6 +106,7 @@ class LocalizationSubscriberCoordinator:
             odom_type,
             odom_topic,
             self._odom_callback,
+            callback_group=self._callback_group,
             qos_profile=qos_profile_system_default,
         )
         self._subscriptions.append(odom_sub)
@@ -120,6 +123,7 @@ class LocalizationSubscriberCoordinator:
                 map_type,
                 map_topic,
                 self._map_callback,
+                callback_group=self._callback_group,
                 qos_profile=qos_profile_system_default,
             )
             self._subscriptions.append(map_sub)
@@ -134,6 +138,7 @@ class LocalizationSubscriberCoordinator:
                 path_type,
                 path_topic,
                 self._path_callback,
+                callback_group=self._callback_group,
                 qos_profile=qos_profile_system_default,
             )
             self._subscriptions.append(path_sub)
@@ -153,6 +158,7 @@ class LocalizationSubscriberCoordinator:
                     lambda msg, topic=pointcloud_config.topic: self._point_cloud_callback(
                         msg, topic
                     ),
+                    callback_group=self._callback_group,
                     qos_profile=qos_profile_system_default,
                 )
                 self._subscriptions.append(pointcloud_sub)
@@ -258,7 +264,11 @@ class LocalizationSubscriberCoordinator:
         self._fclient.set_base_frame_id(tf_config.base_reference_frame)
         for topic in ["/tf", "/tf_static"]:
             new_sub = self._node.create_subscription(
-                TFMessage, topic, self.tf_callback, qos_profile_system_default
+                TFMessage,
+                topic,
+                self.tf_callback,
+                callback_group=self._callback_group,
+                qos_profile=qos_profile_system_default,
             )
             self._subscriptions.append(new_sub)
 
