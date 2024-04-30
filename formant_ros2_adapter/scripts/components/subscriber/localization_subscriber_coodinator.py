@@ -120,14 +120,12 @@ class LocalizationSubscriberCoordinator:
             map_type = self._topic_type_provider.get_class_for_topic(
                 map_topic, OccupancyGrid
             )
-            latching_qos = QoSProfile(depth=1,
-                durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL)
             map_sub = self._node.create_subscription(
                 map_type,
                 map_topic,
                 self._map_callback,
                 callback_group=self._callback_group,
-                qos_profile=latching_qos,
+                qos_profile=qos_profile_system_default,
             )
             self._subscriptions.append(map_sub)
             self._logger.info("Set up map")
@@ -137,15 +135,13 @@ class LocalizationSubscriberCoordinator:
         if path_topic:
             self._logger.info("Setting up path")
             path_type = self._topic_type_provider.get_class_for_topic(path_topic, Path)
-            latching_qos = QoSProfile(depth=1,
-                durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL)
             path_sub = self._node.create_subscription(
                 path_type,
                 path_topic,
                 self._path_callback,
                 callback_group=self._callback_group,
-                qos_profile=latching_qos,
-            )
+                qos_profile=qos_profile_system_default,
+                )
             self._subscriptions.append(path_sub)
             self._logger.info("Set up path")
 
