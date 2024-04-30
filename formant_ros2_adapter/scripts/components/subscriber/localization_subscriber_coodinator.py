@@ -241,20 +241,23 @@ class LocalizationSubscriberCoordinator:
         self._localization_manager.update_goal(goal)
 
     def _point_cloud_callback(self, msg, topic_name):
-        msg_type = type(msg)
-        if msg_type == LaserScan:
-            point_cloud = FPointCloud.from_ros_laserscan(msg)
-        elif msg_type == PointCloud2:
-            point_cloud = FPointCloud.from_ros(msg)
-        else:
-            self._logger.warn("Unknown point cloud type: %s" % msg_type)
-            return
+        try:
+            msg_type = type(msg)
+            if msg_type == LaserScan:
+                point_cloud = FPointCloud.from_ros_laserscan(msg)
+            elif msg_type == PointCloud2:
+                point_cloud = FPointCloud.from_ros(msg)
+            else:
+                self._logger.warn("Unknown point cloud type: %s" % msg_type)
+                return
 
-        point_cloud.transform_to_world = self._lookup_transform(
-            msg, self._config.localization.base_reference_frame
-        )
+            point_cloud.transform_to_world = self._lookup_transform(
+                msg, self._config.localization.base_reference_frame
+            )
 
-        self._localization_manager.update_point_cloud(point_cloud, topic_name)
+            self._localization_manager.update_point_cloud(point_cloud, topic_name)
+        except ValueError:
+            pass
 
     def _setup_tf(self, tf_config: TransformTreeConfig):
         self._logger.debug(
