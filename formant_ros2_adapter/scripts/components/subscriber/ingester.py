@@ -63,7 +63,7 @@ class Ingester:
         msg_timestamp: int,
         tags: Dict,
     ):
-        self._logger.info("Ingesting message " + str(msg) + " to " + formant_stream)
+        self._logger.debug("Ingesting message " + str(msg) + " to " + formant_stream)
         # Handle the message based on its type
         try:
             if msg_type in [str, String, Char]:
