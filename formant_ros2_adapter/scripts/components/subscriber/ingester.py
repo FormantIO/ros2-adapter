@@ -63,27 +63,27 @@ class Ingester:
         msg_timestamp: int,
         tags: Dict,
     ):
-
+        self._logger.debug("Ingesting message " + str(msg) + " to " + formant_stream)
         # Handle the message based on its type
         try:
             if msg_type in [str, String, Char]:
                 if hasattr(msg, "data"):
-                    msg = msg.data
+                    ingested_data = msg.data
 
                 self._fclient.post_text(
                     formant_stream,
-                    str(msg),
+                    str(ingested_data),
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
 
             elif msg_type in [Bool, bool]:
                 if hasattr(msg, "data"):
-                    msg = msg.data
+                    ingested_data = msg.data
 
                 self._fclient.post_bitset(
                     formant_stream,
-                    {topic: msg},
+                    {topic: ingested_data},
                     tags=tags,
                     timestamp=msg_timestamp,
                 )
@@ -102,12 +102,13 @@ class Ingester:
                 UInt32,
                 UInt64,
             ]:
+
                 if hasattr(msg, "data"):
-                    msg = msg.data
+                    ingested_data = msg.data
 
                 self._fclient.post_numeric(
                     formant_stream,
-                    msg,
+                    ingested_data,
                     tags=tags,
                     timestamp=msg_timestamp,
                 )

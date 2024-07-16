@@ -4,7 +4,7 @@
 source /opt/ros/*/setup.bash
 # Optional ROS environment variables
 #export ROS_DOMAIN_ID=1
-#export ROS_LOCALHOST_ONLY=1
+#export ROS_LOCALHOST_ONLY=1 #un-comment for local only ingestion
 #export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 if [ -z ${FORMANT_ROS2_WS+x} ]; then
