@@ -31,6 +31,7 @@ jobs:
         release_name: Release ${{ steps.ros2-adapter-vars.outputs.release_tag }}
         draft: false
         prerelease: false
+        GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
       env:
         GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
 
@@ -41,5 +42,6 @@ jobs:
         asset_path: ${{ github.workspace }}/adapter.zip
         asset_name: ros2-adapter.zip
         asset_content_type: application/zip
+        GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
       env:
         GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
