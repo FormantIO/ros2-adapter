@@ -16,7 +16,7 @@ jobs:
 
     - name: Run build script for ros2 adapter
       run: |
-        ./create-adapter.sh
+        ./create_adapter.sh
       working-directory: ${{ github.workspace }}
 
     - name: Set release tag for ros2 adapter
