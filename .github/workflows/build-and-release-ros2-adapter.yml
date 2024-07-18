@@ -1,0 +1,45 @@
+name: Build and release ros2 adapter
+
+on:
+  push:
+    branches:
+      - master
+
+
+jobs:
+  build-and-deploy-adapter:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Run build script for ros2 adapter
+      run: |
+        ./create-adapter.sh
+      working-directory: ${{ github.workspace }}
+
+    - name: Set release tag for ros2 adapter
+      id: ros2-adapter-vars
+      run: echo "::set-output name=release_tag::ros2-adapter-release-$(date +'%Y-%m-%d-%H%M%S')"
+
+    - name: Create Release for Ros2 Adapter
+      id: ros2-adapter-create-release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ steps.ros2-adapter-vars.outputs.release_tag }}
+        release_name: Release ${{ steps.ros2-adapter-vars.outputs.release_tag }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
+
+    - name: Upload Release Asset for Ros2 adapter
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.ros2-adapter-create-release.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/adapter.zip
+        asset_name: ros2-adapter.zip
+        asset_content_type: application/zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
