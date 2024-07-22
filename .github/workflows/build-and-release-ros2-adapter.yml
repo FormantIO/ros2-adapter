@@ -31,9 +31,8 @@ jobs:
         release_name: Release ${{ steps.ros2-adapter-vars.outputs.release_tag }}
         draft: false
         prerelease: false
-        GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
       env:
-        GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Release Asset for Ros2 adapter
       uses: actions/upload-release-asset@v1
@@ -42,6 +41,5 @@ jobs:
         asset_path: ${{ github.workspace }}/adapter.zip
         asset_name: ros2-adapter.zip
         asset_content_type: application/zip
-        GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
       env:
-        GITHUB_TOKEN: ${{ secrets.ADAPTER_GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
