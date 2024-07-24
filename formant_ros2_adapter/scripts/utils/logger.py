@@ -1,7 +1,7 @@
 import logging
 
 logger = logging.getLogger("formant_ros2_adapter")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def get_logger():

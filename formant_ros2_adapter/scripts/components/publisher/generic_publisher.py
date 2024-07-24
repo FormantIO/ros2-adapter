@@ -73,7 +73,10 @@ ROS2_NUMERIC_TYPES = [
 
 class GenericPublisher:
     def __init__(
-        self, fclient: Client, node: Node, topic_type_provider: TopicTypeProvider
+        self,
+        fclient: Client,
+        node: Node,
+        topic_type_provider: TopicTypeProvider,
     ):
         self._logger = get_logger()
         self._fclient = fclient
@@ -92,8 +95,12 @@ class GenericPublisher:
                         ros2_msg = String()
                         ros2_msg.data = msg
                         publisher.publish(ros2_msg)
-                    elif (ros2_msg_type in ROS2_NUMERIC_TYPES) and msg.isnumeric():
-                        self._publish_ros2_numeric(publisher, ros2_msg_type, msg)
+                    elif (
+                        ros2_msg_type in ROS2_NUMERIC_TYPES
+                    ) and msg.isnumeric():
+                        self._publish_ros2_numeric(
+                            publisher, ros2_msg_type, msg
+                        )
                     else:
                         self._logger.warn(
                             "Unsupported ROS2 message type for command: %s"
@@ -128,7 +135,8 @@ class GenericPublisher:
                     ros2_msg.data = str(msg_value)
                 else:
                     self._logger.warn(
-                        "Unsupported ROS2 message type for bitset: %s" % ros2_msg_type
+                        "Unsupported ROS2 message type for bitset: %s"
+                        % ros2_msg_type
                     )
                     continue
 
@@ -145,7 +153,9 @@ class GenericPublisher:
                 elif ros2_msg == "PointStamped":
                     ros2_msg = PointStamped(point=point)
                 else:
-                    self._logger.warn("Unsupported Point Type: %s" % ros2_msg_type)
+                    self._logger.warn(
+                        "Unsupported Point Type: %s" % ros2_msg_type
+                    )
                 publisher.publish(ros2_msg)
 
             elif msg.HasField("pose"):
@@ -183,10 +193,16 @@ class GenericPublisher:
                     ]
                 else:
                     self._logger.warn(
-                        "Unsupported ROS2 message type for twist: %s" % ros2_msg_type
+                        "Unsupported ROS2 message type for twist: %s"
+                        % ros2_msg_type
                     )
                     continue
-
+                publisher.publish(ros2_msg)
+            elif msg.HasField("joy"):
+                ros2_msg = Joy()
+                ros2_msg.header = Header()
+                ros2_msg.axes = msg.joy.axes
+                ros2_msg.buttons = msg.joy.buttons
                 publisher.publish(ros2_msg)
 
     def _publish_ros2_numeric(
