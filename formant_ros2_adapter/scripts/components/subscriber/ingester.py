@@ -48,6 +48,9 @@ from ros2_utils.message_utils import (
 )
 
 
+CompressedImage.__repr__ = lambda self: f"CompressedImage(header={self.header},format={self.format}, data={self.data[:10]})"
+Image.__repr__ = lambda self: f"Image(header={self.header},format={self.format}, data={self.data[:10]})"
+
 class Ingester:
     def __init__(self, _fclient: Client):
         self._fclient = _fclient

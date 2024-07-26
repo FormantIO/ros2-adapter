@@ -66,8 +66,8 @@ class BasicSubscriberCoordinator:
             raise ValueError("No ROS2 type found for %s" % topic)
 
         self._logger.debug(
-            "Setting up subscription %s, %s, %s"
-            % (topic, subscriber_config.qos_profile, ros2_type)
+            "Setting up subscription %s, %s, %s pointing to Formant stream: %s"
+            % (topic, subscriber_config.qos_profile, ros2_type, subscriber_config.formant_stream)
         )
         new_subscriber = self._node.create_subscription(
             get_ros2_type_from_string(ros2_type),
