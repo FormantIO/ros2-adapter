@@ -1,5 +1,5 @@
 numpy>=1.19.3
-formant>=1.114.39
+formant>=1.177.11
 jsonschema
 python-lzf
 opencv-python
