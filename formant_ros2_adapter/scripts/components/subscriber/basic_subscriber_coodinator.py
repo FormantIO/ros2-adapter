@@ -95,12 +95,13 @@ class BasicSubscriberCoordinator:
                 formant_stream = subscriber_config.formant_stream
                 topic = subscriber_config.topic
                 tags = {}
-                if (
-                    message_path_config
-                    and message_path_config.tag_key
-                    and message_path_config.tag_value
-                ):
-                    tags = {message_path_config.tag_key: message_path_config.tag_value}
+                if message_path_config:
+                    if message_path_config.tag_key and message_path_config.tag_value:
+                        tags = {
+                            message_path_config.tag_key: message_path_config.tag_value
+                        }
+                    if message_path_config.formant_stream:
+                        formant_stream = message_path_config.formant_stream
                 if timestamp is None:
                     timestamp = int(time.time() * 1000)
                     if hasattr(msg, "header"):
@@ -116,12 +117,14 @@ class BasicSubscriberCoordinator:
                 if message_path_config is None:
                     if subscriber_config.message_paths:
                         for message_path_config in subscriber_config.message_paths:
-                            inner_msg = get_message_path_value(
-                                msg, message_path_config.path
-                            )
+                            msg_to_handle = msg
+                            if message_path_config.path != "*":
+                                msg_to_handle = get_message_path_value(
+                                    msg, message_path_config.path
+                                )                                
                             # handle the inner message with the path config
                             self._handle_message(
-                                inner_msg, subscriber_config, message_path_config
+                                msg_to_handle, subscriber_config, message_path_config
                             )
                         return
                 self._ingester.ingest(
