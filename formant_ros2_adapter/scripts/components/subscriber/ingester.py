@@ -67,8 +67,14 @@ class Ingester:
         # Handle the message based on its type
         try:
             if msg_type in [str, String, Char]:
+                
+                # if msg has the data field, use that
                 if hasattr(msg, "data"):
                     ingested_data = msg.data
+
+                # if msg is already a string, use the msg itself.
+                elif type(msg) in [str]:
+                    ingested_data = msg
 
                 self._fclient.post_text(
                     formant_stream,
@@ -78,8 +84,14 @@ class Ingester:
                 )
 
             elif msg_type in [Bool, bool]:
+                
+                # if msg has the data field, use that
                 if hasattr(msg, "data"):
                     ingested_data = msg.data
+
+                # if msg is already a bool, use the msg itself.
+                elif type(msg) in [bool]:
+                    ingested_data = msg
 
                 self._fclient.post_bitset(
                     formant_stream,
@@ -103,8 +115,13 @@ class Ingester:
                 UInt64,
             ]:
 
+                # If msg has the data field, use that
                 if hasattr(msg, "data"):
                     ingested_data = msg.data
+                
+                # If msg is already numeric type, use the msg itself.
+                elif type(msg) in [int, float]:
+                    ingested_data = msg
 
                 self._fclient.post_numeric(
                     formant_stream,
