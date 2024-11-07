@@ -20,6 +20,7 @@ INITIAL_WAIT = 5
 
 class ROS2Adapter:
     def __init__(self, fclient: Client, node: Node):
+        self._waiting_for_config = False
         self._logger = get_logger()
         self._fclient = fclient
         self._node = node
@@ -44,13 +45,16 @@ class ROS2Adapter:
             self.setup_with_config,
             validate=False,
         )
-
         self._logger.info("ROS 2 adapter finished initializing")
 
     def setup_with_config(self, config):
+        if not self._waiting_for_config:
+            self._waiting_for_config = True
+            return
         try:
             self._logger.info("Received Config")
             if "ros2_adapter_configuration" in config:
+                print(config["ros2_adapter_configuration"])
                 self.config = ConfigSchema(config["ros2_adapter_configuration"])
                 self._logger.info("Config Parsed")
             else:

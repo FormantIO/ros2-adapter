@@ -2,6 +2,7 @@
 
 import os
 import rclpy
+from rclpy.executors import MultiThreadedExecutor
 
 from formant.sdk.agent.v1 import Client
 from ros2_adapter import ROS2Adapter
@@ -32,6 +33,8 @@ if __name__ == "__main__":
         allow_undeclared_parameters=True,
         automatically_declare_parameters_from_overrides=True,
     )
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
     logger.info("Creating Formant agent client")
     # To do: a cleaner solution would have ignore_unavailable=True and
     # something implemented in the client to avoid a race condition
@@ -40,7 +43,7 @@ if __name__ == "__main__":
     ROS2Adapter(fclient, node)
     try:
         while rclpy.ok():
-            rclpy.spin_once(node, timeout_sec=1.0)
+            rclpy.spin_once(node, executor=executor, timeout_sec=1.0)
     except KeyboardInterrupt:
         pass
     if node:

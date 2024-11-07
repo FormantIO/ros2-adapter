@@ -24,3 +24,4 @@ class MessagePathConfig:
         self.path: str = get_value(config, "path", required=True)
         self.tag_key: Optional[str] = get_value(config, "tag_key")
         self.tag_value: Optional[str] = get_value(config, "tag_value")
+        self.formant_stream: Optional[str] = get_value(config, "formant_stream")
