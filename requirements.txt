@@ -1,5 +1,11 @@
 numpy>=1.19.3
-formant>=1.177.11
+grpcio==1.37.0 # aligns with agent sdk requirements.txt
+grpcio-status==1.37.0
+grpcio-tools==1.37.0
+protobuf==3.15.8
+googleapis-common-protos<=1.56.0, >=1.6.0
+formant>=1.185.0
 jsonschema
 python-lzf
 opencv-python
+
