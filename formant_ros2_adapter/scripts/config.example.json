@@ -1,0 +1,26 @@
+{
+    "ros2_adapter_configuration": {
+        "subscribers": [
+            {
+                "ros2_topic": "/ip",
+                "ros2_message_type": "std_msgs/msg/String",
+                "formant_stream": "ip",
+                "tags": {
+                    "network": "local"
+                }
+            }
+        ],
+        "publishers": [
+            {
+                "formant_stream": "joystick",
+                "ros2_topic": "/cmd_vel",
+                "ros2_message_type": "geometry_msgs/msg/Twist"
+            },
+            {
+                "formant_stream": "test_joy",
+                "ros2_topic": "/test_joy",
+                "ros2_message_type": "sensor_msgs/msg/Joy"
+            }
+        ]
+    }
+}

@@ -1,14 +1,18 @@
 #!/bin/bash
 
-# Create and activate virtual environment if it doesn't exist
-VENV_DIR="./venv"
-if [ ! -d "$VENV_DIR" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv $VENV_DIR
-fi
+mode=$1
 
-# Activate virtual environment
-source $VENV_DIR/bin/activate
+if [ "$mode" == "standalone" ]; then
+    # Create and activate virtual environment if it doesn't exist
+    VENV_DIR="./venv"
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "Creating virtual environment..."
+        python3 -m venv $VENV_DIR
+    fi
+
+    # Activate virtual environment
+    source $VENV_DIR/bin/activate
+fi
 
 # Source ROS2
 source /opt/ros/*/setup.bash
@@ -28,6 +32,11 @@ else
 fi
 
 export PYTHONUNBUFFERED=true
+echo "ROS_VERSION: $ROS_VERSION"
+echo "PYTHONPATH: $PYTHONPATH"
+echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+echo "ROS_LOCALHOST_ONLY: $ROS_LOCALHOST_ONLY"
+echo "RMW_IMPLEMENTATION: $RMW_IMPLEMENTATION"
 
 # Install requirements in virtual environment
 python3 -m pip install -r requirements.txt
@@ -35,6 +44,8 @@ python3 -m pip install -r requirements.txt
 cd formant_ros2_adapter/scripts/
 python3 main.py
 
-# Deactivate virtual environment when done
-deactivate
+if [ "$mode" == "standalone" ]; then
+    # Deactivate virtual environment when done
+    deactivate
+fi
 
